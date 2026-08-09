@@ -106,7 +106,7 @@ export function useUploader() {
             {filename: f.name, identifier: md5, parentId: fileStore.paramParentId},
             (res) => {
               if (res.code === 0) {
-                ElMessage.success('文件：' + f.name + ' 上传完成')
+                ElMessage.success('⚡ 秒传成功：' + f.name)
                 f.cancel()
                 taskStore.remove(f.name)
                 fileStore.loadFileList()

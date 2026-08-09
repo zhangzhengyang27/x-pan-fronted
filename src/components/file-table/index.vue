@@ -28,6 +28,7 @@ import BaseTable from '@/components/base/BaseTable.vue'
 import BaseTooltip from '@/components/base/BaseTooltip.vue'
 import DrivePreviewModal from '@/components/preview/drive-preview-modal.vue'
 import FileTableToolbar from './FileTableToolbar.vue'
+import FileThumbnail from './FileThumbnail.vue'
 import {useTableSort} from '@/composables/useTableSort'
 import {useDrivePreview} from '@/composables/useDrivePreview'
 import {getDownloadUrl} from '@/utils/preview'
@@ -320,8 +321,7 @@ function previewDownload(item) {
     <template #cell-filename="{row}">
       <BaseTooltip :text="row.filename" position="top">
         <button type="button" class="group flex items-center gap-3 text-left w-full min-w-0" @click.stop="clickFilename(row)" @dblclick.stop="clickFilename(row)">
-          <component :is="fileIcon(row.fileType)" :size="20"
-                     class="shrink-0 text-[var(--color-primary-500)] group-hover:text-[var(--color-primary-600)] transition-colors"/>
+          <FileThumbnail :file="row" :size="28" rounded="rounded-md"/>
           <span class="truncate text-[var(--color-text)] group-hover:text-[var(--color-primary-600)] transition-colors">
             {{ row.filename }}
           </span>
@@ -372,8 +372,7 @@ function previewDownload(item) {
         @click="onRowClick(row)"
         @dblclick="onRowDblclick(row)"
       >
-        <component :is="fileIcon(row.fileType)" :size="48"
-                   class="text-[var(--color-primary-500)] group-hover:scale-110 transition-transform mb-3"/>
+        <FileThumbnail :file="row" :size="64" rounded="rounded-xl" class="mb-3"/>
         <BaseTooltip :text="row.filename" position="top">
           <p class="text-sm font-medium text-[var(--color-text)] line-clamp-2 mb-1 w-full break-all">
             {{ row.filename }}
