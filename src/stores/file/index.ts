@@ -57,12 +57,20 @@ export interface FileStore {
  */
 function parseFileSizeDesc(desc: string | null | undefined): number {
   if (!desc) return 0
-  const m = String(desc).trim().match(/^([\d.]+)\s*(B|KB|MB|GB|K|M|G)?$/i)
+  const m = String(desc)
+    .trim()
+    .match(/^([\d.]+)\s*(B|KB|MB|GB|K|M|G)?$/i)
   if (!m) return 0
   const n = parseFloat(m[1])
   const unit = (m[2] || 'B').toUpperCase()
   const mul: Record<string, number> = {
-    B: 1, K: 1024, KB: 1024, M: 1024 * 1024, MB: 1024 * 1024, G: 1024 * 1024 * 1024, GB: 1024 * 1024 * 1024
+    B: 1,
+    K: 1024,
+    KB: 1024,
+    M: 1024 * 1024,
+    MB: 1024 * 1024,
+    G: 1024 * 1024 * 1024,
+    GB: 1024 * 1024 * 1024
   }
   return Math.floor(n * (mul[unit] || 1))
 }
@@ -84,7 +92,9 @@ export const useFileStore = defineStore('file', (): FileStore => {
   const hasMore = ref<boolean>(false)
   const isLoadingMore = ref<boolean>(false)
 
-  const paramParentId = computed<string>(() => parentId.value === '-1' ? defaultParentId.value : parentId.value)
+  const paramParentId = computed<string>(() =>
+    parentId.value === '-1' ? defaultParentId.value : parentId.value
+  )
 
   function setParentId(newParentId: string): void {
     parentId.value = newParentId
@@ -100,11 +110,21 @@ export const useFileStore = defineStore('file', (): FileStore => {
     total.value = 0
   }
 
-  function setDefaultParentId(id: string): void { defaultParentId.value = id }
-  function setDefaultParentFilename(name: string): void { defaultParentFilename.value = name }
-  function setFileList(list: IFileVO[]): void { fileList.value = list }
-  function appendFileList(more: IFileVO[]): void { fileList.value = fileList.value.concat(more) }
-  function setMultipleSelection(sel: IFileVO[]): void { multipleSelection.value = sel }
+  function setDefaultParentId(id: string): void {
+    defaultParentId.value = id
+  }
+  function setDefaultParentFilename(name: string): void {
+    defaultParentFilename.value = name
+  }
+  function setFileList(list: IFileVO[]): void {
+    fileList.value = list
+  }
+  function appendFileList(more: IFileVO[]): void {
+    fileList.value = fileList.value.concat(more)
+  }
+  function setMultipleSelection(sel: IFileVO[]): void {
+    multipleSelection.value = sel
+  }
   function setFileTypes(types: string): void {
     fileTypes.value = types
     pageNum.value = 1
@@ -115,9 +135,17 @@ export const useFileStore = defineStore('file', (): FileStore => {
     if (!flag) searchKey.value = ''
     searchFlag.value = flag
   }
-  function setSearchKey(key: string): void { searchKey.value = key }
-  function setTableLoading(loading: boolean): void { tableLoading.value = loading }
-  function resetPagination(): void { pageNum.value = 1; hasMore.value = false; total.value = 0 }
+  function setSearchKey(key: string): void {
+    searchKey.value = key
+  }
+  function setTableLoading(loading: boolean): void {
+    tableLoading.value = loading
+  }
+  function resetPagination(): void {
+    pageNum.value = 1
+    hasMore.value = false
+    total.value = 0
+  }
 
   function clear(): void {
     parentId.value = ''
@@ -134,7 +162,10 @@ export const useFileStore = defineStore('file', (): FileStore => {
     total.value = 0
   }
 
-  function applyPageResponse(payload: PageVO<IFileVO> | IFileVO[] | null | undefined, append: boolean): void {
+  function applyPageResponse(
+    payload: PageVO<IFileVO> | IFileVO[] | null | undefined,
+    append: boolean
+  ): void {
     if (payload && Array.isArray((payload as PageVO<IFileVO>).records)) {
       const p = payload as PageVO<IFileVO>
       if (append) {
@@ -161,31 +192,39 @@ export const useFileStore = defineStore('file', (): FileStore => {
     setTableLoading(true)
     pageNum.value = 1
     if (searchFlag.value) {
-      fileService.search({
-        keyword: searchKey.value,
-        fileTypes: '-1'
-      } as any, (res: any) => {
-        setFileList(res.data || [])
-        setTableLoading(false)
-        hasMore.value = false
-        total.value = res.data?.length || 0
-      }, (res: any) => {
-        setTableLoading(false)
-        ElMessage.error(res.message)
-      })
+      fileService.search(
+        {
+          keyword: searchKey.value,
+          fileTypes: '-1'
+        } as any,
+        (res: any) => {
+          setFileList(res.data || [])
+          setTableLoading(false)
+          hasMore.value = false
+          total.value = res.data?.length || 0
+        },
+        (res: any) => {
+          setTableLoading(false)
+          ElMessage.error(res.message)
+        }
+      )
     } else {
-      fileService.list({
-        parentId: paramParentId.value,
-        fileTypes: fileTypes.value,
-        pageNum: 1,
-        pageSize: pageSize.value
-      } as any, (res: any) => {
-        setTableLoading(false)
-        applyPageResponse(res.data, false)
-      }, (res: any) => {
-        setTableLoading(false)
-        ElMessage.error(res.message)
-      })
+      fileService.list(
+        {
+          parentId: paramParentId.value,
+          fileTypes: fileTypes.value,
+          pageNum: 1,
+          pageSize: pageSize.value
+        } as any,
+        (res: any) => {
+          setTableLoading(false)
+          applyPageResponse(res.data, false)
+        },
+        (res: any) => {
+          setTableLoading(false)
+          ElMessage.error(res.message)
+        }
+      )
     }
   }
 
@@ -193,35 +232,43 @@ export const useFileStore = defineStore('file', (): FileStore => {
     if (searchFlag.value || !hasMore.value || isLoadingMore.value) return
     isLoadingMore.value = true
     const next = pageNum.value + 1
-    fileService.list({
-      parentId: paramParentId.value,
-      fileTypes: fileTypes.value,
-      pageNum: next,
-      pageSize: pageSize.value
-    } as any, (res: any) => {
-      isLoadingMore.value = false
-      applyPageResponse(res.data, true)
-    }, (res: any) => {
-      isLoadingMore.value = false
-      ElMessage.error(res.message)
-    })
+    fileService.list(
+      {
+        parentId: paramParentId.value,
+        fileTypes: fileTypes.value,
+        pageNum: next,
+        pageSize: pageSize.value
+      } as any,
+      (res: any) => {
+        isLoadingMore.value = false
+        applyPageResponse(res.data, true)
+      },
+      (res: any) => {
+        isLoadingMore.value = false
+        ElMessage.error(res.message)
+      }
+    )
   }
 
   function loadAllForFilter(): void {
     if (searchFlag.value) return
     setTableLoading(true)
-    fileService.list({
-      parentId: paramParentId.value,
-      fileTypes: fileTypes.value,
-      pageNum: 1,
-      pageSize: 9999
-    } as any, (res: any) => {
-      setTableLoading(false)
-      applyPageResponse(res.data, false)
-    }, (res: any) => {
-      setTableLoading(false)
-      ElMessage.error(res.message)
-    })
+    fileService.list(
+      {
+        parentId: paramParentId.value,
+        fileTypes: fileTypes.value,
+        pageNum: 1,
+        pageSize: 9999
+      } as any,
+      (res: any) => {
+        setTableLoading(false)
+        applyPageResponse(res.data, false)
+      },
+      (res: any) => {
+        setTableLoading(false)
+        ElMessage.error(res.message)
+      }
+    )
   }
 
   function searchWithFilter(filter: SearchFilter): void {
@@ -235,40 +282,68 @@ export const useFileStore = defineStore('file', (): FileStore => {
     if (filter?.dateFrom) params.dateFrom = filter.dateFrom
     if (filter?.dateTo) params.dateTo = filter.dateTo
 
-    fileService.search(params as any, (res: any) => {
-      let list: IFileVO[] = res.data || []
-      if (filter?.sizeMin !== '' && filter?.sizeMin != null) {
-        const min = Number(filter.sizeMin) * 1024 * 1024
-        list = list.filter((r) => {
-          const sz = Number(r.fileSize || parseFileSizeDesc((r as any).fileSizeDesc) || 0)
-          return sz >= min
-        })
+    fileService.search(
+      params as any,
+      (res: any) => {
+        let list: IFileVO[] = res.data || []
+        if (filter?.sizeMin !== '' && filter?.sizeMin != null) {
+          const min = Number(filter.sizeMin) * 1024 * 1024
+          list = list.filter((r) => {
+            const sz = Number(r.fileSize || parseFileSizeDesc((r as any).fileSizeDesc) || 0)
+            return sz >= min
+          })
+        }
+        if (filter?.sizeMax !== '' && filter?.sizeMax != null) {
+          const max = Number(filter.sizeMax) * 1024 * 1024
+          list = list.filter((r) => {
+            const sz = Number(r.fileSize || parseFileSizeDesc((r as any).fileSizeDesc) || 0)
+            return sz <= max
+          })
+        }
+        setFileList(list)
+        setTableLoading(false)
+        hasMore.value = false
+        total.value = list.length
+      },
+      (res: any) => {
+        setTableLoading(false)
+        ElMessage.error(res.message)
       }
-      if (filter?.sizeMax !== '' && filter?.sizeMax != null) {
-        const max = Number(filter.sizeMax) * 1024 * 1024
-        list = list.filter((r) => {
-          const sz = Number(r.fileSize || parseFileSizeDesc((r as any).fileSizeDesc) || 0)
-          return sz <= max
-        })
-      }
-      setFileList(list)
-      setTableLoading(false)
-      hasMore.value = false
-      total.value = list.length
-    }, (res: any) => {
-      setTableLoading(false)
-      ElMessage.error(res.message)
-    })
+    )
   }
 
   return {
-    parentId, defaultParentId, defaultParentFilename,
-    fileList, multipleSelection, fileTypes, searchFlag, searchKey, tableLoading,
-    pageNum, pageSize, total, hasMore, isLoadingMore,
+    parentId,
+    defaultParentId,
+    defaultParentFilename,
+    fileList,
+    multipleSelection,
+    fileTypes,
+    searchFlag,
+    searchKey,
+    tableLoading,
+    pageNum,
+    pageSize,
+    total,
+    hasMore,
+    isLoadingMore,
     paramParentId,
-    setParentId, refreshParentId, setDefaultParentId, setDefaultParentFilename,
-    setFileList, appendFileList, setMultipleSelection, setFileTypes,
-    setSearchFlag, setSearchKey, setTableLoading, resetPagination, clear,
-    loadFileList, loadMore, loadAllForFilter, searchWithFilter
+    setParentId,
+    refreshParentId,
+    setDefaultParentId,
+    setDefaultParentFilename,
+    setFileList,
+    appendFileList,
+    setMultipleSelection,
+    setFileTypes,
+    setSearchFlag,
+    setSearchKey,
+    setTableLoading,
+    resetPagination,
+    clear,
+    loadFileList,
+    loadMore,
+    loadAllForFilter,
+    searchWithFilter
   }
 })

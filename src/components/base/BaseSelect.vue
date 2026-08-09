@@ -2,15 +2,15 @@
 /**
  * BaseSelect —— 包装原生 <select>
  */
-import {ChevronDown} from '@lucide/vue'
+import { ChevronDown } from '@lucide/vue'
 
 const props = defineProps({
-  modelValue: {type: [String, Number, null], default: ''},
-  options: {type: Array, default: () => []}, // [{label, value}] 或 [string]
-  placeholder: {type: String, default: '请选择'},
-  disabled: {type: Boolean, default: false},
-  size: {type: String, default: 'md'},
-  error: {type: Boolean, default: false},
+  modelValue: { type: [String, Number, null], default: '' },
+  options: { type: Array, default: () => [] }, // [{label, value}] 或 [string]
+  placeholder: { type: String, default: '请选择' },
+  disabled: { type: Boolean, default: false },
+  size: { type: String, default: 'md' },
+  error: { type: Boolean, default: false }
 })
 const emit = defineEmits(['update:modelValue'])
 
@@ -19,7 +19,7 @@ function onChange(e) {
 }
 
 function normalize(opt) {
-  if (typeof opt === 'string' || typeof opt === 'number') return {label: String(opt), value: opt}
+  if (typeof opt === 'string' || typeof opt === 'number') return { label: String(opt), value: opt }
   return opt
 }
 </script>
@@ -32,7 +32,7 @@ function normalize(opt) {
         ? 'border-[var(--color-danger)]'
         : 'border-[var(--color-border)] hover:border-[var(--color-border-strong)] focus-within:border-[var(--color-primary-500)] focus-within:ring-2 focus-within:ring-[var(--color-ring)] focus-within:ring-offset-1',
       size === 'sm' ? 'h-8 text-xs' : size === 'lg' ? 'h-11 text-base' : 'h-9 text-sm',
-      disabled && 'opacity-50 cursor-not-allowed bg-[var(--color-surface-2)]',
+      disabled && 'opacity-50 cursor-not-allowed bg-[var(--color-surface-2)]'
     ]"
   >
     <select
@@ -46,6 +46,6 @@ function normalize(opt) {
         {{ normalize(opt).label }}
       </option>
     </select>
-    <ChevronDown :size="16" class="mr-2 text-[var(--color-text-muted)] pointer-events-none"/>
+    <ChevronDown :size="16" class="mr-2 text-[var(--color-text-muted)] pointer-events-none" />
   </label>
 </template>

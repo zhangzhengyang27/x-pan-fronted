@@ -9,7 +9,12 @@
 
 'use strict'
 
-import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios'
+import axios, {
+  type AxiosInstance,
+  type AxiosRequestConfig,
+  type AxiosResponse,
+  type InternalAxiosRequestConfig
+} from 'axios'
 import { clearToken, getToken } from '@/utils/cookie'
 import { ElMessage, ElMessageBox } from '@/composables/useToast'
 import panUtil from '@/utils/common'

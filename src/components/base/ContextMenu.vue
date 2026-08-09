@@ -11,19 +11,19 @@
  * 用法：
  * <ContextMenu :items="menuItems" @select="onSelect"/>
  */
-import {computed, nextTick, onMounted, onUnmounted, ref, watch} from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 
 const props = defineProps({
-  visible: {type: Boolean, default: false},
-  x: {type: Number, default: 0},
-  y: {type: Number, default: 0},
-  items: {type: Array, required: true},
+  visible: { type: Boolean, default: false },
+  x: { type: Number, default: 0 },
+  y: { type: Number, default: 0 },
+  items: { type: Array, required: true }
 })
 
 const emit = defineEmits(['select', 'close'])
 
 const menuRef = ref(null)
-const adjusted = ref({x: 0, y: 0})
+const adjusted = ref({ x: 0, y: 0 })
 
 /** 自适应视口边界 */
 function adjustPosition() {
@@ -37,15 +37,18 @@ function adjustPosition() {
   if (ny + rect.height > vh - 8) ny = vh - rect.height - 8
   if (nx < 8) nx = 8
   if (ny < 8) ny = 8
-  adjusted.value = {x: nx, y: ny}
+  adjusted.value = { x: nx, y: ny }
 }
 
-watch(() => props.visible, async (v) => {
-  if (v) {
-    await nextTick()
-    adjustPosition()
+watch(
+  () => props.visible,
+  async (v) => {
+    if (v) {
+      await nextTick()
+      adjustPosition()
+    }
   }
-})
+)
 
 /** 全局点击外部关闭 */
 function onDocMouseDown(e) {
@@ -93,14 +96,11 @@ onUnmounted(() => document.removeEventListener('keydown', onKeyDown))
         v-if="visible"
         ref="menuRef"
         class="fixed z-[100] min-w-[200px] py-1.5 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-2xl backdrop-blur-sm"
-        :style="{left: adjusted.x + 'px', top: adjusted.y + 'px'}"
+        :style="{ left: adjusted.x + 'px', top: adjusted.y + 'px' }"
         @contextmenu.prevent
       >
         <template v-for="(item, idx) in items" :key="idx">
-          <div
-            v-if="item.divider"
-            class="my-1 h-px bg-[var(--color-border)]"
-          />
+          <div v-if="item.divider" class="my-1 h-px bg-[var(--color-border)]" />
           <button
             v-else
             type="button"
@@ -111,7 +111,7 @@ onUnmounted(() => document.removeEventListener('keydown', onKeyDown))
                 ? 'text-[var(--color-text-muted)] cursor-not-allowed opacity-50'
                 : item.danger
                   ? 'text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10'
-                  : 'text-[var(--color-text)] hover:bg-[var(--color-surface-2)]',
+                  : 'text-[var(--color-text)] hover:bg-[var(--color-surface-2)]'
             ]"
             @click="onSelect(item, idx)"
           >
@@ -120,7 +120,9 @@ onUnmounted(() => document.removeEventListener('keydown', onKeyDown))
                 v-if="item.icon"
                 :is="item.icon"
                 :size="15"
-                :class="item.danger ? 'text-[var(--color-danger)]' : 'text-[var(--color-text-muted)]'"
+                :class="
+                  item.danger ? 'text-[var(--color-danger)]' : 'text-[var(--color-text-muted)]'
+                "
               />
               <span class="truncate">{{ item.label }}</span>
             </span>
@@ -138,10 +140,14 @@ onUnmounted(() => document.removeEventListener('keydown', onKeyDown))
 </template>
 
 <style scoped>
-.ctx-enter-active, .ctx-leave-active {
-  transition: opacity 0.12s ease, transform 0.12s ease;
+.ctx-enter-active,
+.ctx-leave-active {
+  transition:
+    opacity 0.12s ease,
+    transform 0.12s ease;
 }
-.ctx-enter-from, .ctx-leave-to {
+.ctx-enter-from,
+.ctx-leave-to {
   opacity: 0;
   transform: scale(0.96);
 }

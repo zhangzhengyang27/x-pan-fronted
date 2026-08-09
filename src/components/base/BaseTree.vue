@@ -6,7 +6,7 @@
 import BaseTreeNode from '@/components/base/BaseTreeNode.vue'
 
 defineProps({
-  data: {type: Array, default: () => []},
+  data: { type: Array, default: () => [] }
 })
 const emit = defineEmits(['select', 'toggle'])
 </script>

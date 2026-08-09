@@ -4,14 +4,23 @@
  * - 支持 min/max 约束
  * - 鼠标 hover 显示拖拽手柄光标
  */
-import {onBeforeUnmount, ref, watch} from 'vue'
+import { onBeforeUnmount, ref, watch } from 'vue'
 
-export function useResizable(storageKey, {min = 200, max = 480, defaultWidth = 240} = {}) {
+export interface ResizableOptions {
+  min?: number
+  max?: number
+  defaultWidth?: number
+}
+
+export function useResizable(
+  storageKey: string,
+  { min = 200, max = 480, defaultWidth = 240 }: ResizableOptions = {}
+) {
   const width = ref(loadWidth())
   const isDragging = ref(false)
 
-  function loadWidth() {
-    const v = parseInt(localStorage.getItem(storageKey), 10)
+  function loadWidth(): number {
+    const v = parseInt(localStorage.getItem(storageKey) || '', 10)
     if (Number.isFinite(v) && v >= min && v <= max) return v
     return defaultWidth
   }
@@ -20,7 +29,7 @@ export function useResizable(storageKey, {min = 200, max = 480, defaultWidth = 2
     localStorage.setItem(storageKey, String(width.value))
   }
 
-  function startDrag(e) {
+  function startDrag(e: MouseEvent) {
     if (e.button !== 0) return
     isDragging.value = true
     document.body.style.cursor = 'col-resize'
@@ -29,7 +38,7 @@ export function useResizable(storageKey, {min = 200, max = 480, defaultWidth = 2
     window.addEventListener('mouseup', stopDrag)
   }
 
-  function onMove(e) {
+  function onMove(e: MouseEvent) {
     if (!isDragging.value) return
     const next = Math.max(min, Math.min(max, e.clientX))
     width.value = next
@@ -57,5 +66,5 @@ export function useResizable(storageKey, {min = 200, max = 480, defaultWidth = 2
     window.removeEventListener('mouseup', stopDrag)
   })
 
-  return {width, isDragging, startDrag, reset}
+  return { width, isDragging, startDrag, reset }
 }

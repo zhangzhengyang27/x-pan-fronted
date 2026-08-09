@@ -5,17 +5,17 @@
  * - 主题跟随 dark/light
  * - 大文件截断展示
  */
-import {onMounted, onBeforeUnmount, ref, watch, nextTick} from 'vue'
+import { onMounted, onBeforeUnmount, ref, watch, nextTick } from 'vue'
 import Vditor from 'vditor'
 import 'vditor/dist/index.css'
-import {useTheme} from '@/composables/useTheme'
-import {getPreviewUrl} from '@/utils/preview'
+import { useTheme } from '@/composables/useTheme'
+import { getPreviewUrl } from '@/utils/preview'
 
 const props = defineProps({
-  fileId: {type: [String, Number], required: true},
+  fileId: { type: [String, Number], required: true }
 })
 
-const {isDark} = useTheme()
+const { isDark } = useTheme()
 const containerRef = ref(null)
 const loading = ref(true)
 const error = ref('')
@@ -44,8 +44,8 @@ async function load() {
         readonly: true,
         toolbar: [],
         theme: isDark.value ? 'dark' : 'classic',
-        cache: {enable: false},
-        height: '100%',
+        cache: { enable: false },
+        height: '100%'
       })
     }
   } catch (e) {
@@ -57,9 +57,13 @@ async function load() {
 
 onMounted(load)
 watch(() => props.fileId, load)
-watch(() => isDark.value, () => {
-  if (vditor) vditor.setTheme(isDark.value ? 'dark' : 'classic', isDark.value ? 'dark' : 'classic')
-})
+watch(
+  () => isDark.value,
+  () => {
+    if (vditor)
+      vditor.setTheme(isDark.value ? 'dark' : 'classic', isDark.value ? 'dark' : 'classic')
+  }
+)
 
 onBeforeUnmount(() => {
   if (vditor) {
@@ -76,12 +80,15 @@ onBeforeUnmount(() => {
 <template>
   <div class="h-full overflow-hidden bg-[var(--color-surface)]">
     <div v-if="loading" class="flex h-full items-center justify-center">
-      <div class="size-10 rounded-xl bg-[var(--color-surface-2)] animate-pulse"/>
+      <div class="size-10 rounded-xl bg-[var(--color-surface-2)] animate-pulse" />
     </div>
-    <div v-else-if="error" class="flex h-full items-center justify-center text-sm text-[var(--color-danger)]">
+    <div
+      v-else-if="error"
+      class="flex h-full items-center justify-center text-sm text-[var(--color-danger)]"
+    >
       {{ error }}
     </div>
-    <div v-else ref="containerRef" class="h-full vditor-host"/>
+    <div v-else ref="containerRef" class="h-full vditor-host" />
   </div>
 </template>
 

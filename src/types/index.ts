@@ -31,6 +31,7 @@ export interface IUserInfo {
   userId: string
   username: string
   rootFileId: string
+  rootFilename: string
   avatar?: string
   email?: string
 }
@@ -111,7 +112,7 @@ export interface IFileSearchReq {
 // ─── 分享 ───────────────────────────────────────────────────────
 export interface IShareCreateReq {
   fileIds: string[]
-  shareType: number  // 1=公开 2=需要提取码 3=指定用户
+  shareType: number // 1=公开 2=需要提取码 3=指定用户
   shareCode?: string
   expireHours?: number
   downloadLimit?: number
@@ -151,7 +152,7 @@ export type OfflineTaskStatusCode = 0 | 1 | 2 | 3 | 4
 
 export interface IOfflineTaskVO {
   id: string
-  taskId?: string  // 兼容字段
+  taskId?: string // 兼容字段
   url: string
   filename: string
   totalSize: number
@@ -160,7 +161,7 @@ export interface IOfflineTaskVO {
   status: OfflineTaskStatusCode
   statusText?: string
   errorMsg?: string
-  errorMessage?: string  // 兼容字段
+  errorMessage?: string // 兼容字段
   fileId?: string
   createTime: string
   finishTime?: string
@@ -211,7 +212,7 @@ export interface AppEvents {
   'xpan:close-mobile-nav': void
   'xpan:reload-files': void
   'xpan:open-share': { fileIds: string[] }
-  'xpan:open-folder-picker': { mode: 'move' | 'copy', fileIds: string[] }
+  'xpan:open-folder-picker': { mode: 'move' | 'copy'; fileIds: string[] }
   'xpan:show-shortcuts': void
   'xpan:open-ai': void
 }

@@ -9,26 +9,26 @@
  * - 下载次数限制
  * - 第二步显示 QR 码 + 下载统计信息
  */
-import {reactive, ref, nextTick, computed} from 'vue'
-import {Share2, Copy, Check, QrCode, Lock, Hash} from '@lucide/vue'
-import {ElMessage, ElMessageBox} from '@/composables/useToast'
-import {useFileStore} from '@/stores/file'
-import {storeToRefs} from 'pinia'
+import { reactive, ref, nextTick, computed } from 'vue'
+import { Share2, Copy, Check, QrCode, Lock, Hash } from '@lucide/vue'
+import { ElMessage, ElMessageBox } from '@/composables/useToast'
+import { useFileStore } from '@/stores/file'
+import { storeToRefs } from 'pinia'
 import shareService from '@/api/share'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseModal from '@/components/base/BaseModal.vue'
 import BaseInput from '@/components/base/BaseInput.vue'
 import BaseSelect from '@/components/base/BaseSelect.vue'
 import BaseField from '@/components/base/BaseField.vue'
-import {cn} from '@/utils/classnames'
+import { cn } from '@/utils/classnames'
 
 const props = defineProps({
-  size: {type: String, default: 'md'},
-  item: {type: Object, default: null},
+  size: { type: String, default: 'md' },
+  item: { type: Object, default: null }
 })
 
 const fileStore = useFileStore()
-const {multipleSelection} = storeToRefs(fileStore)
+const { multipleSelection } = storeToRefs(fileStore)
 
 const title = ref('')
 const open = ref(false)
@@ -42,24 +42,24 @@ const form = reactive({
   shareType: '0',
   shareDayType: '0',
   shareCode: '', // P1.11：自定义提取码（可选）
-  downloadLimit: '', // P1.11：下载次数限制（0/空 = 不限）
+  downloadLimit: '' // P1.11：下载次数限制（0/空 = 不限）
 })
 
 const errors = reactive({
   shareName: '',
   shareCode: '',
-  downloadLimit: '',
+  downloadLimit: ''
 })
 
 const dayTypeOptions = [
-  {value: '0', label: '永久有效'},
-  {value: '1', label: '7天有效'},
-  {value: '2', label: '30天有效'},
+  { value: '0', label: '永久有效' },
+  { value: '1', label: '7天有效' },
+  { value: '2', label: '30天有效' }
 ]
 
 const result = reactive({
   shareUrl: '',
-  shareCode: '',
+  shareCode: ''
 })
 
 // ─── P1.11：QR 码生成 ───────────────────────────────────────────────────────
@@ -76,7 +76,11 @@ function generateQR(text) {
     }
     cells.push(row)
   }
-  const corners = [[0, 0], [size - 7, 0], [0, size - 7]]
+  const corners = [
+    [0, 0],
+    [size - 7, 0],
+    [0, size - 7]
+  ]
   for (const [cy, cx] of corners) {
     for (let y = 0; y < 7; y++) {
       for (let x = 0; x < 7; x++) {
@@ -162,18 +166,17 @@ function validate() {
 
 async function doConfirm() {
   if (!validate()) return
-  const ids = props.item
-    ? [props.item.fileId]
-    : multipleSelection.value.map((i) => i.fileId)
+  const ids = props.item ? [props.item.fileId] : multipleSelection.value.map((i) => i.fileId)
   loading.value = true
   const payload = {
     shareName: form.shareName,
     shareType: parseInt(form.shareType, 10),
     shareDayType: parseInt(form.shareDayType, 10),
-    shareFileIds: ids.join('__,__'),
+    shareFileIds: ids.join('__,__')
   }
   if (form.shareCode) payload.shareCode = form.shareCode
-  if (form.downloadLimit !== '' && form.downloadLimit >= 0) payload.downloadLimit = parseInt(form.downloadLimit, 10)
+  if (form.downloadLimit !== '' && form.downloadLimit >= 0)
+    payload.downloadLimit = parseInt(form.downloadLimit, 10)
   shareService.createShare(
     payload,
     (res) => {
@@ -187,7 +190,7 @@ async function doConfirm() {
     (err) => {
       loading.value = false
       ElMessage.error(err.message)
-    },
+    }
   )
 }
 
@@ -212,7 +215,7 @@ function onClose() {
   <div class="inline-block">
     <BaseButton variant="secondary" :size="props.size" @click="openModal">
       <span class="inline-flex items-center gap-1.5">
-        <Share2 :size="14"/>
+        <Share2 :size="14" />
         分享
       </span>
     </BaseButton>
@@ -240,27 +243,33 @@ function onClose() {
           />
         </div>
         <div>
-          <label class="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5">分享类型</label>
+          <label class="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5"
+            >分享类型</label
+          >
           <BaseSelect
             v-model="form.shareType"
-            :options="[{value: '0', label: '有提取码'}]"
+            :options="[{ value: '0', label: '有提取码' }]"
             disabled
           />
           <p class="mt-1 text-[11px] text-[var(--color-text-muted)]">当前仅支持提取码分享</p>
         </div>
         <div>
-          <label class="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5">分享有效期</label>
-          <BaseSelect v-model="form.shareDayType" :options="dayTypeOptions"/>
+          <label class="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5"
+            >分享有效期</label
+          >
+          <BaseSelect v-model="form.shareDayType" :options="dayTypeOptions" />
         </div>
 
         <!-- P1.11：高级选项（密码 / 下载限制） -->
         <div class="border-t border-[var(--color-border)] pt-4 space-y-3">
           <p class="text-xs font-medium text-[var(--color-text)] flex items-center gap-1.5">
-            <Lock :size="12"/>
+            <Lock :size="12" />
             高级选项（可选）
           </p>
           <div>
-            <label class="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5">自定义提取码</label>
+            <label class="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5"
+              >自定义提取码</label
+            >
             <div class="flex gap-2">
               <BaseInput
                 v-model="form.shareCode"
@@ -268,14 +277,23 @@ function onClose() {
                 :error="errors.shareCode"
                 maxlength="8"
               />
-              <BaseButton variant="secondary" size="md" @click="form.shareCode = randomCode()" title="随机生成">
+              <BaseButton
+                variant="secondary"
+                size="md"
+                @click="form.shareCode = randomCode()"
+                title="随机生成"
+              >
                 随机
               </BaseButton>
             </div>
-            <p v-if="!errors.shareCode" class="mt-1 text-[11px] text-[var(--color-text-muted)]">4-8 位字母数字，留空则系统自动生成</p>
+            <p v-if="!errors.shareCode" class="mt-1 text-[11px] text-[var(--color-text-muted)]">
+              4-8 位字母数字，留空则系统自动生成
+            </p>
           </div>
           <div>
-            <label class="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5">下载次数限制</label>
+            <label class="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5"
+              >下载次数限制</label
+            >
             <BaseInput
               v-model.number="form.downloadLimit"
               type="number"
@@ -284,7 +302,9 @@ function onClose() {
               min="0"
               max="999"
             />
-            <p v-if="!errors.downloadLimit" class="mt-1 text-[11px] text-[var(--color-text-muted)]">达到上限后分享将失效，0 或留空表示不限制</p>
+            <p v-if="!errors.downloadLimit" class="mt-1 text-[11px] text-[var(--color-text-muted)]">
+              达到上限后分享将失效，0 或留空表示不限制
+            </p>
           </div>
         </div>
       </div>
@@ -294,21 +314,25 @@ function onClose() {
         <div
           class="flex items-center justify-center size-12 mx-auto rounded-full bg-[var(--color-success)]/10 text-[var(--color-success)]"
         >
-          <Check :size="22"/>
+          <Check :size="22" />
         </div>
 
         <div>
-          <label class="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5">分享链接</label>
+          <label class="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5"
+            >分享链接</label
+          >
           <div class="flex gap-2">
-            <BaseInput v-model="result.shareUrl" readonly/>
+            <BaseInput v-model="result.shareUrl" readonly />
             <BaseButton variant="secondary" size="md" @click="copyAll">
-              <Copy :size="14"/>
+              <Copy :size="14" />
             </BaseButton>
           </div>
         </div>
 
         <div>
-          <label class="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5">提取码</label>
+          <label class="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5"
+            >提取码</label
+          >
           <div
             class="px-4 py-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] text-center tracking-[0.5em] text-xl font-mono font-semibold text-[var(--color-primary-600)] dark:text-[var(--color-primary-400)]"
           >
@@ -322,10 +346,14 @@ function onClose() {
             class="text-xs text-[var(--color-primary-600)] hover:underline flex items-center gap-1"
             @click="showQR = !showQR"
           >
-            <QrCode :size="12"/>
+            <QrCode :size="12" />
             {{ showQR ? '隐藏二维码' : '显示二维码' }}
           </button>
-          <div v-if="showQR" class="mt-3 w-40 h-40 mx-auto rounded-lg bg-white p-2 shadow-sm border border-[var(--color-border)]" v-html="qrSvg"/>
+          <div
+            v-if="showQR"
+            class="mt-3 w-40 h-40 mx-auto rounded-lg bg-white p-2 shadow-sm border border-[var(--color-border)]"
+            v-html="qrSvg"
+          />
         </div>
       </div>
 
@@ -340,8 +368,8 @@ function onClose() {
           <BaseButton variant="ghost" size="sm" @click="onClose">关闭</BaseButton>
           <BaseButton variant="primary" size="sm" @click="copyAll">
             <span class="inline-flex items-center gap-1.5">
-              <Check v-if="copied" :size="14"/>
-              <Copy v-else :size="14"/>
+              <Check v-if="copied" :size="14" />
+              <Copy v-else :size="14" />
               {{ copied ? '已复制' : '一键复制' }}
             </span>
           </BaseButton>

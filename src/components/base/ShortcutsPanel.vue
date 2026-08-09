@@ -7,8 +7,32 @@
  * - 支持搜索过滤
  * - 一键查看
  */
-import {computed, onMounted, onUnmounted, ref} from 'vue'
-import {Keyboard, X, Search, Folder, FileText, Copy, Scissors, Clipboard, Trash2, Edit3, RotateCcw, Download, Upload, Search as SearchIcon, Grid3x3, List as ListIcon, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, CheckSquare, Square, Eye} from '@lucide/vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+import {
+  Keyboard,
+  X,
+  Search,
+  Folder,
+  FileText,
+  Copy,
+  Scissors,
+  Clipboard,
+  Trash2,
+  Edit3,
+  RotateCcw,
+  Download,
+  Upload,
+  Search as SearchIcon,
+  Grid3x3,
+  List as ListIcon,
+  ArrowUp,
+  ArrowDown,
+  ArrowLeft,
+  ArrowRight,
+  CheckSquare,
+  Square,
+  Eye
+} from '@lucide/vue'
 import BaseModal from './BaseModal.vue'
 import BaseInput from './BaseInput.vue'
 
@@ -33,71 +57,71 @@ const shortcuts = [
     group: '文件操作',
     icon: FileText,
     items: [
-      {keys: ['↑', '↓'], desc: '上下选择文件'},
-      {keys: ['←', '→'], desc: '进入文件夹 / 返回上级'},
-      {keys: ['Enter'], desc: '打开文件（双击等价）'},
-      {keys: ['Delete'], desc: '删除选中文件'},
-      {keys: ['Backspace'], desc: '返回上一级（回收站时）'},
-    ],
+      { keys: ['↑', '↓'], desc: '上下选择文件' },
+      { keys: ['←', '→'], desc: '进入文件夹 / 返回上级' },
+      { keys: ['Enter'], desc: '打开文件（双击等价）' },
+      { keys: ['Delete'], desc: '删除选中文件' },
+      { keys: ['Backspace'], desc: '返回上一级（回收站时）' }
+    ]
   },
   {
     group: '多选操作',
     icon: CheckSquare,
     items: [
-      {keys: ['Ctrl', 'A'], desc: '全选 / 取消全选'},
-      {keys: ['Space'], desc: '切换选中（焦点在列表时）'},
-      {keys: ['Esc'], desc: '取消选择 / 关闭弹窗'},
-    ],
+      { keys: ['Ctrl', 'A'], desc: '全选 / 取消全选' },
+      { keys: ['Space'], desc: '切换选中（焦点在列表时）' },
+      { keys: ['Esc'], desc: '取消选择 / 关闭弹窗' }
+    ]
   },
   {
     group: '编辑操作',
     icon: Edit3,
     items: [
-      {keys: ['F2'], desc: '重命名选中文件'},
-      {keys: ['Ctrl', 'C'], desc: '复制选中文件'},
-      {keys: ['Ctrl', 'X'], desc: '剪切选中文件'},
-      {keys: ['Ctrl', 'V'], desc: '粘贴到当前目录'},
-      {keys: ['Ctrl', 'Shift', 'N'], desc: '新建文件夹'},
-    ],
+      { keys: ['F2'], desc: '重命名选中文件' },
+      { keys: ['Ctrl', 'C'], desc: '复制选中文件' },
+      { keys: ['Ctrl', 'X'], desc: '剪切选中文件' },
+      { keys: ['Ctrl', 'V'], desc: '粘贴到当前目录' },
+      { keys: ['Ctrl', 'Shift', 'N'], desc: '新建文件夹' }
+    ]
   },
   {
     group: '视图操作',
     icon: Grid3x3,
     items: [
-      {keys: ['Ctrl', '1'], desc: '列表视图'},
-      {keys: ['Ctrl', '2'], desc: '网格视图'},
-      {keys: ['F5'], desc: '刷新当前目录'},
-    ],
+      { keys: ['Ctrl', '1'], desc: '列表视图' },
+      { keys: ['Ctrl', '2'], desc: '网格视图' },
+      { keys: ['F5'], desc: '刷新当前目录' }
+    ]
   },
   {
     group: '上传下载',
     icon: Download,
     items: [
-      {keys: ['Ctrl', 'U'], desc: '打开上传面板'},
-      {keys: ['Ctrl', 'D'], desc: '下载选中文件'},
-    ],
+      { keys: ['Ctrl', 'U'], desc: '打开上传面板' },
+      { keys: ['Ctrl', 'D'], desc: '下载选中文件' }
+    ]
   },
   {
     group: '搜索与导航',
     icon: SearchIcon,
     items: [
-      {keys: ['Ctrl', 'K'], desc: '聚焦搜索框'},
-      {keys: ['G', 'I'], desc: '跳到图片'},
-      {keys: ['G', 'D'], desc: '跳到文档'},
-      {keys: ['G', 'S'], desc: '跳到分享'},
-      {keys: ['G', 'R'], desc: '跳到回收站'},
-      {keys: ['G', 'H'], desc: '回到首页'},
-    ],
+      { keys: ['Ctrl', 'K'], desc: '聚焦搜索框' },
+      { keys: ['G', 'I'], desc: '跳到图片' },
+      { keys: ['G', 'D'], desc: '跳到文档' },
+      { keys: ['G', 'S'], desc: '跳到分享' },
+      { keys: ['G', 'R'], desc: '跳到回收站' },
+      { keys: ['G', 'H'], desc: '回到首页' }
+    ]
   },
   {
     group: '其他',
     icon: Keyboard,
     items: [
-      {keys: ['?'], desc: '显示/隐藏快捷键面板（当前）'},
-      {keys: ['Ctrl', '/'], desc: '同上'},
-      {keys: ['Alt', '←'], desc: '浏览器后退'},
-    ],
-  },
+      { keys: ['?'], desc: '显示/隐藏快捷键面板（当前）' },
+      { keys: ['Ctrl', '/'], desc: '同上' },
+      { keys: ['Alt', '←'], desc: '浏览器后退' }
+    ]
+  }
 ]
 
 const filteredShortcuts = computed(() => {
@@ -108,9 +132,8 @@ const filteredShortcuts = computed(() => {
       ...g,
       items: g.items.filter(
         (it) =>
-          it.desc.toLowerCase().includes(lower) ||
-          it.keys.join(' ').toLowerCase().includes(lower),
-      ),
+          it.desc.toLowerCase().includes(lower) || it.keys.join(' ').toLowerCase().includes(lower)
+      )
     }))
     .filter((g) => g.items.length > 0)
 })
@@ -120,8 +143,7 @@ function onKeydown(e) {
   // ? 唤出
   if (e.key === '?' || (e.shiftKey && e.key === '/')) {
     const t = e.target
-    const isInput =
-      t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)
+    const isInput = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)
     if (!isInput) {
       e.preventDefault()
       open.value = !open.value
@@ -143,16 +165,29 @@ function onKeydown(e) {
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
       @click.self="open = false"
     >
-      <div class="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl shadow-2xl w-[92vw] max-w-2xl max-h-[80vh] flex flex-col overflow-hidden">
+      <div
+        class="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl shadow-2xl w-[92vw] max-w-2xl max-h-[80vh] flex flex-col overflow-hidden"
+      >
         <!-- Header -->
-        <div class="px-5 py-4 border-b border-[var(--color-border)] flex items-center justify-between gap-3">
+        <div
+          class="px-5 py-4 border-b border-[var(--color-border)] flex items-center justify-between gap-3"
+        >
           <div class="flex items-center gap-2">
-            <div class="size-9 rounded-lg bg-gradient-to-br from-[var(--color-primary-500)] to-[var(--color-primary-700)] flex items-center justify-center text-white">
-              <Keyboard :size="18"/>
+            <div
+              class="size-9 rounded-lg bg-gradient-to-br from-[var(--color-primary-500)] to-[var(--color-primary-700)] flex items-center justify-center text-white"
+            >
+              <Keyboard :size="18" />
             </div>
             <div>
               <h2 class="text-base font-semibold m-0">键盘快捷键</h2>
-              <p class="text-xs text-[var(--color-text-muted)] m-0 mt-0.5">按 <kbd class="px-1.5 py-0.5 rounded bg-[var(--color-surface-2)] border border-[var(--color-border)] text-[10px]">?</kbd> 随时唤出</p>
+              <p class="text-xs text-[var(--color-text-muted)] m-0 mt-0.5">
+                按
+                <kbd
+                  class="px-1.5 py-0.5 rounded bg-[var(--color-surface-2)] border border-[var(--color-border)] text-[10px]"
+                  >?</kbd
+                >
+                随时唤出
+              </p>
             </div>
           </div>
           <button
@@ -160,27 +195,28 @@ function onKeydown(e) {
             class="text-[var(--color-text-muted)] hover:text-[var(--color-text)] p-1 rounded-md hover:bg-[var(--color-surface-2)]"
             @click="open = false"
           >
-            <X :size="18"/>
+            <X :size="18" />
           </button>
         </div>
 
         <!-- Search -->
         <div class="px-5 py-3 border-b border-[var(--color-border)]">
-          <BaseInput
-            v-model="keyword"
-            placeholder="搜索快捷键..."
-            :prefix="Search"
-          />
+          <BaseInput v-model="keyword" placeholder="搜索快捷键..." :prefix="Search" />
         </div>
 
         <!-- Body -->
         <div class="flex-1 overflow-y-auto px-5 py-4">
-          <div v-if="filteredShortcuts.length === 0" class="text-center py-12 text-sm text-[var(--color-text-muted)]">
+          <div
+            v-if="filteredShortcuts.length === 0"
+            class="text-center py-12 text-sm text-[var(--color-text-muted)]"
+          >
             没有匹配的快捷键
           </div>
           <div v-for="(group, gi) in filteredShortcuts" :key="gi" class="mb-6 last:mb-0">
-            <div class="flex items-center gap-2 mb-2 text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider">
-              <component :is="group.icon" :size="14"/>
+            <div
+              class="flex items-center gap-2 mb-2 text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider"
+            >
+              <component :is="group.icon" :size="14" />
               {{ group.group }}
             </div>
             <div class="space-y-1">
@@ -192,10 +228,16 @@ function onKeydown(e) {
                 <span class="text-sm">{{ item.desc }}</span>
                 <div class="flex items-center gap-1 shrink-0">
                   <template v-for="(k, ki) in item.keys" :key="ki">
-                    <kbd class="px-2 py-0.5 rounded bg-[var(--color-surface-2)] border border-[var(--color-border)] text-[11px] font-mono min-w-[24px] text-center">
+                    <kbd
+                      class="px-2 py-0.5 rounded bg-[var(--color-surface-2)] border border-[var(--color-border)] text-[11px] font-mono min-w-[24px] text-center"
+                    >
                       {{ k }}
                     </kbd>
-                    <span v-if="ki < item.keys.length - 1" class="text-[var(--color-text-muted)] text-xs">+</span>
+                    <span
+                      v-if="ki < item.keys.length - 1"
+                      class="text-[var(--color-text-muted)] text-xs"
+                      >+</span
+                    >
                   </template>
                 </div>
               </div>
@@ -204,9 +246,18 @@ function onKeydown(e) {
         </div>
 
         <!-- Footer -->
-        <div class="px-5 py-3 border-t border-[var(--color-border)] flex items-center justify-between text-xs text-[var(--color-text-muted)] bg-[var(--color-surface-2)]">
+        <div
+          class="px-5 py-3 border-t border-[var(--color-border)] flex items-center justify-between text-xs text-[var(--color-text-muted)] bg-[var(--color-surface-2)]"
+        >
           <span>共 {{ shortcuts.reduce((s, g) => s + g.items.length, 0) }} 个快捷键</span>
-          <span>按 <kbd class="px-1.5 py-0.5 rounded bg-[var(--color-surface)] border border-[var(--color-border)] text-[10px]">Esc</kbd> 关闭</span>
+          <span
+            >按
+            <kbd
+              class="px-1.5 py-0.5 rounded bg-[var(--color-surface)] border border-[var(--color-border)] text-[10px]"
+              >Esc</kbd
+            >
+            关闭</span
+          >
         </div>
       </div>
     </div>

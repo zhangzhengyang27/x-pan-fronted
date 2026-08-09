@@ -12,9 +12,13 @@
 import { ref, onUnmounted, type Ref } from 'vue'
 
 export type WsMessageType =
-  | 'CONNECTED' | 'PING' | 'PONG'
-  | 'OFFLINE_TASK_UPDATE' | 'OFFLINE_TASK_REMOVED'
-  | 'SHARE_STATS_UPDATE' | 'UPLOAD_FINISHED'
+  | 'CONNECTED'
+  | 'PING'
+  | 'PONG'
+  | 'OFFLINE_TASK_UPDATE'
+  | 'OFFLINE_TASK_REMOVED'
+  | 'SHARE_STATS_UPDATE'
+  | 'UPLOAD_FINISHED'
   | 'SYSTEM_NOTICE'
 
 export interface WsMessage<T = unknown> {
@@ -38,15 +42,16 @@ interface UseWebSocketReturn {
 }
 
 const MAX_RECONNECT = 8
-const HEARTBEAT_INTERVAL = 25  // < 服务器 30s
+const HEARTBEAT_INTERVAL = 25 // < 服务器 30s
 
 let _singleton: UseWebSocketReturn | null = null
 
 function buildWsUrl(token: string): string {
-  const host = (typeof window !== 'undefined' ? window.location.hostname : '127.0.0.1')
+  const host = typeof window !== 'undefined' ? window.location.hostname : '127.0.0.1'
   const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
   // 从 panUtil 拿到后端端口（默认 8080）
-  const port = (window as unknown as { __XPAN_BACKEND_PORT__?: number }).__XPAN_BACKEND_PORT__ || 8080
+  const port =
+    (window as unknown as { __XPAN_BACKEND_PORT__?: number }).__XPAN_BACKEND_PORT__ || 8080
   return `${proto}//${host}:${port}/ws/notification?token=${encodeURIComponent(token)}`
 }
 
@@ -66,15 +71,26 @@ export function useWebSocket(): UseWebSocketReturn {
   const handlers = new Map<WsMessageType, Set<Handler>>()
 
   function clearTimers() {
-    if (reconnectTimer !== null) { clearTimeout(reconnectTimer); reconnectTimer = null }
-    if (heartbeatTimer !== null) { clearInterval(heartbeatTimer); heartbeatTimer = null }
-    if (pingTimer !== null) { clearTimeout(pingTimer); pingTimer = null }
+    if (reconnectTimer !== null) {
+      clearTimeout(reconnectTimer)
+      reconnectTimer = null
+    }
+    if (heartbeatTimer !== null) {
+      clearInterval(heartbeatTimer)
+      heartbeatTimer = null
+    }
+    if (pingTimer !== null) {
+      clearTimeout(pingTimer)
+      pingTimer = null
+    }
   }
 
   function startHeartbeat() {
     heartbeatTimer = window.setInterval(() => {
       if (ws && ws.readyState === WebSocket.OPEN) {
-        try { ws.send(JSON.stringify({ type: 'PONG', ts: Date.now() })) } catch {}
+        try {
+          ws.send(JSON.stringify({ type: 'PONG', ts: Date.now() }))
+        } catch {}
       }
     }, HEARTBEAT_INTERVAL * 1000)
   }
@@ -96,7 +112,7 @@ export function useWebSocket(): UseWebSocketReturn {
       return
     }
     if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
-      return  // 已连接/连接中，不重复
+      return // 已连接/连接中，不重复
     }
 
     try {
@@ -117,11 +133,19 @@ export function useWebSocket(): UseWebSocketReturn {
     ws.onmessage = (evt) => {
       lastMessageAt.value = Date.now()
       let msg: WsMessage
-      try { msg = JSON.parse(evt.data) } catch { return }
+      try {
+        msg = JSON.parse(evt.data)
+      } catch {
+        return
+      }
       const set = handlers.get(msg.type as WsMessageType)
       if (set) {
         for (const h of set) {
-          try { h(msg.payload, msg) } catch (e) { console.error('[WS] handler error', e) }
+          try {
+            h(msg.payload, msg)
+          } catch (e) {
+            console.error('[WS] handler error', e)
+          }
         }
       }
     }
@@ -141,7 +165,9 @@ export function useWebSocket(): UseWebSocketReturn {
   function disconnect() {
     clearTimers()
     if (ws) {
-      try { ws.close(1000, 'client disconnect') } catch {}
+      try {
+        ws.close(1000, 'client disconnect')
+      } catch {}
       ws = null
     }
     isConnected.value = false
@@ -158,7 +184,10 @@ export function useWebSocket(): UseWebSocketReturn {
 
   function on<T = unknown>(type: WsMessageType, handler: Handler<T>) {
     let set = handlers.get(type)
-    if (!set) { set = new Set(); handlers.set(type, set) }
+    if (!set) {
+      set = new Set()
+      handlers.set(type, set)
+    }
     set.add(handler as Handler)
     return () => set!.delete(handler as Handler)
   }
@@ -171,8 +200,15 @@ export function useWebSocket(): UseWebSocketReturn {
   }
 
   _singleton = {
-    isConnected, lastMessageAt, reconnectAttempts, onlineCount,
-    connect, disconnect, send, on, once
+    isConnected,
+    lastMessageAt,
+    reconnectAttempts,
+    onlineCount,
+    connect,
+    disconnect,
+    send,
+    on,
+    once
   }
 
   return _singleton

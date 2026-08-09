@@ -2,13 +2,13 @@
 /**
  * BaseTreeNode —— 树节点（递归组件自己）
  */
-import {ref} from 'vue'
-import {ChevronRight, Folder, FolderOpen, File} from '@lucide/vue'
-import {cn} from '@/utils/classnames'
+import { ref } from 'vue'
+import { ChevronRight, Folder, FolderOpen, File } from '@lucide/vue'
+import { cn } from '@/utils/classnames'
 
 defineProps({
-  node: {type: Object, required: true},
-  level: {type: Number, default: 0},
+  node: { type: Object, required: true },
+  level: { type: Number, default: 0 }
 })
 const emit = defineEmits(['select', 'toggle'])
 
@@ -19,13 +19,15 @@ const selected = ref(false)
 <template>
   <li>
     <div
-      :class="cn(
-        'flex items-center gap-1.5 py-1 px-2 rounded-md cursor-pointer text-sm transition-colors',
-        'hover:bg-[var(--color-surface-2)]',
-        selected && 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)]',
-        selected && 'dark:bg-[var(--color-primary-900)]/30 dark:text-[var(--color-primary-300)]',
-      )"
-      :style="{paddingLeft: `${level * 16 + 8}px`}"
+      :class="
+        cn(
+          'flex items-center gap-1.5 py-1 px-2 rounded-md cursor-pointer text-sm transition-colors',
+          'hover:bg-[var(--color-surface-2)]',
+          selected && 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)]',
+          selected && 'dark:bg-[var(--color-primary-900)]/30 dark:text-[var(--color-primary-300)]'
+        )
+      "
+      :style="{ paddingLeft: `${level * 16 + 8}px` }"
       @click="emit('select', node)"
     >
       <button
@@ -33,11 +35,14 @@ const selected = ref(false)
         type="button"
         class="size-4 flex items-center justify-center text-[var(--color-text-muted)] transition-transform"
         :class="expanded && 'rotate-90'"
-        @click.stop="expanded = !expanded; emit('toggle', node)"
+        @click.stop="
+          expanded = !expanded
+          emit('toggle', node)
+        "
       >
-        <ChevronRight :size="14" :stroke-width="2.5"/>
+        <ChevronRight :size="14" :stroke-width="2.5" />
       </button>
-      <span v-else class="size-4"/>
+      <span v-else class="size-4" />
       <component
         :is="node.children?.length ? (expanded ? FolderOpen : Folder) : File"
         :size="16"

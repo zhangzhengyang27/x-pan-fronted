@@ -3,17 +3,17 @@
  * AppUserInfo —— 用户菜单 + 修改密码弹窗
  * 使用 BaseDropdown + BaseModal + BaseField + BaseInput + BaseButton
  */
-import {reactive, ref, onMounted} from 'vue'
-import {storeToRefs} from 'pinia'
-import {ChevronDown, LogOut, KeyRound, User} from '@lucide/vue'
+import { reactive, ref, onMounted } from 'vue'
+import { storeToRefs } from 'pinia'
+import { ChevronDown, LogOut, KeyRound, User } from '@lucide/vue'
 import userService from '@/api/user'
-import {clearToken} from '@/utils/cookie'
-import {useUserStore} from '@/stores/user'
-import {useBreadcrumbStore} from '@/stores/breadcrumb'
-import {useFileStore} from '@/stores/file'
-import {useNavbarStore} from '@/stores/navbar'
-import {useTaskStore} from '@/stores/task'
-import {ElMessage, ElMessageBox, ElNotification} from '@/composables/useToast'
+import { clearToken } from '@/utils/cookie'
+import { useUserStore } from '@/stores/user'
+import { useBreadcrumbStore } from '@/stores/breadcrumb'
+import { useFileStore } from '@/stores/file'
+import { useNavbarStore } from '@/stores/navbar'
+import { useTaskStore } from '@/stores/task'
+import { ElMessage, ElMessageBox, ElNotification } from '@/composables/useToast'
 
 import BaseDropdown from '@/components/base/BaseDropdown.vue'
 import BaseModal from '@/components/base/BaseModal.vue'
@@ -22,7 +22,7 @@ import BaseInput from '@/components/base/BaseInput.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 
 const userStore = useUserStore()
-const {username} = storeToRefs(userStore)
+const { username } = storeToRefs(userStore)
 const breadcrumbStore = useBreadcrumbStore()
 const fileStore = useFileStore()
 const navbarStore = useNavbarStore()
@@ -35,7 +35,7 @@ const loading = ref(false)
 const changePasswordForm = reactive({
   password: '',
   newPassword: '',
-  reNewPassword: '',
+  reNewPassword: ''
 })
 
 function clearAll() {
@@ -50,7 +50,10 @@ function clearAll() {
 
 function doExit() {
   if (!window.confirm('确定要退出登录吗？')) return
-  userService.exit(() => clearAll(), (res) => ElMessage.error(res.message))
+  userService.exit(
+    () => clearAll(),
+    (res) => ElMessage.error(res.message)
+  )
 }
 
 function openChangePassword() {
@@ -78,18 +81,22 @@ function doChangePassword() {
   userService.changePassword(
     {
       password: changePasswordForm.password,
-      newPassword: changePasswordForm.newPassword,
+      newPassword: changePasswordForm.newPassword
     },
     () => {
       loading.value = false
       changePasswordDialogVisible.value = false
-      ElNotification({title: '成功', message: '密码修改成功，即将跳转至登录页', status: 'success'})
+      ElNotification({
+        title: '成功',
+        message: '密码修改成功，即将跳转至登录页',
+        status: 'success'
+      })
       setTimeout(clearAll, 1200)
     },
     (res) => {
       ElMessage.error(res.message)
       loading.value = false
-    },
+    }
   )
 }
 
@@ -102,7 +109,7 @@ function initUserInfoIfNecessary() {
         fileStore.setDefaultParentFilename(res.data.rootFilename)
         userStore.setUsername(res.data.username)
       },
-      (res) => ElMessage.error(res.message),
+      (res) => ElMessage.error(res.message)
     )
   }
 }
@@ -118,11 +125,15 @@ onMounted(initUserInfoIfNecessary)
           type="button"
           class="flex items-center gap-2 px-2.5 h-9 rounded-lg hover:bg-[var(--color-surface-2)] transition-colors text-sm"
         >
-          <span class="size-7 rounded-full bg-[var(--color-primary-100)] dark:bg-[var(--color-primary-900)]/40 flex items-center justify-center text-[var(--color-primary-700)] dark:text-[var(--color-primary-300)]">
-            <User :size="14"/>
+          <span
+            class="size-7 rounded-full bg-[var(--color-primary-100)] dark:bg-[var(--color-primary-900)]/40 flex items-center justify-center text-[var(--color-primary-700)] dark:text-[var(--color-primary-300)]"
+          >
+            <User :size="14" />
           </span>
-          <span class="hidden sm:inline text-[var(--color-text)] max-w-[120px] truncate">{{ username || '未登录' }}</span>
-          <ChevronDown :size="14" class="text-[var(--color-text-muted)]"/>
+          <span class="hidden sm:inline text-[var(--color-text)] max-w-[120px] truncate">{{
+            username || '未登录'
+          }}</span>
+          <ChevronDown :size="14" class="text-[var(--color-text-muted)]" />
         </button>
       </template>
       <button
@@ -130,7 +141,7 @@ onMounted(initUserInfoIfNecessary)
         class="w-full flex items-center gap-2 px-3 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-surface-2)] transition-colors text-left"
         @click="openChangePassword"
       >
-        <KeyRound :size="14"/>
+        <KeyRound :size="14" />
         修改密码
       </button>
       <button
@@ -138,7 +149,7 @@ onMounted(initUserInfoIfNecessary)
         class="w-full flex items-center gap-2 px-3 py-2 text-sm text-[var(--color-danger)] hover:bg-[var(--color-surface-2)] transition-colors text-left"
         @click="doExit"
       >
-        <LogOut :size="14"/>
+        <LogOut :size="14" />
         退出登录
       </button>
     </BaseDropdown>
@@ -151,17 +162,34 @@ onMounted(initUserInfoIfNecessary)
     >
       <div class="flex flex-col gap-4">
         <BaseField label="旧密码" required>
-          <BaseInput v-model="changePasswordForm.password" type="password" show-password placeholder="请输入旧密码"/>
+          <BaseInput
+            v-model="changePasswordForm.password"
+            type="password"
+            show-password
+            placeholder="请输入旧密码"
+          />
         </BaseField>
         <BaseField label="新密码" required>
-          <BaseInput v-model="changePasswordForm.newPassword" type="password" show-password placeholder="8-16 位"/>
+          <BaseInput
+            v-model="changePasswordForm.newPassword"
+            type="password"
+            show-password
+            placeholder="8-16 位"
+          />
         </BaseField>
         <BaseField label="确认密码" required>
-          <BaseInput v-model="changePasswordForm.reNewPassword" type="password" show-password placeholder="再次输入新密码"/>
+          <BaseInput
+            v-model="changePasswordForm.reNewPassword"
+            type="password"
+            show-password
+            placeholder="再次输入新密码"
+          />
         </BaseField>
       </div>
       <template #footer>
-        <BaseButton variant="secondary" @click="changePasswordDialogVisible = false">取消</BaseButton>
+        <BaseButton variant="secondary" @click="changePasswordDialogVisible = false"
+          >取消</BaseButton
+        >
         <BaseButton variant="primary" :loading="loading" @click="doChangePassword">确定</BaseButton>
       </template>
     </BaseModal>

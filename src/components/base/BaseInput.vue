@@ -4,23 +4,23 @@
  *   modelValue · type · size · placeholder · disabled · readonly · clearable
  *   prefix · suffix · error · id · showPassword
  */
-import {computed, ref} from 'vue'
-import {X, Eye, EyeOff} from '@lucide/vue'
-import {cn} from '@/utils/classnames'
+import { computed, ref } from 'vue'
+import { X, Eye, EyeOff } from '@lucide/vue'
+import { cn } from '@/utils/classnames'
 
 const props = defineProps({
-  modelValue: {type: [String, Number], default: ''},
-  type: {type: String, default: 'text'},
-  size: {type: String, default: 'md'},
-  placeholder: {type: String, default: ''},
-  disabled: {type: Boolean, default: false},
-  readonly: {type: Boolean, default: false},
-  clearable: {type: Boolean, default: false},
-  prefix: {type: [Object, Function], default: null},
-  suffix: {type: [Object, Function], default: null},
-  error: {type: Boolean, default: false},
-  id: {type: String, default: ''},
-  showPassword: {type: Boolean, default: false},
+  modelValue: { type: [String, Number], default: '' },
+  type: { type: String, default: 'text' },
+  size: { type: String, default: 'md' },
+  placeholder: { type: String, default: '' },
+  disabled: { type: Boolean, default: false },
+  readonly: { type: Boolean, default: false },
+  clearable: { type: Boolean, default: false },
+  prefix: { type: [Object, Function], default: null },
+  suffix: { type: [Object, Function], default: null },
+  error: { type: Boolean, default: false },
+  id: { type: String, default: '' },
+  showPassword: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['update:modelValue', 'clear', 'enter'])
@@ -33,16 +33,17 @@ const inputType = computed(() => {
   return props.type
 })
 
-const showClearBtn = computed(
-  () => props.clearable && props.modelValue !== '' && !props.disabled,
-)
+const showClearBtn = computed(() => props.clearable && props.modelValue !== '' && !props.disabled)
 const showPwBtn = computed(() => props.type === 'password' && props.showPassword)
 
-const sizeClass = computed(() => ({
-  sm: 'h-8 text-xs',
-  md: 'h-9 text-sm',
-  lg: 'h-11 text-base',
-}[props.size]))
+const sizeClass = computed(
+  () =>
+    ({
+      sm: 'h-8 text-xs',
+      md: 'h-9 text-sm',
+      lg: 'h-11 text-base'
+    })[props.size]
+)
 
 const padClass = computed(() => {
   const left = props.prefix || showPwBtn.value ? 'pl-2.5' : 'pl-3'
@@ -58,8 +59,8 @@ const wrapperClass = computed(() =>
     props.error
       ? 'border-[var(--color-danger)] focus-within:ring-[var(--color-danger)]'
       : 'border-[var(--color-border)] hover:border-[var(--color-border-strong)] focus-within:border-[var(--color-primary-500)]',
-    props.disabled && 'opacity-50 cursor-not-allowed bg-[var(--color-surface-2)]',
-  ),
+    props.disabled && 'opacity-50 cursor-not-allowed bg-[var(--color-surface-2)]'
+  )
 )
 
 function onInput(e) {
@@ -81,7 +82,7 @@ function onKeydown(e) {
       class="text-[var(--color-text-muted)] shrink-0 flex items-center"
       :class="prefix && showPwBtn ? 'pl-3' : prefix ? 'pl-3' : 'pl-3'"
     >
-      <component v-if="prefix" :is="prefix" :size="16"/>
+      <component v-if="prefix" :is="prefix" :size="16" />
     </span>
 
     <input
@@ -91,11 +92,17 @@ function onKeydown(e) {
       :placeholder="placeholder"
       :disabled="disabled"
       :readonly="readonly"
-      :class="cn('flex-1 min-w-0 bg-transparent outline-none placeholder:text-[var(--color-text-muted)] disabled:cursor-not-allowed', sizeClass, padClass)"
+      :class="
+        cn(
+          'flex-1 min-w-0 bg-transparent outline-none placeholder:text-[var(--color-text-muted)] disabled:cursor-not-allowed',
+          sizeClass,
+          padClass
+        )
+      "
       :aria-invalid="error || undefined"
       @input="onInput"
       @keydown="onKeydown"
-    >
+    />
 
     <span v-if="showClearBtn" class="flex items-center gap-0.5 shrink-0 pr-1.5">
       <button
@@ -104,7 +111,7 @@ function onKeydown(e) {
         aria-label="清除"
         @click="onClear"
       >
-        <X :size="14"/>
+        <X :size="14" />
       </button>
     </span>
 
@@ -115,12 +122,12 @@ function onKeydown(e) {
         :aria-label="showPw ? '隐藏密码' : '显示密码'"
         @click="showPw = !showPw"
       >
-        <component :is="showPw ? EyeOff : Eye" :size="14"/>
+        <component :is="showPw ? EyeOff : Eye" :size="14" />
       </button>
     </span>
 
     <span v-else-if="suffix" class="pr-3 text-[var(--color-text-muted)] shrink-0 flex items-center">
-      <component :is="suffix" :size="16"/>
+      <component :is="suffix" :size="16" />
     </span>
   </div>
 </template>

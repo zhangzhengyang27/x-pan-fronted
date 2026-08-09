@@ -3,7 +3,7 @@
  * AppFileButtonGroup —— 操作按钮组
  * 8 个 button × visibility 标志位；视觉统一使用 BaseButton 圆角胶囊
  */
-import {computed} from 'vue'
+import { computed } from 'vue'
 import UploadButton from '@/components/buttons/upload-button/index.vue'
 import CreateFolderButton from '@/components/buttons/create-folder-button/index.vue'
 import DownloadButton from '@/components/buttons/download-button/index.vue'
@@ -14,7 +14,7 @@ import CopyButton from '@/components/buttons/copy-button/index.vue'
 import TransferButton from '@/components/buttons/transfer-button/index.vue'
 
 const props = defineProps({
-  buttonArray: {type: Array, default: () => []},
+  buttonArray: { type: Array, default: () => [] }
 })
 
 const map = {
@@ -25,7 +25,7 @@ const map = {
   rename: RenameButton,
   share: ShareButton,
   copy: CopyButton,
-  transfer: TransferButton,
+  transfer: TransferButton
 }
 
 const enabled = computed(() => new Set(props.buttonArray || []))

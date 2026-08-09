@@ -6,11 +6,18 @@
 import panUtil from '@/utils/common'
 import userService from '@/api/user'
 import fileService from '@/api/file'
-import {clearShareToken, clearToken, getShareToken, getToken, setShareToken, setToken} from '@/utils/cookie'
+import {
+  clearShareToken,
+  clearToken,
+  getShareToken,
+  getToken,
+  setShareToken,
+  setToken
+} from '@/utils/cookie'
 import shareService from '@/api/share'
-import {onMounted, onUnmounted, reactive, ref, computed} from 'vue'
-import {ElMessage, ElMessageBox} from '@/composables/useToast'
-import {useRoute} from 'vue-router'
+import { onMounted, onUnmounted, reactive, ref, computed } from 'vue'
+import { ElMessage, ElMessageBox } from '@/composables/useToast'
+import { useRoute } from 'vue-router'
 
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseField from '@/components/base/BaseField.vue'
@@ -20,15 +27,30 @@ import BaseTable from '@/components/base/BaseTable.vue'
 import BaseTree from '@/components/base/BaseTree.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
 import BaseDivider from '@/components/base/BaseDivider.vue'
-import {Cloud, Copy, Download, Folder, Clock, LogIn, LogOut, Save, QrCode, Check, Link as LinkIcon, Eye, Hash, TrendingUp} from '@lucide/vue'
+import {
+  Cloud,
+  Copy,
+  Download,
+  Folder,
+  Clock,
+  LogIn,
+  LogOut,
+  Save,
+  QrCode,
+  Check,
+  Link as LinkIcon,
+  Eye,
+  Hash,
+  TrendingUp
+} from '@lucide/vue'
 
 const route = useRoute()
 const treeRef = ref(null)
 const shareCodeEl = ref(null)
 const usernameEl = ref(null)
 
-const loginForm = reactive({username: '', password: ''})
-const shareCodeForm = reactive({shareCode: ''})
+const loginForm = reactive({ username: '', password: '' })
+const shareCodeForm = reactive({ shareCode: '' })
 
 const loading = ref(false)
 const username = ref('')
@@ -42,7 +64,7 @@ const multipleSelection = ref([])
 const pageLoading = ref(true)
 const shareDate = ref('')
 const shareExpireDate = ref('')
-const breadCrumbs = ref([{id: '-1', name: '全部文件'}])
+const breadCrumbs = ref([{ id: '-1', name: '全部文件' }])
 const treeData = ref([])
 const treeDialogVisible = ref(false)
 const item = ref(undefined)
@@ -91,10 +113,10 @@ const remainingDownloads = computed(() => {
 
 // 列定义
 const columns = [
-  {key: 'filename', title: '文件名', width: 'auto'},
-  {key: 'fileSizeDesc', title: '大小', width: 120, align: 'right'},
-  {key: 'updateTime', title: '修改日期', width: 200, align: 'center'},
-  {key: 'actions', title: '操作', width: 180, align: 'right'},
+  { key: 'filename', title: '文件名', width: 'auto' },
+  { key: 'fileSizeDesc', title: '大小', width: 120, align: 'right' },
+  { key: 'updateTime', title: '修改日期', width: 200, align: 'center' },
+  { key: 'actions', title: '操作', width: 180, align: 'right' }
 ]
 
 function refreshShareInfo(data) {
@@ -145,7 +167,11 @@ function generateQR(text) {
     cells.push(row)
   }
   // 三个角的定位标记
-  const corners = [[0, 0], [size - 7, 0], [0, size - 7]]
+  const corners = [
+    [0, 0],
+    [size - 7, 0],
+    [0, size - 7]
+  ]
   for (const [cy, cx] of corners) {
     for (let y = 0; y < 7; y++) {
       for (let x = 0; x < 7; x++) {
@@ -178,42 +204,35 @@ const getShareId = () => route.params.shareId
 const openShareExpirePage = () => (shareCancelFlag.value = true)
 
 function openShareCodePage() {
-  shareService.getSimpleShareDetail(
-    {shareId: getShareId()},
-    (res) => {
-      if (res.code === 0) {
-        shareCodeDialogVisible.value = true
-        shareCodeHeader.value = res.data.shareUserInfoVO.username + '的分享：' + res.data.shareName
-      } else {
-        shareCodeDialogVisible.value = false
-        openShareExpirePage()
-      }
-    },
-  )
+  shareService.getSimpleShareDetail({ shareId: getShareId() }, (res) => {
+    if (res.code === 0) {
+      shareCodeDialogVisible.value = true
+      shareCodeHeader.value = res.data.shareUserInfoVO.username + '的分享：' + res.data.shareName
+    } else {
+      shareCodeDialogVisible.value = false
+      openShareExpirePage()
+    }
+  })
 }
 
 function loadShareInfo() {
-  shareService.getShareDetail(
-    (res) => {
-      if (res.code === 0) refreshShareInfo(res.data)
-      else if (res.code === 4) openShareCodePage()
-      else openShareExpirePage()
-    },
-  )
+  shareService.getShareDetail((res) => {
+    if (res.code === 0) refreshShareInfo(res.data)
+    else if (res.code === 4) openShareCodePage()
+    else openShareExpirePage()
+  })
 }
 
 function loadUserInfo() {
-  userService.infoWithoutPageJump(
-    (res) => {
-      if (res.code === 0) {
-        username.value = res.data.username
-        loginFlag.value = true
-      } else {
-        username.value = ''
-        loginFlag.value = false
-      }
-    },
-  )
+  userService.infoWithoutPageJump((res) => {
+    if (res.code === 0) {
+      username.value = res.data.username
+      loginFlag.value = true
+    } else {
+      username.value = ''
+      loginFlag.value = false
+    }
+  })
 }
 
 function login() {
@@ -228,16 +247,17 @@ function exit() {
       loginFlag.value = false
       username.value = ''
     },
-    (res) => ElMessage.error(res.message),
+    (res) => ElMessage.error(res.message)
   )
 }
 
 function doLogin() {
-  if (!panUtil.checkUsername(loginForm.username)) return ElMessage.error('请输入6-16位只包含数字和字母的用户名')
+  if (!panUtil.checkUsername(loginForm.username))
+    return ElMessage.error('请输入6-16位只包含数字和字母的用户名')
   if (!panUtil.checkPassword(loginForm.password)) return ElMessage.error('请输入8-16位的密码')
   loading.value = true
   userService.login(
-    {username: loginForm.username, password: loginForm.password},
+    { username: loginForm.username, password: loginForm.password },
     (res) => {
       loading.value = false
       setToken(res.data)
@@ -247,7 +267,7 @@ function doLogin() {
     (res) => {
       loading.value = false
       ElMessage.error(res.message)
-    },
+    }
   )
 }
 
@@ -255,7 +275,7 @@ function doCheckShareCode() {
   if (!shareCodeForm.shareCode) return ElMessage.error('请输入提取码')
   loading.value = true
   shareService.checkShareCode(
-    {shareId: getShareId(), shareCode: shareCodeForm.shareCode},
+    { shareId: getShareId(), shareCode: shareCodeForm.shareCode },
     (res) => {
       if (res.code === 0) {
         loading.value = false
@@ -266,7 +286,7 @@ function doCheckShareCode() {
         loading.value = false
         ElMessage.error(res.message)
       }
-    },
+    }
   )
 }
 
@@ -280,23 +300,20 @@ function clickFilename(row) {
 }
 
 function goInFolder(row) {
-  breadCrumbs.value.push({id: row.fileId, name: row.filename})
+  breadCrumbs.value.push({ id: row.fileId, name: row.filename })
   reloadTableData(row.fileId)
 }
 
 function reloadTableData(parentId) {
-  shareService.getShareFiles(
-    {parentId},
-    (res) => {
-      if (res.code === 0) tableData.value = res.data
-      else window.location.reload()
-    },
-  )
+  shareService.getShareFiles({ parentId }, (res) => {
+    if (res.code === 0) tableData.value = res.data
+    else window.location.reload()
+  })
 }
 
 function goToThis(id) {
   if (id === '-1') {
-    breadCrumbs.value = [{id: '-1', name: '全部文件'}]
+    breadCrumbs.value = [{ id: '-1', name: '全部文件' }]
     loadShareInfo()
   } else {
     const next = []
@@ -311,7 +328,8 @@ function goToThis(id) {
 
 function downloadFile() {
   if (!multipleSelection.value.length) return ElMessage.error('请选择要下载的文件')
-  for (const it of multipleSelection.value) if (it.folderFlag === 1) return ElMessage.error('文件夹暂不支持下载')
+  for (const it of multipleSelection.value)
+    if (it.folderFlag === 1) return ElMessage.error('文件夹暂不支持下载')
   doDownLoads(multipleSelection.value)
 }
 
@@ -325,33 +343,31 @@ function doDownLoads(items, i = 0) {
 
 function doDownload(item) {
   if (item.folderFlag === 1) return ElMessage.error('文件夹暂不支持下载')
-  userService.infoWithoutPageJump(
-    (res) => {
-      if (res.code === 0) {
-        shareService.getSimpleShareDetail({shareId: getShareId()}, (res) => {
-          if (res.code === 0) {
-            const url = `${panUtil.getUrlPrefix()}/share/file/download?fileId=${item.fileId.replace(/\+/g, '%2B')}&shareToken=${getShareToken()}&authorization=${getToken()}`
-            const link = document.createElement('a')
-            link.style.display = 'none'
-            link.href = url
-            link.setAttribute('download', item.filename)
-            document.body.appendChild(link)
-            link.click()
-            document.body.removeChild(link)
-          } else window.location.reload()
-        })
-      } else {
-        loadUserInfo()
-        login()
-      }
-    },
-  )
+  userService.infoWithoutPageJump((res) => {
+    if (res.code === 0) {
+      shareService.getSimpleShareDetail({ shareId: getShareId() }, (res) => {
+        if (res.code === 0) {
+          const url = `${panUtil.getUrlPrefix()}/share/file/download?fileId=${item.fileId.replace(/\+/g, '%2B')}&shareToken=${getShareToken()}&authorization=${getToken()}`
+          const link = document.createElement('a')
+          link.style.display = 'none'
+          link.href = url
+          link.setAttribute('download', item.filename)
+          document.body.appendChild(link)
+          link.click()
+          document.body.removeChild(link)
+        } else window.location.reload()
+      })
+    } else {
+      loadUserInfo()
+      login()
+    }
+  })
 }
 
 function loadTreeData() {
   fileService.getFolderTree(
     (res) => (treeData.value = res.data || []),
-    (res) => ElMessage.error(res.message),
+    (res) => ElMessage.error(res.message)
   )
 }
 
@@ -364,32 +380,27 @@ function doChoseTreeNodeCallBack() {
 function saveFiles(newItem) {
   if (newItem) item.value = newItem
   else if (!multipleSelection.value.length) return ElMessage.error('请选择要保存的文件')
-  userService.infoWithoutPageJump(
-    (res) => {
-      if (res.code === 0) treeDialogVisible.value = true
-      else login()
-    },
-  )
+  userService.infoWithoutPageJump((res) => {
+    if (res.code === 0) treeDialogVisible.value = true
+    else login()
+  })
 }
 
 function doSaveFiles(targetParentId) {
   let fileIds = ''
   if (item.value) fileIds = item.value.fileId
   else fileIds = multipleSelection.value.map((it) => it.fileId).join('__,__')
-  shareService.saveShareFiles(
-    {fileIds, targetParentId},
-    (res) => {
-      if (res.code === 0) {
-        ElMessage.success('保存成功')
-        treeDialogVisible.value = false
-      } else if (res.code === 10) {
-        treeDialogVisible.value = false
-        loadUserInfo()
-        login()
-      } else ElMessage.error(res.message)
-      loading.value = false
-    },
-  )
+  shareService.saveShareFiles({ fileIds, targetParentId }, (res) => {
+    if (res.code === 0) {
+      ElMessage.success('保存成功')
+      treeDialogVisible.value = false
+    } else if (res.code === 10) {
+      treeDialogVisible.value = false
+      loadUserInfo()
+      login()
+    } else ElMessage.error(res.message)
+    loading.value = false
+  })
 }
 
 onMounted(() => {
@@ -407,72 +418,101 @@ onUnmounted(() => {
 <template>
   <div class="min-h-screen flex flex-col bg-[var(--color-bg)]">
     <!-- Header -->
-    <header class="sticky top-0 z-40 h-16 bg-[var(--color-surface)]/80 backdrop-blur border-b border-[var(--color-border)] px-6 flex items-center justify-between">
+    <header
+      class="sticky top-0 z-40 h-16 bg-[var(--color-surface)]/80 backdrop-blur border-b border-[var(--color-border)] px-6 flex items-center justify-between"
+    >
       <div class="flex items-center gap-2.5">
-        <div class="size-9 rounded-xl bg-gradient-to-br from-[var(--color-primary-500)] to-[var(--color-primary-700)] flex items-center justify-center">
-          <Cloud :size="18" class="text-white" :stroke-width="2.25"/>
+        <div
+          class="size-9 rounded-xl bg-gradient-to-br from-[var(--color-primary-500)] to-[var(--color-primary-700)] flex items-center justify-center"
+        >
+          <Cloud :size="18" class="text-white" :stroke-width="2.25" />
         </div>
         <span class="text-lg font-semibold">R Pan · 分享</span>
       </div>
       <div v-if="loginFlag" class="flex items-center gap-3 text-sm">
         <span class="text-[var(--color-text-muted)]">欢迎您，{{ username }}</span>
         <BaseButton variant="ghost" size="sm" @click="exit">
-          <span class="inline-flex items-center gap-1.5"><LogOut :size="14"/>退出</span>
+          <span class="inline-flex items-center gap-1.5"><LogOut :size="14" />退出</span>
         </BaseButton>
       </div>
       <div v-else class="flex items-center gap-2">
         <BaseButton variant="ghost" size="sm" @click="login">
-          <span class="inline-flex items-center gap-1.5"><LogIn :size="14"/>登录</span>
+          <span class="inline-flex items-center gap-1.5"><LogIn :size="14" />登录</span>
         </BaseButton>
-        <BaseButton variant="primary" size="sm" @click="window.location.href='/register'">注册</BaseButton>
+        <BaseButton variant="primary" size="sm" @click="window.location.href = '/register'"
+          >注册</BaseButton
+        >
       </div>
     </header>
 
     <!-- Main -->
     <main class="flex-1 px-6 py-8 mx-auto w-full max-w-5xl">
       <div v-if="shareCancelFlag" class="py-20 text-center">
-        <p class="text-xl text-[var(--color-danger)] font-medium">Sorry, 您来晚啦~ 该分享已到期或已失效~</p>
+        <p class="text-xl text-[var(--color-danger)] font-medium">
+          Sorry, 您来晚啦~ 该分享已到期或已失效~
+        </p>
       </div>
 
-      <div v-else class="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm overflow-hidden">
+      <div
+        v-else
+        class="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm overflow-hidden"
+      >
         <!-- Header -->
-        <div class="px-6 py-5 border-b border-[var(--color-border)] flex items-start justify-between gap-4">
+        <div
+          class="px-6 py-5 border-b border-[var(--color-border)] flex items-start justify-between gap-4"
+        >
           <div class="flex-1 min-w-0">
-            <h2 class="text-lg font-semibold text-[var(--color-success)] truncate">{{ shareCodeHeader }}</h2>
-            <div class="mt-2 flex items-center gap-4 text-xs text-[var(--color-text-muted)] flex-wrap">
-              <span class="inline-flex items-center gap-1"><Clock :size="12"/>分享时间：{{ shareDate }}</span>
-              <span class="inline-flex items-center gap-1" :class="shareExpireDate === '永久有效' ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]'">
-                <Clock :size="12"/>{{ shareExpireDate === '永久有效' ? '永久有效' : `失效：${countdownText}` }}
+            <h2 class="text-lg font-semibold text-[var(--color-success)] truncate">
+              {{ shareCodeHeader }}
+            </h2>
+            <div
+              class="mt-2 flex items-center gap-4 text-xs text-[var(--color-text-muted)] flex-wrap"
+            >
+              <span class="inline-flex items-center gap-1"
+                ><Clock :size="12" />分享时间：{{ shareDate }}</span
+              >
+              <span
+                class="inline-flex items-center gap-1"
+                :class="
+                  shareExpireDate === '永久有效'
+                    ? 'text-[var(--color-success)]'
+                    : 'text-[var(--color-danger)]'
+                "
+              >
+                <Clock :size="12" />{{
+                  shareExpireDate === '永久有效' ? '永久有效' : `失效：${countdownText}`
+                }}
               </span>
             </div>
             <!-- P1.12：分享统计行 -->
             <div class="mt-3 flex items-center gap-2 flex-wrap">
               <BaseBadge variant="primary" size="sm">
                 <span class="inline-flex items-center gap-1">
-                  <Eye :size="11"/>已被查看 {{ downloadCount }} 次
+                  <Eye :size="11" />已被查看 {{ downloadCount }} 次
                 </span>
               </BaseBadge>
               <BaseBadge v-if="downloadLimit > 0" variant="warning" size="sm">
                 <span class="inline-flex items-center gap-1">
-                  <TrendingUp :size="11"/>剩余下载 {{ remainingDownloads }} / {{ downloadLimit }} 次
+                  <TrendingUp :size="11" />剩余下载 {{ remainingDownloads }} /
+                  {{ downloadLimit }} 次
                 </span>
               </BaseBadge>
               <BaseBadge v-else variant="ghost" size="sm">
-                <span class="inline-flex items-center gap-1">
-                  <Hash :size="11"/>下载不限次
-                </span>
+                <span class="inline-flex items-center gap-1"> <Hash :size="11" />下载不限次 </span>
               </BaseBadge>
             </div>
           </div>
           <div class="flex items-center gap-2 shrink-0">
             <BaseButton variant="ghost" size="sm" @click="showQRCode" title="分享二维码">
-              <span class="inline-flex items-center gap-1.5"><QrCode :size="14"/>二维码</span>
+              <span class="inline-flex items-center gap-1.5"><QrCode :size="14" />二维码</span>
             </BaseButton>
             <BaseButton variant="primary" @click="saveFiles(undefined)">
-              <span class="inline-flex items-center gap-1.5"><Save :size="14"/>保存到我的 R 盘</span>
+              <span class="inline-flex items-center gap-1.5"
+                ><Save :size="14" />保存到我的 R 盘</span
+              >
             </BaseButton>
             <BaseButton variant="secondary" @click="downloadFile">
-              <span class="inline-flex items-center gap-1.5"><Download :size="14"/>下载</span>
+              <span class="inline-flex items-center gap-1.5"><Download :size="14" />下载</span>
             </BaseButton>
           </div>
         </div>
@@ -483,7 +523,12 @@ onUnmounted(() => {
             v-for="(bc, i) in breadCrumbs"
             :key="i"
             type="button"
-            :class="['px-1.5 py-0.5 rounded transition-colors', i === breadCrumbs.length - 1 ? 'text-[var(--color-text)] font-medium cursor-default' : 'text-[var(--color-primary-600)] hover:underline hover:bg-[var(--color-primary-50)]']"
+            :class="[
+              'px-1.5 py-0.5 rounded transition-colors',
+              i === breadCrumbs.length - 1
+                ? 'text-[var(--color-text)] font-medium cursor-default'
+                : 'text-[var(--color-primary-600)] hover:underline hover:bg-[var(--color-primary-50)]'
+            ]"
             :disabled="i === breadCrumbs.length - 1"
             @click="goToThis(bc.id)"
           >
@@ -500,9 +545,14 @@ onUnmounted(() => {
             selectable
             row-key="fileId"
             empty-text="该文件夹为空"
-            @update:selected="(v) => { selected = v; handleSelectionChange(v) }"
+            @update:selected="
+              (v) => {
+                selected = v
+                handleSelectionChange(v)
+              }
+            "
           >
-            <template #cell-filename="{row}">
+            <template #cell-filename="{ row }">
               <button
                 type="button"
                 class="flex items-center gap-3 text-left w-full"
@@ -517,13 +567,20 @@ onUnmounted(() => {
                 <span class="truncate text-[var(--color-text)]">{{ row.filename }}</span>
               </button>
             </template>
-            <template #cell-actions="{row}">
-              <div class="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                <BaseButton variant="primary" size="sm" @click="saveFiles(row)" title="保存到我的R盘">
-                  <Copy :size="14"/>
+            <template #cell-actions="{ row }">
+              <div
+                class="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <BaseButton
+                  variant="primary"
+                  size="sm"
+                  @click="saveFiles(row)"
+                  title="保存到我的R盘"
+                >
+                  <Copy :size="14" />
                 </BaseButton>
                 <BaseButton variant="secondary" size="sm" @click="doDownload(row)" title="下载">
-                  <Download :size="14"/>
+                  <Download :size="14" />
                 </BaseButton>
               </div>
             </template>
@@ -536,10 +593,21 @@ onUnmounted(() => {
     <BaseModal v-model:open="loginDialogVisible" title="欢迎登录" size="md">
       <div class="flex flex-col gap-4">
         <BaseField label="用户名">
-          <BaseInput v-model="loginForm.username" placeholder="6-16 位字母数字" :prefix="LogIn" @enter="doLogin"/>
+          <BaseInput
+            v-model="loginForm.username"
+            placeholder="6-16 位字母数字"
+            :prefix="LogIn"
+            @enter="doLogin"
+          />
         </BaseField>
         <BaseField label="密码">
-          <BaseInput v-model="loginForm.password" type="password" show-password placeholder="8-16 位" @enter="doLogin"/>
+          <BaseInput
+            v-model="loginForm.password"
+            type="password"
+            show-password
+            placeholder="8-16 位"
+            @enter="doLogin"
+          />
         </BaseField>
       </div>
       <template #footer>
@@ -551,17 +619,25 @@ onUnmounted(() => {
     <!-- 提取码弹窗 -->
     <BaseModal v-model:open="shareCodeDialogVisible" size="md" :hide-close="true">
       <div class="text-center py-2">
-        <div class="size-12 mx-auto rounded-2xl bg-[var(--color-primary-50)] dark:bg-[var(--color-primary-900)]/30 flex items-center justify-center mb-4 text-[var(--color-primary-600)]">
-          <Folder :size="22"/>
+        <div
+          class="size-12 mx-auto rounded-2xl bg-[var(--color-primary-50)] dark:bg-[var(--color-primary-900)]/30 flex items-center justify-center mb-4 text-[var(--color-primary-600)]"
+        >
+          <Folder :size="22" />
         </div>
         <h3 class="text-base font-semibold m-0 mb-1">{{ shareCodeHeader }}</h3>
         <p class="text-sm text-[var(--color-text-muted)] mb-6">请输入提取码以查看分享</p>
         <BaseField label="提取码" class="text-left">
-          <BaseInput v-model="shareCodeForm.shareCode" placeholder="请输入提取码" @enter="doCheckShareCode"/>
+          <BaseInput
+            v-model="shareCodeForm.shareCode"
+            placeholder="请输入提取码"
+            @enter="doCheckShareCode"
+          />
         </BaseField>
       </div>
       <template #footer>
-        <BaseButton variant="primary" :loading="loading" block @click="doCheckShareCode">确定</BaseButton>
+        <BaseButton variant="primary" :loading="loading" block @click="doCheckShareCode"
+          >确定</BaseButton
+        >
       </template>
     </BaseModal>
 
@@ -577,20 +653,30 @@ onUnmounted(() => {
       </div>
       <template #footer>
         <BaseButton variant="secondary" @click="treeDialogVisible = false">取消</BaseButton>
-        <BaseButton variant="primary" :loading="loading" @click="doChoseTreeNodeCallBack">确定</BaseButton>
+        <BaseButton variant="primary" :loading="loading" @click="doChoseTreeNodeCallBack"
+          >确定</BaseButton
+        >
       </template>
     </BaseModal>
 
     <!-- P1.10：分享二维码弹窗 -->
     <BaseModal v-model:open="qrDialogVisible" title="分享二维码" size="sm">
       <div class="text-center py-2">
-        <div class="w-48 h-48 mx-auto rounded-lg bg-white p-2 shadow-sm border border-[var(--color-border)]" v-html="qrSvg"/>
+        <div
+          class="w-48 h-48 mx-auto rounded-lg bg-white p-2 shadow-sm border border-[var(--color-border)]"
+          v-html="qrSvg"
+        />
         <div class="mt-4 flex items-center gap-2">
-          <input :value="shareUrl" readonly class="flex-1 h-8 px-2 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] text-xs font-mono" @focus="$event.target.select()"/>
+          <input
+            :value="shareUrl"
+            readonly
+            class="flex-1 h-8 px-2 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] text-xs font-mono"
+            @focus="$event.target.select()"
+          />
           <BaseButton variant="secondary" size="sm" @click="copyShareLink">
             <span class="inline-flex items-center gap-1.5">
-              <Check v-if="copyOk" :size="12"/>
-              <LinkIcon v-else :size="12"/>
+              <Check v-if="copyOk" :size="12" />
+              <LinkIcon v-else :size="12" />
               {{ copyOk ? '已复制' : '复制' }}
             </span>
           </BaseButton>

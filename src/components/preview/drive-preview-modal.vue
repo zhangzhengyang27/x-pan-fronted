@@ -6,9 +6,9 @@
  * - 异步加载非图片预览 URL（带缓存）
  * - 动态加载所有重型渲染器
  */
-import {computed, defineAsyncComponent, ref, watch} from 'vue'
-import {X, Download, ExternalLink, AlertCircle} from '@lucide/vue'
-import {resolvePreviewUrl, getDownloadUrl, isOffice} from '@/utils/preview'
+import { computed, defineAsyncComponent, ref, watch } from 'vue'
+import { X, Download, ExternalLink, AlertCircle } from '@lucide/vue'
+import { resolvePreviewUrl, getDownloadUrl, isOffice } from '@/utils/preview'
 import ImageGalleryPreviewer from './image-gallery-previewer.vue'
 import BaseModal from '@/components/base/BaseModal.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
@@ -22,9 +22,9 @@ const MarkdownPreviewer = defineAsyncComponent(() => import('./markdown-previewe
 const CodePreviewer = defineAsyncComponent(() => import('./code-previewer.vue'))
 
 const props = defineProps({
-  state: {type: Object, required: true}, // {open, item, kind, galleryItems, galleryIndex}
+  state: { type: Object, required: true }, // {open, item, kind, galleryItems, galleryIndex}
   /** 兼容：可选的 resolveUrl（覆盖默认）；若传则使用 prop 的 */
-  resolveUrl: {type: Function, default: null},
+  resolveUrl: { type: Function, default: null }
 })
 
 const emit = defineEmits(['close', 'download'])
@@ -39,21 +39,29 @@ const currentItem = computed(() => props.state.item)
 
 const modalWidth = computed(() => {
   switch (props.state.kind) {
-    case 'audio': return 560
-    case 'video': return 920
-    case 'pdf': return 960
+    case 'audio':
+      return 560
+    case 'video':
+      return 920
+    case 'pdf':
+      return 960
     case 'docx':
     case 'excel':
-    case 'pptx': return 960
-    default: return 960
+    case 'pptx':
+      return 960
+    default:
+      return 960
   }
 })
 
 const contentHeight = computed(() => {
   switch (props.state.kind) {
-    case 'video': return '520px'
-    case 'audio': return '220px'
-    default: return '68vh'
+    case 'video':
+      return '520px'
+    case 'audio':
+      return '220px'
+    default:
+      return '68vh'
   }
 })
 
@@ -81,7 +89,7 @@ watch(
       urlLoading.value = false
     }
   },
-  {immediate: true},
+  { immediate: true }
 )
 
 function close() {
@@ -116,25 +124,56 @@ function handleGalleryIndex(i) {
     v-else
     :open="state.open && !isImage"
     :title="fileName || '文件预览'"
-    :size="(modalWidth <= 600) ? 'sm' : (modalWidth <= 800 ? 'md' : 'xl')"
+    :size="modalWidth <= 600 ? 'sm' : modalWidth <= 800 ? 'md' : 'xl'"
     @update:open="(v) => !v && close()"
   >
-    <div class="drive-preview-body rounded-md overflow-hidden border border-[var(--color-border)]" :style="{height: contentHeight}">
+    <div
+      class="drive-preview-body rounded-md overflow-hidden border border-[var(--color-border)]"
+      :style="{ height: contentHeight }"
+    >
       <div v-if="urlLoading" class="flex h-full items-center justify-center">
-        <div class="size-12 rounded-2xl bg-[var(--color-surface-2)] animate-pulse"/>
+        <div class="size-12 rounded-2xl bg-[var(--color-surface-2)] animate-pulse" />
       </div>
-      <div v-else-if="urlError" class="flex h-full flex-col items-center justify-center gap-3 text-sm text-[var(--color-text-muted)]">
-        <AlertCircle :size="32"/>
+      <div
+        v-else-if="urlError"
+        class="flex h-full flex-col items-center justify-center gap-3 text-sm text-[var(--color-text-muted)]"
+      >
+        <AlertCircle :size="32" />
         {{ urlError }}
       </div>
       <template v-else-if="previewUrl && currentItem">
-        <VideoPreviewer v-if="state.kind === 'video'" :file-id="currentItem.fileId || currentItem.id" :title="fileName"/>
-        <AudioPreviewer v-else-if="state.kind === 'audio'" :file-id="currentItem.fileId || currentItem.id" :title="fileName"/>
-        <PdfPreviewer v-else-if="state.kind === 'pdf'" :file-id="currentItem.fileId || currentItem.id"/>
-        <OfficePreviewer v-else-if="isOffice(state.kind)" :file-id="currentItem.fileId || currentItem.id" :kind="state.kind"/>
-        <MarkdownPreviewer v-else-if="state.kind === 'markdown'" :file-id="currentItem.fileId || currentItem.id"/>
-        <CodePreviewer v-else-if="state.kind === 'code' || state.kind === 'text'" :file-id="currentItem.fileId || currentItem.id" :filename="fileName"/>
-        <div v-else class="flex h-full items-center justify-center text-sm text-[var(--color-text-muted)]">
+        <VideoPreviewer
+          v-if="state.kind === 'video'"
+          :file-id="currentItem.fileId || currentItem.id"
+          :title="fileName"
+        />
+        <AudioPreviewer
+          v-else-if="state.kind === 'audio'"
+          :file-id="currentItem.fileId || currentItem.id"
+          :title="fileName"
+        />
+        <PdfPreviewer
+          v-else-if="state.kind === 'pdf'"
+          :file-id="currentItem.fileId || currentItem.id"
+        />
+        <OfficePreviewer
+          v-else-if="isOffice(state.kind)"
+          :file-id="currentItem.fileId || currentItem.id"
+          :kind="state.kind"
+        />
+        <MarkdownPreviewer
+          v-else-if="state.kind === 'markdown'"
+          :file-id="currentItem.fileId || currentItem.id"
+        />
+        <CodePreviewer
+          v-else-if="state.kind === 'code' || state.kind === 'text'"
+          :file-id="currentItem.fileId || currentItem.id"
+          :filename="fileName"
+        />
+        <div
+          v-else
+          class="flex h-full items-center justify-center text-sm text-[var(--color-text-muted)]"
+        >
           暂不支持的预览类型：{{ state.kind }}
         </div>
       </template>
@@ -143,13 +182,13 @@ function handleGalleryIndex(i) {
     <template #footer>
       <BaseButton variant="ghost" size="sm" @click="openInNewTab">
         <span class="inline-flex items-center gap-1.5">
-          <ExternalLink :size="14"/>
+          <ExternalLink :size="14" />
           新窗口打开
         </span>
       </BaseButton>
       <BaseButton variant="primary" size="sm" @click="download">
         <span class="inline-flex items-center gap-1.5">
-          <Download :size="14"/>
+          <Download :size="14" />
           下载
         </span>
       </BaseButton>

@@ -4,7 +4,12 @@
 
 'use strict'
 
-import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios'
+import axios, {
+  type AxiosInstance,
+  type AxiosRequestConfig,
+  type AxiosResponse,
+  type InternalAxiosRequestConfig
+} from 'axios'
 import { ElMessage } from '@/composables/useToast'
 import panUtil from '@/utils/common'
 import type { ApiResponse } from '@/types'

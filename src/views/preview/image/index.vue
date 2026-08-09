@@ -6,13 +6,13 @@
  * - 滚轮缩放
  * - 失败占位
  */
-import {computed, onMounted, ref, onBeforeUnmount} from 'vue'
-import {useRoute} from 'vue-router'
-import {ChevronLeft, ChevronRight, X, Download, ZoomIn, ZoomOut, RotateCcw} from '@lucide/vue'
+import { computed, onMounted, ref, onBeforeUnmount } from 'vue'
+import { useRoute } from 'vue-router'
+import { ChevronLeft, ChevronRight, X, Download, ZoomIn, ZoomOut, RotateCcw } from '@lucide/vue'
 import fileService from '@/api/file'
 import panUtil from '@/utils/common'
-import {ElMessage} from '@/composables/useToast'
-import {getPreviewUrl, getDownloadUrl} from '@/utils/preview'
+import { ElMessage } from '@/composables/useToast'
+import { getPreviewUrl, getDownloadUrl } from '@/utils/preview'
 import BaseButton from '@/components/base/BaseButton.vue'
 
 const route = useRoute()
@@ -25,7 +25,9 @@ const showList = ref(true)
 
 const activeItem = computed(() => items.value[activeIdx.value] || null)
 const src = computed(() => (activeItem.value ? getPreviewUrl(activeItem.value.fileId) : ''))
-const downloadUrl = computed(() => (activeItem.value ? getDownloadUrl(activeItem.value.fileId) : ''))
+const downloadUrl = computed(() =>
+  activeItem.value ? getDownloadUrl(activeItem.value.fileId) : ''
+)
 
 function next() {
   if (activeIdx.value < items.value.length - 1) {
@@ -78,7 +80,7 @@ function onKey(e) {
 onMounted(() => {
   // 加载同目录全部图片
   fileService.list(
-    {parentId: panUtil.handleId(route.params.parentId || ''), fileTypes: '7'},
+    { parentId: panUtil.handleId(route.params.parentId || ''), fileTypes: '7' },
     (res) => {
       items.value = res.data || []
       const idx = items.value.findIndex((x) => x.fileId === route.params.fileId)
@@ -88,7 +90,7 @@ onMounted(() => {
     (res) => {
       ElMessage.error(res.message)
       loading.value = false
-    },
+    }
   )
   window.addEventListener('keydown', onKey)
 })
@@ -101,27 +103,58 @@ onBeforeUnmount(() => {
 <template>
   <div class="fixed inset-0 bg-black text-white flex flex-col">
     <!-- 顶部工具条 -->
-    <header class="h-14 px-5 flex items-center justify-between bg-black/60 backdrop-blur border-b border-white/5 z-10">
+    <header
+      class="h-14 px-5 flex items-center justify-between bg-black/60 backdrop-blur border-b border-white/5 z-10"
+    >
       <div class="flex items-center gap-3 min-w-0 flex-1">
         <span class="text-sm font-medium truncate">{{ activeItem?.filename || '' }}</span>
-        <span v-if="items.length" class="text-xs text-white/50 tabular-nums shrink-0">{{ activeIdx + 1 }} / {{ items.length }}</span>
+        <span v-if="items.length" class="text-xs text-white/50 tabular-nums shrink-0"
+          >{{ activeIdx + 1 }} / {{ items.length }}</span
+        >
       </div>
       <div class="flex items-center gap-1">
-        <button type="button" class="size-9 rounded-lg hover:bg-white/10 flex items-center justify-center" aria-label="缩小" @click="zoomOut">
-          <ZoomOut :size="16"/>
+        <button
+          type="button"
+          class="size-9 rounded-lg hover:bg-white/10 flex items-center justify-center"
+          aria-label="缩小"
+          @click="zoomOut"
+        >
+          <ZoomOut :size="16" />
         </button>
-        <span class="text-xs tabular-nums text-white/70 px-1 w-12 text-center">{{ Math.round(scale * 100) }}%</span>
-        <button type="button" class="size-9 rounded-lg hover:bg-white/10 flex items-center justify-center" aria-label="放大" @click="zoomIn">
-          <ZoomIn :size="16"/>
+        <span class="text-xs tabular-nums text-white/70 px-1 w-12 text-center"
+          >{{ Math.round(scale * 100) }}%</span
+        >
+        <button
+          type="button"
+          class="size-9 rounded-lg hover:bg-white/10 flex items-center justify-center"
+          aria-label="放大"
+          @click="zoomIn"
+        >
+          <ZoomIn :size="16" />
         </button>
-        <button type="button" class="size-9 rounded-lg hover:bg-white/10 flex items-center justify-center" aria-label="旋转" @click="rotate">
-          <RotateCcw :size="16"/>
+        <button
+          type="button"
+          class="size-9 rounded-lg hover:bg-white/10 flex items-center justify-center"
+          aria-label="旋转"
+          @click="rotate"
+        >
+          <RotateCcw :size="16" />
         </button>
-        <a :href="downloadUrl" target="_blank" class="size-9 rounded-lg hover:bg-white/10 flex items-center justify-center" aria-label="下载">
-          <Download :size="16"/>
+        <a
+          :href="downloadUrl"
+          target="_blank"
+          class="size-9 rounded-lg hover:bg-white/10 flex items-center justify-center"
+          aria-label="下载"
+        >
+          <Download :size="16" />
         </a>
-        <button type="button" class="size-9 rounded-lg hover:bg-white/10 flex items-center justify-center" aria-label="关闭" @click="close">
-          <X :size="18"/>
+        <button
+          type="button"
+          class="size-9 rounded-lg hover:bg-white/10 flex items-center justify-center"
+          aria-label="关闭"
+          @click="close"
+        >
+          <X :size="18" />
         </button>
       </div>
     </header>
@@ -143,46 +176,74 @@ onBeforeUnmount(() => {
           :aria-label="it.filename"
           @click="pick(i)"
         >
-          <img :src="getPreviewUrl(it.fileId)" :alt="it.filename"
-               class="w-full h-full object-cover rounded border-2"
-               :class="i === activeIdx ? 'border-[var(--color-primary-400)]' : 'border-transparent'"/>
+          <img
+            :src="getPreviewUrl(it.fileId)"
+            :alt="it.filename"
+            class="w-full h-full object-cover rounded border-2"
+            :class="i === activeIdx ? 'border-[var(--color-primary-400)]' : 'border-transparent'"
+          />
         </button>
       </aside>
 
       <!-- 画布 -->
-      <main class="flex-1 flex items-center justify-center relative overflow-hidden" @wheel="onWheel">
-        <button type="button" v-if="activeIdx > 0" class="absolute left-4 top-1/2 -translate-y-1/2 z-10 size-12 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur flex items-center justify-center transition-colors" aria-label="上一张" @click="prev">
-          <ChevronLeft :size="22"/>
+      <main
+        class="flex-1 flex items-center justify-center relative overflow-hidden"
+        @wheel="onWheel"
+      >
+        <button
+          type="button"
+          v-if="activeIdx > 0"
+          class="absolute left-4 top-1/2 -translate-y-1/2 z-10 size-12 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur flex items-center justify-center transition-colors"
+          aria-label="上一张"
+          @click="prev"
+        >
+          <ChevronLeft :size="22" />
         </button>
-        <button type="button" v-if="activeIdx < items.length - 1" class="absolute right-4 top-1/2 -translate-y-1/2 z-10 size-12 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur flex items-center justify-center transition-colors" aria-label="下一张" @click="next">
-          <ChevronRight :size="22"/>
+        <button
+          type="button"
+          v-if="activeIdx < items.length - 1"
+          class="absolute right-4 top-1/2 -translate-y-1/2 z-10 size-12 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur flex items-center justify-center transition-colors"
+          aria-label="下一张"
+          @click="next"
+        >
+          <ChevronRight :size="22" />
         </button>
 
-        <div v-if="loading" class="size-10 rounded-xl bg-white/10 animate-pulse"/>
+        <div v-if="loading" class="size-10 rounded-xl bg-white/10 animate-pulse" />
         <div v-else-if="!items.length" class="text-sm text-white/60">暂无图片</div>
         <img
           v-else
           :src="src"
           :alt="activeItem.filename"
           class="max-w-full max-h-full select-none transition-transform duration-200"
-          :style="{transform: `scale(${scale}) rotate(${rotation}deg)`}"
+          :style="{ transform: `scale(${scale}) rotate(${rotation}deg)` }"
           draggable="false"
         />
       </main>
     </div>
 
     <!-- 底部 -->
-    <footer class="h-24 px-5 flex items-center gap-2 overflow-x-auto border-t border-white/5 bg-black/60 backdrop-blur">
+    <footer
+      class="h-24 px-5 flex items-center gap-2 overflow-x-auto border-t border-white/5 bg-black/60 backdrop-blur"
+    >
       <button
         v-for="(it, i) in items"
         :key="it.fileId"
         type="button"
         class="shrink-0 h-20 w-20 rounded-lg overflow-hidden border-2 transition-all"
-        :class="i === activeIdx ? 'border-[var(--color-primary-400)] opacity-100 scale-105' : 'border-transparent opacity-60 hover:opacity-100'"
+        :class="
+          i === activeIdx
+            ? 'border-[var(--color-primary-400)] opacity-100 scale-105'
+            : 'border-transparent opacity-60 hover:opacity-100'
+        "
         :aria-label="it.filename"
         @click="pick(i)"
       >
-        <img :src="getPreviewUrl(it.fileId)" :alt="it.filename" class="w-full h-full object-cover"/>
+        <img
+          :src="getPreviewUrl(it.fileId)"
+          :alt="it.filename"
+          class="w-full h-full object-cover"
+        />
       </button>
     </footer>
   </div>

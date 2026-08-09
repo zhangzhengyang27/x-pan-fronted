@@ -4,12 +4,12 @@
  * 1:1 复现 html5-examples MoveDialog
  * 使用 FolderTreeSelector（带根目录）
  */
-import {ref} from 'vue'
-import {Move} from '@lucide/vue'
+import { ref } from 'vue'
+import { Move } from '@lucide/vue'
 import fileService from '@/api/file'
-import {useFileStore} from '@/stores/file'
-import {storeToRefs} from 'pinia'
-import {ElMessage} from '@/composables/useToast'
+import { useFileStore } from '@/stores/file'
+import { storeToRefs } from 'pinia'
+import { ElMessage } from '@/composables/useToast'
 import FolderTreeSelector from '@/components/common/FolderTreeSelector.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 
@@ -17,11 +17,11 @@ const props = defineProps({
   roundFlag: Boolean,
   circleFlag: Boolean,
   size: String,
-  item: Object,
+  item: Object
 })
 
 const fileStore = useFileStore()
-const {multipleSelection} = storeToRefs(fileStore)
+const { multipleSelection } = storeToRefs(fileStore)
 
 const dialogVisible = ref(false)
 const loading = ref(false)
@@ -39,7 +39,7 @@ function collectFileIds() {
   return multipleSelection.value.map((f) => f.fileId)
 }
 
-function onConfirm({targetId}) {
+function onConfirm({ targetId }) {
   const fileIds = collectFileIds()
   if (fileIds.length === 0) {
     ElMessage.error('没有可移动的文件')
@@ -50,7 +50,7 @@ function onConfirm({targetId}) {
   fileService.transfer(
     {
       fileIds: fileIds.join('__,__'),
-      targetParentId: targetId || '',
+      targetParentId: targetId || ''
     },
     () => {
       loading.value = false
@@ -61,7 +61,7 @@ function onConfirm({targetId}) {
     (err) => {
       loading.value = false
       ElMessage.error(err.message)
-    },
+    }
   )
 }
 </script>
@@ -71,7 +71,12 @@ function onConfirm({targetId}) {
     <BaseButton v-if="roundFlag" :size="size === 'small' ? 'sm' : 'md'" :icon="Move" @click="open">
       移动到
     </BaseButton>
-    <BaseButton v-else-if="circleFlag" :size="size === 'small' ? 'sm' : 'md'" :icon="Move" @click="open"/>
+    <BaseButton
+      v-else-if="circleFlag"
+      :size="size === 'small' ? 'sm' : 'md'"
+      :icon="Move"
+      @click="open"
+    />
     <BaseButton v-else :size="size === 'small' ? 'sm' : 'md'" :icon="Move" @click="open">
       移动
     </BaseButton>
@@ -80,7 +85,7 @@ function onConfirm({targetId}) {
       v-model:open="dialogVisible"
       title="选择目标文件夹"
       confirm-text="移动到此处"
-      :exclude-ids="item ? [item.fileId] : multipleSelection.map(s => s.fileId)"
+      :exclude-ids="item ? [item.fileId] : multipleSelection.map((s) => s.fileId)"
       @confirm="onConfirm"
     />
   </div>

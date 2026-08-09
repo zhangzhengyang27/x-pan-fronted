@@ -4,15 +4,15 @@
  * - input + 下拉面板
  * - 支持自定义过滤函数（默认不区分大小写 startsWith）
  */
-import {ref, computed} from 'vue'
+import { ref, computed } from 'vue'
 import BaseInput from '@/components/base/BaseInput.vue'
 
 const props = defineProps({
-  modelValue: {type: String, default: ''},
-  options: {type: Array, default: () => []}, // [{label, value}]
-  placeholder: {type: String, default: '搜索…'},
-  fetchSuggestions: {type: Function, default: null},
-  disabled: {type: Boolean, default: false},
+  modelValue: { type: String, default: '' },
+  options: { type: Array, default: () => [] }, // [{label, value}]
+  placeholder: { type: String, default: '搜索…' },
+  fetchSuggestions: { type: Function, default: null },
+  disabled: { type: Boolean, default: false }
 })
 const emit = defineEmits(['update:modelValue', 'select'])
 
@@ -84,7 +84,9 @@ function onKeydown(e) {
         :aria-selected="highlighted === i"
         :class="[
           'px-3 py-2 text-sm cursor-pointer transition-colors',
-          highlighted === i ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)]' : 'hover:bg-[var(--color-surface-2)]',
+          highlighted === i
+            ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)]'
+            : 'hover:bg-[var(--color-surface-2)]'
         ]"
         @mousedown.prevent="pick(opt)"
       >

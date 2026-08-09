@@ -3,19 +3,19 @@
  * AppHeader —— 顶部导航条（64px）
  * 品牌 · 上传任务入口 · 全局搜索 · 主题切换 · 用户菜单
  */
-import {computed, ref} from 'vue'
-import {Cloud, Sun, Moon, Keyboard, Menu, Sparkles} from '@lucide/vue'
-import {useRoute} from 'vue-router'
-import {useTheme} from '@/composables/useTheme'
+import { computed, ref } from 'vue'
+import { Cloud, Sun, Moon, Keyboard, Menu, Sparkles } from '@lucide/vue'
+import { useRoute } from 'vue-router'
+import { useTheme } from '@/composables/useTheme'
 import PanUserInfo from '@/components/user-info/index.vue'
 import PanTaskList from '@/components/task-list/index.vue'
 import PanSearch from '@/components/search/index.vue'
 import BaseTooltip from '@/components/base/BaseTooltip.vue'
 import AIAssistant from '@/components/base/AIAssistant.vue'
-import {useMediaQuery} from '@/composables/useMediaQuery'
+import { useMediaQuery } from '@/composables/useMediaQuery'
 
 const route = useRoute()
-const {isDark, toggleTheme} = useTheme()
+const { isDark, toggleTheme } = useTheme()
 const isMobile = useMediaQuery('mobile')
 
 const showSearch = computed(() => {
@@ -53,13 +53,15 @@ function openAI() {
         aria-label="打开导航"
         @click="openMobileNav"
       >
-        <Menu :size="20"/>
+        <Menu :size="20" />
       </button>
 
       <!-- 品牌 -->
       <router-link to="/" class="flex items-center gap-2.5 shrink-0 group">
-        <div class="size-9 rounded-xl bg-gradient-to-br from-[var(--color-primary-500)] to-[var(--color-primary-700)] flex items-center justify-center shadow-sm group-hover:shadow transition-shadow">
-          <Cloud :size="18" class="text-white" :stroke-width="2.25"/>
+        <div
+          class="size-9 rounded-xl bg-gradient-to-br from-[var(--color-primary-500)] to-[var(--color-primary-700)] flex items-center justify-center shadow-sm group-hover:shadow transition-shadow"
+        >
+          <Cloud :size="18" class="text-white" :stroke-width="2.25" />
         </div>
         <span class="text-lg font-semibold tracking-tight text-[var(--color-text)]">R Pan</span>
         <span class="text-xs text-[var(--color-text-muted)] hidden md:inline">个人分布式存储</span>
@@ -67,13 +69,13 @@ function openAI() {
 
       <!-- 主搜索（中间自适应） -->
       <div v-if="showSearch" class="flex-1 max-w-xl mx-auto">
-        <PanSearch/>
+        <PanSearch />
       </div>
-      <div v-else class="flex-1"/>
+      <div v-else class="flex-1" />
 
       <!-- 右侧操作 -->
       <div class="flex items-center gap-2 shrink-0">
-        <PanTaskList/>
+        <PanTaskList />
 
         <BaseTooltip text="AI 助手" position="bottom">
           <button
@@ -82,7 +84,7 @@ function openAI() {
             aria-label="AI 助手"
             @click="openAI"
           >
-            <Sparkles :size="18"/>
+            <Sparkles :size="18" />
           </button>
         </BaseTooltip>
 
@@ -93,7 +95,7 @@ function openAI() {
             aria-label="快捷键"
             @click="openShortcuts"
           >
-            <Keyboard :size="18"/>
+            <Keyboard :size="18" />
           </button>
         </BaseTooltip>
 
@@ -104,15 +106,15 @@ function openAI() {
             :aria-label="isDark ? '切换为浅色' : '切换为深色'"
             @click="toggleTheme"
           >
-            <Sun v-if="isDark" :size="18"/>
-            <Moon v-else :size="18"/>
+            <Sun v-if="isDark" :size="18" />
+            <Moon v-else :size="18" />
           </button>
         </BaseTooltip>
 
-        <PanUserInfo/>
+        <PanUserInfo />
       </div>
     </div>
   </header>
 
-  <AIAssistant v-model:open="aiOpen"/>
+  <AIAssistant v-model:open="aiOpen" />
 </template>

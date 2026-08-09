@@ -5,13 +5,13 @@
  * - 显示所有进行中 / 已完成 / 失败的任务
  * - 可手动清除已完成
  */
-import {storeToRefs} from 'pinia'
-import {X, Check, LoaderCircle, FileWarning} from '@lucide/vue'
-import {useTaskStore} from '@/stores/task'
-import {computed} from 'vue'
+import { storeToRefs } from 'pinia'
+import { X, Check, LoaderCircle, FileWarning } from '@lucide/vue'
+import { useTaskStore } from '@/stores/task'
+import { computed } from 'vue'
 
 const taskStore = useTaskStore()
-const {taskList} = storeToRefs(taskStore)
+const { taskList } = storeToRefs(taskStore)
 
 const visible = computed(() => taskList.value.length > 0)
 
@@ -67,7 +67,7 @@ function clearFinished() {
                 :aria-label="`移除 ${task.filename}`"
                 @click="remove(task.filename)"
               >
-                <X :size="14"/>
+                <X :size="14" />
               </button>
             </div>
             <div class="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[var(--color-surface-2)]">
@@ -80,13 +80,21 @@ function clearFinished() {
                       ? 'bg-[var(--color-success)]'
                       : 'bg-[var(--color-primary)]'
                 "
-                :style="{width: `${task.percentage}%`}"
+                :style="{ width: `${task.percentage}%` }"
               />
             </div>
             <p class="mt-1 flex items-center gap-1 text-[11px] text-[var(--color-text-muted)]">
-              <LoaderCircle v-if="task.status === 1" :size="11" class="animate-spin"/>
-              <Check v-else-if="task.status === 4 || task.status === 5" :size="11" class="text-[var(--color-success)]"/>
-              <FileWarning v-else-if="task.status === 6" :size="11" class="text-[var(--color-danger)]"/>
+              <LoaderCircle v-if="task.status === 1" :size="11" class="animate-spin" />
+              <Check
+                v-else-if="task.status === 4 || task.status === 5"
+                :size="11"
+                class="text-[var(--color-success)]"
+              />
+              <FileWarning
+                v-else-if="task.status === 6"
+                :size="11"
+                class="text-[var(--color-danger)]"
+              />
               <span>{{ task.statusText }} · {{ task.percentage }}%</span>
             </p>
           </div>

@@ -3,15 +3,15 @@
  * AppBreadcrumb —— 路径面包屑
  * "返回" + 分隔符 + 路径节点
  */
-import {ArrowLeft, ChevronRight} from '@lucide/vue'
-import {useBreadcrumbStore} from '@/stores/breadcrumb'
-import {useFileStore} from '@/stores/file'
-import {storeToRefs} from 'pinia'
+import { ArrowLeft, ChevronRight } from '@lucide/vue'
+import { useBreadcrumbStore } from '@/stores/breadcrumb'
+import { useFileStore } from '@/stores/file'
+import { storeToRefs } from 'pinia'
 
 const breadcrumbStore = useBreadcrumbStore()
 const fileStore = useFileStore()
 
-const {breadCrumbs} = storeToRefs(breadcrumbStore)
+const { breadCrumbs } = storeToRefs(breadcrumbStore)
 
 function goBack() {
   fileStore.setSearchFlag(false)
@@ -49,25 +49,21 @@ function goToThis(id) {
       :disabled="breadCrumbs.length <= 1"
       @click="goBack"
     >
-      <ArrowLeft :size="14"/>
+      <ArrowLeft :size="14" />
       <span>返回</span>
     </button>
 
-    <ChevronRight :size="14" class="text-[var(--color-text-muted)] mx-0.5"/>
+    <ChevronRight :size="14" class="text-[var(--color-text-muted)] mx-0.5" />
 
     <ol class="flex items-center gap-1.5 flex-wrap">
-      <li
-        v-for="(item, index) in breadCrumbs"
-        :key="index"
-        class="flex items-center gap-1.5"
-      >
+      <li v-for="(item, index) in breadCrumbs" :key="index" class="flex items-center gap-1.5">
         <button
           type="button"
           :class="[
             'px-1.5 py-0.5 rounded transition-colors truncate max-w-[200px]',
             index === breadCrumbs.length - 1
               ? 'text-[var(--color-text)] font-medium cursor-default'
-              : 'text-[var(--color-primary-600)] hover:underline hover:bg-[var(--color-primary-50)]',
+              : 'text-[var(--color-primary-600)] hover:underline hover:bg-[var(--color-primary-50)]'
           ]"
           :disabled="index === breadCrumbs.length - 1"
           @click="goToThis(item.id)"

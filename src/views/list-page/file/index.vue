@@ -2,8 +2,8 @@
 /**
  * AppFileListPage —— 主文件列表页（带视图切换 + 拖拽上传）
  */
-import {onMounted, onUnmounted, ref} from 'vue'
-import {LayoutGrid, List} from '@lucide/vue'
+import { onMounted, onUnmounted, ref } from 'vue'
+import { LayoutGrid, List } from '@lucide/vue'
 import FileButtonGroup from '@/components/file-button-group/index.vue'
 import BreadCrumb from '@/components/breadcrumb/index.vue'
 import FileTable from '@/components/file-table/index.vue'
@@ -13,21 +13,30 @@ import BaseTooltip from '@/components/base/BaseTooltip.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import DashboardCards from '@/components/dashboard/DashboardCards.vue'
 import DashboardCharts from '@/components/dashboard/DashboardCharts.vue'
-import {useFileStore} from '@/stores/file'
-import {useBreadcrumbStore} from '@/stores/breadcrumb'
-import {useUploader} from '@/composables/useUploader'
-import {storeToRefs} from 'pinia'
+import { useFileStore } from '@/stores/file'
+import { useBreadcrumbStore } from '@/stores/breadcrumb'
+import { useUploader } from '@/composables/useUploader'
+import { storeToRefs } from 'pinia'
 
 const fileStore = useFileStore()
 const breadcrumbStore = useBreadcrumbStore()
-const {searchFlag, defaultParentId, defaultParentFilename, fileList} = storeToRefs(fileStore)
+const { searchFlag, defaultParentId, defaultParentFilename, fileList } = storeToRefs(fileStore)
 
 const showDashboard = ref(true)
 const view = ref('list')
 const isDragOver = ref(false)
-const {addFiles} = useUploader()
+const { addFiles } = useUploader()
 
-const buttonArray = ref(['upload', 'createFolder', 'download', 'delete', 'rename', 'share', 'copy', 'transfer'])
+const buttonArray = ref([
+  'upload',
+  'createFolder',
+  'download',
+  'delete',
+  'rename',
+  'share',
+  'copy',
+  'transfer'
+])
 
 function onDragOver(e) {
   e.preventDefault()
@@ -52,7 +61,7 @@ function onWindowDragOver(e) {
 
 onMounted(() => {
   if (!searchFlag.value) {
-    const firstItem = {id: defaultParentId.value, name: defaultParentFilename.value}
+    const firstItem = { id: defaultParentId.value, name: defaultParentFilename.value }
     breadcrumbStore.clear()
     breadcrumbStore.addItem(firstItem)
     fileStore.refreshParentId()
@@ -91,53 +100,65 @@ onUnmounted(() => {
         class="pointer-events-none absolute inset-0 z-30 flex items-center justify-center bg-[var(--color-primary)]/5 backdrop-blur-sm rounded-xl"
       >
         <div class="text-center">
-          <div class="text-base font-medium text-[var(--color-primary)]">松开以上传到当前文件夹</div>
+          <div class="text-base font-medium text-[var(--color-primary)]">
+            松开以上传到当前文件夹
+          </div>
         </div>
       </div>
     </Transition>
 
     <!-- 类型筛选 -->
-    <FileTypeFilter/>
+    <FileTypeFilter />
 
     <!-- 工具条 -->
     <div class="flex items-center justify-between gap-4 py-3">
-      <FileButtonGroup :button-array="buttonArray"/>
-      <div class="flex items-center gap-1 p-0.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]">
+      <FileButtonGroup :button-array="buttonArray" />
+      <div
+        class="flex items-center gap-1 p-0.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]"
+      >
         <BaseTooltip text="列表视图" position="bottom">
           <button
             type="button"
             class="size-7 flex items-center justify-center rounded-md transition-colors"
-            :class="view === 'list' ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)] dark:bg-[var(--color-primary-900)]/30 dark:text-[var(--color-primary-300)]' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]'"
+            :class="
+              view === 'list'
+                ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)] dark:bg-[var(--color-primary-900)]/30 dark:text-[var(--color-primary-300)]'
+                : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]'
+            "
             aria-label="列表视图"
             @click="view = 'list'"
           >
-            <List :size="14"/>
+            <List :size="14" />
           </button>
         </BaseTooltip>
         <BaseTooltip text="网格视图" position="bottom">
           <button
             type="button"
             class="size-7 flex items-center justify-center rounded-md transition-colors"
-            :class="view === 'grid' ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)] dark:bg-[var(--color-primary-900)]/30 dark:text-[var(--color-primary-300)]' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]'"
+            :class="
+              view === 'grid'
+                ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)] dark:bg-[var(--color-primary-900)]/30 dark:text-[var(--color-primary-300)]'
+                : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]'
+            "
             aria-label="网格视图"
             @click="view = 'grid'"
           >
-            <LayoutGrid :size="14"/>
+            <LayoutGrid :size="14" />
           </button>
         </BaseTooltip>
       </div>
     </div>
 
-    <BreadCrumb/>
+    <BreadCrumb />
 
     <!-- P1.9 仪表盘：仅在根目录显示 -->
-    <DashboardCards v-if="showDashboard && !searchFlag && fileList.length > 0" :files="fileList"/>
+    <DashboardCards v-if="showDashboard && !searchFlag && fileList.length > 0" :files="fileList" />
 
     <!-- P1.10 图表 -->
-    <DashboardCharts v-if="showDashboard && !searchFlag && fileList.length > 0" :files="fileList"/>
+    <DashboardCharts v-if="showDashboard && !searchFlag && fileList.length > 0" :files="fileList" />
 
-    <FileTable :key="view"/>
+    <FileTable :key="view" />
   </div>
 
-  <UploadTaskPanel/>
+  <UploadTaskPanel />
 </template>

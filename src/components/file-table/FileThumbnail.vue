@@ -8,19 +8,28 @@
  * 后端若提供 thumbnail 字段（image/video），优先用 thumbnail；
  * 当前无后端支持，图片直接走 preview URL。
  */
-import {ref, computed} from 'vue'
+import { ref, computed } from 'vue'
 import {
-  Folder, FileText, FileArchive, FileSpreadsheet, FileImage,
-  FileAudio, FileVideo, FileCode, FileBarChart2, File,
-  Loader2, Eye,
+  Folder,
+  FileText,
+  FileArchive,
+  FileSpreadsheet,
+  FileImage,
+  FileAudio,
+  FileVideo,
+  FileCode,
+  FileBarChart2,
+  File,
+  Loader2,
+  Eye
 } from '@lucide/vue'
-import {cn} from '@/utils/classnames'
+import { cn } from '@/utils/classnames'
 import panUtil from '@/utils/common'
 
 const props = defineProps({
-  file: {type: Object, required: true},
-  size: {type: Number, default: 56}, // 缩略图正方形边长
-  rounded: {type: String, default: 'rounded-xl'},
+  file: { type: Object, required: true },
+  size: { type: Number, default: 56 }, // 缩略图正方形边长
+  rounded: { type: String, default: 'rounded-xl' }
 })
 
 const imageLoaded = ref(false)
@@ -33,40 +42,50 @@ const visual = computed(() => {
       bg: 'bg-gradient-to-br from-[var(--color-primary-100)] to-[var(--color-primary-200)] dark:from-[var(--color-primary-900)]/40 dark:to-[var(--color-primary-800)]/40',
       icon: Folder,
       text: 'var(--color-primary-700)',
-      label: '文件夹',
+      label: '文件夹'
     }
   }
   return {
-    bg: {
-      2: 'bg-amber-50 dark:bg-amber-900/20',
-      3: 'bg-emerald-50 dark:bg-emerald-900/20',
-      4: 'bg-blue-50 dark:bg-blue-900/20',
-      5: 'bg-slate-50 dark:bg-slate-800/40',
-      6: 'bg-slate-50 dark:bg-slate-800/40',
-      7: 'bg-pink-50 dark:bg-pink-900/20',
-      8: 'bg-rose-50 dark:bg-rose-900/20',
-      9: 'bg-violet-50 dark:bg-violet-900/20',
-      10: 'bg-cyan-50 dark:bg-cyan-900/20',
-      11: 'bg-orange-50 dark:bg-orange-900/20',
-    }[t] || 'bg-slate-50 dark:bg-slate-800/40',
-    icon: {
-      2: FileArchive, 3: FileSpreadsheet, 4: FileText,
-      5: FileBarChart2, 6: FileBarChart2, 7: FileImage,
-      8: FileAudio, 9: FileVideo, 10: FileBarChart2, 11: FileCode,
-    }[t] || File,
-    text: {
-      2: 'text-amber-600 dark:text-amber-400',
-      3: 'text-emerald-600 dark:text-emerald-400',
-      4: 'text-blue-600 dark:text-blue-400',
-      5: 'text-slate-600 dark:text-slate-400',
-      6: 'text-slate-600 dark:text-slate-400',
-      7: 'text-pink-600 dark:text-pink-400',
-      8: 'text-rose-600 dark:text-rose-400',
-      9: 'text-violet-600 dark:text-violet-400',
-      10: 'text-cyan-600 dark:text-cyan-400',
-      11: 'text-orange-600 dark:text-orange-400',
-    }[t] || 'text-slate-500',
-    label: '',
+    bg:
+      {
+        2: 'bg-amber-50 dark:bg-amber-900/20',
+        3: 'bg-emerald-50 dark:bg-emerald-900/20',
+        4: 'bg-blue-50 dark:bg-blue-900/20',
+        5: 'bg-slate-50 dark:bg-slate-800/40',
+        6: 'bg-slate-50 dark:bg-slate-800/40',
+        7: 'bg-pink-50 dark:bg-pink-900/20',
+        8: 'bg-rose-50 dark:bg-rose-900/20',
+        9: 'bg-violet-50 dark:bg-violet-900/20',
+        10: 'bg-cyan-50 dark:bg-cyan-900/20',
+        11: 'bg-orange-50 dark:bg-orange-900/20'
+      }[t] || 'bg-slate-50 dark:bg-slate-800/40',
+    icon:
+      {
+        2: FileArchive,
+        3: FileSpreadsheet,
+        4: FileText,
+        5: FileBarChart2,
+        6: FileBarChart2,
+        7: FileImage,
+        8: FileAudio,
+        9: FileVideo,
+        10: FileBarChart2,
+        11: FileCode
+      }[t] || File,
+    text:
+      {
+        2: 'text-amber-600 dark:text-amber-400',
+        3: 'text-emerald-600 dark:text-emerald-400',
+        4: 'text-blue-600 dark:text-blue-400',
+        5: 'text-slate-600 dark:text-slate-400',
+        6: 'text-slate-600 dark:text-slate-400',
+        7: 'text-pink-600 dark:text-pink-400',
+        8: 'text-rose-600 dark:text-rose-400',
+        9: 'text-violet-600 dark:text-violet-400',
+        10: 'text-cyan-600 dark:text-cyan-400',
+        11: 'text-orange-600 dark:text-orange-400'
+      }[t] || 'text-slate-500',
+    label: ''
   }
 })
 
@@ -95,12 +114,10 @@ function onImageError() {
 
 <template>
   <div
-    :class="cn(
-      'relative overflow-hidden flex items-center justify-center shrink-0',
-      rounded,
-      visual.bg,
-    )"
-    :style="{width: `${size}px`, height: `${size}px`}"
+    :class="
+      cn('relative overflow-hidden flex items-center justify-center shrink-0', rounded, visual.bg)
+    "
+    :style="{ width: `${size}px`, height: `${size}px` }"
     :aria-label="visual.label || file.filename"
   >
     <!-- 图片：真实预览 -->
@@ -126,7 +143,7 @@ function onImageError() {
         v-if="imageLoaded"
         class="absolute bottom-1 right-1 px-1.5 h-4 rounded bg-black/60 text-white text-[10px] leading-4 inline-flex items-center gap-0.5"
       >
-        <Eye :size="10"/> 图
+        <Eye :size="10" /> 图
       </span>
     </template>
 

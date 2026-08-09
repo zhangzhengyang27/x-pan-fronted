@@ -7,7 +7,16 @@
  * 3. 批量下载（多文件下载）
  * 4. 多选 + 快捷键（Ctrl+A / Delete / F2）
  */
-import {ref, computed, onMounted, onBeforeUnmount, watch, nextTick, onActivated, onDeactivated} from 'vue'
+import {
+  ref,
+  computed,
+  onMounted,
+  onBeforeUnmount,
+  watch,
+  nextTick,
+  onActivated,
+  onDeactivated
+} from 'vue'
 import DownloadButton from '@/components/buttons/download-button/index.vue'
 import DeleteButton from '@/components/buttons/delete-button/index.vue'
 import RenameButton from '@/components/buttons/rename-button/index.vue'
@@ -16,11 +25,11 @@ import TransferButton from '@/components/buttons/transfer-button/index.vue'
 import ShareButton from '@/components/buttons/share-button/index.vue'
 import fileService from '@/api/file'
 import panUtil from '@/utils/common'
-import {useFileStore} from '@/stores/file'
-import {useBreadcrumbStore} from '@/stores/breadcrumb'
-import {storeToRefs} from 'pinia'
-import {ElMessage, ElMessageBox} from '@/composables/useToast'
-import {useRouter} from 'vue-router'
+import { useFileStore } from '@/stores/file'
+import { useBreadcrumbStore } from '@/stores/breadcrumb'
+import { storeToRefs } from 'pinia'
+import { ElMessage, ElMessageBox } from '@/composables/useToast'
+import { useRouter } from 'vue-router'
 import ImageViewer from '@luohc92/vue3-image-viewer'
 import '@luohc92/vue3-image-viewer/dist/style.css'
 
@@ -32,39 +41,68 @@ import DrivePreviewModal from '@/components/preview/drive-preview-modal.vue'
 import FileTableToolbar from './FileTableToolbar.vue'
 import FileThumbnail from './FileThumbnail.vue'
 import FileHistoryPanel from './FileHistoryPanel.vue'
-import {useTableSort} from '@/composables/useTableSort'
-import {useFavorites} from '@/composables/useFavorites'
-import {useRecent} from '@/composables/useRecent'
-import {useDrivePreview} from '@/composables/useDrivePreview'
-import {useMediaQuery} from '@/composables/useMediaQuery'
-import {getDownloadUrl} from '@/utils/preview'
+import { useTableSort } from '@/composables/useTableSort'
+import { useFavorites } from '@/composables/useFavorites'
+import { useRecent } from '@/composables/useRecent'
+import { useDrivePreview } from '@/composables/useDrivePreview'
+import { useMediaQuery } from '@/composables/useMediaQuery'
+import { getDownloadUrl } from '@/utils/preview'
 import {
-  Folder, FileText, FileArchive, FileSpreadsheet, FileImage,
-  FileAudio, FileVideo, FileCode, FileBarChart2, Loader2,
-  Download, Edit3, Copy, Scissors, Trash2, Share2, FolderInput, FolderPlus, Star, Eye, FilePlus, Clipboard, History,
+  Folder,
+  FileText,
+  FileArchive,
+  FileSpreadsheet,
+  FileImage,
+  FileAudio,
+  FileVideo,
+  FileCode,
+  FileBarChart2,
+  Loader2,
+  Download,
+  Edit3,
+  Copy,
+  Scissors,
+  Trash2,
+  Share2,
+  FolderInput,
+  FolderPlus,
+  Star,
+  Eye,
+  FilePlus,
+  Clipboard,
+  History
 } from '@lucide/vue'
 
 const router = useRouter()
 const fileStore = useFileStore()
 const breadcrumbStore = useBreadcrumbStore()
-const {fileList, tableLoading, searchFlag, hasMore, isLoadingMore, total} = storeToRefs(fileStore)
+const { fileList, tableLoading, searchFlag, hasMore, isLoadingMore, total } = storeToRefs(fileStore)
 
 const selected = ref([]) // 多选 fileId
 const view = ref('list') // 'list' | 'grid'
 const isMobile = useMediaQuery('mobile')
 
 function fileIcon(type) {
-  return {
-    0: Folder, 2: FileArchive, 3: FileSpreadsheet, 4: FileText,
-    7: FileImage, 8: FileAudio, 9: FileVideo, 10: FileBarChart2, 11: FileCode,
-  }[type] || FileText
+  return (
+    {
+      0: Folder,
+      2: FileArchive,
+      3: FileSpreadsheet,
+      4: FileText,
+      7: FileImage,
+      8: FileAudio,
+      9: FileVideo,
+      10: FileBarChart2,
+      11: FileCode
+    }[type] || FileText
+  )
 }
 
 // ─── 移动/复制对话框（占位 → 真实 FolderPickerDialog） ─────────────────
-const moveDialog = ref({open: false, mode: 'move', row: null})
+const moveDialog = ref({ open: false, mode: 'move', row: null })
 
 function openMoveDialog(row) {
-  moveDialog.value = {open: true, mode: 'move', row: row || null}
+  moveDialog.value = { open: true, mode: 'move', row: row || null }
 }
 
 function onMoveComplete() {
@@ -74,8 +112,8 @@ function onMoveComplete() {
 }
 
 // ─── 排序 / 筛选 ────────────────────────────────────────────────────────────
-const {sortField, sortOrder, toggleSort, sortItems} = useTableSort('name', 'asc')
-const filter = ref({extensions: [], sizeMin: '', sizeMax: '', dateFrom: '', dateTo: ''})
+const { sortField, sortOrder, toggleSort, sortItems } = useTableSort('name', 'asc')
+const filter = ref({ extensions: [], sizeMin: '', sizeMax: '', dateFrom: '', dateTo: '' })
 
 const filterActive = computed(() => {
   return (
@@ -143,15 +181,18 @@ const filteredList = computed(() => {
   return sortItems(items)
 })
 
-const selectedRows = computed(() => filteredList.value.filter((r) => selected.value.includes(r.fileId)))
+const selectedRows = computed(() =>
+  filteredList.value.filter((r) => selected.value.includes(r.fileId))
+)
 
 const columns = computed(() => {
-  const base = [{key: 'filename', title: '文件名', width: 'auto'}]
-  if (searchFlag.value) base.push({key: 'parentFilename', title: '位置', width: 140, align: 'center'})
+  const base = [{ key: 'filename', title: '文件名', width: 'auto' }]
+  if (searchFlag.value)
+    base.push({ key: 'parentFilename', title: '位置', width: 140, align: 'center' })
   base.push(
-    {key: 'fileSizeDesc', title: '大小', width: 120, align: 'right'},
-    {key: 'updateTime', title: '修改日期', width: 200, align: 'center'},
-    {key: 'actions', title: '操作', width: 240, align: 'right'},
+    { key: 'fileSizeDesc', title: '大小', width: 120, align: 'right' },
+    { key: 'updateTime', title: '修改日期', width: 200, align: 'center' },
+    { key: 'actions', title: '操作', width: 240, align: 'right' }
   )
   return base
 })
@@ -164,7 +205,7 @@ function handleSelectionChange(keys) {
 
 function goInFolder(fileId) {
   fileService.getBreadcrumbs(
-    {fileId},
+    { fileId },
     (res) => {
       fileStore.setSearchFlag(false)
       breadcrumbStore.clear()
@@ -172,12 +213,12 @@ function goInFolder(fileId) {
       fileStore.setParentId(fileId)
       fileStore.loadFileList()
     },
-    (res) => ElMessage.error(res.message),
+    (res) => ElMessage.error(res.message)
   )
 }
 
 function openNewPage(path, name, params, query) {
-  const {href} = router.resolve({path, name, params, query})
+  const { href } = router.resolve({ path, name, params, query })
   window.open(href, '_blank')
 }
 
@@ -191,20 +232,65 @@ function showImg(row) {
     }
   })
   ImageViewer({
-    images: imgs, curIndex: idx, zIndex: 2000, showDownload: false,
-    showThumbnail: true, handlePosition: 'bottom', maskBgColor: 'rgba(0,0,0,0.7)',
+    images: imgs,
+    curIndex: idx,
+    zIndex: 2000,
+    showDownload: false,
+    showThumbnail: true,
+    handlePosition: 'bottom',
+    maskBgColor: 'rgba(0,0,0,0.7)'
   })
 }
 
 function clickFilename(row) {
   switch (row.fileType) {
-    case 0: return goInFolder(panUtil.handleId(row.fileId))
-    case 3: case 4: case 10: return openNewPage('/preview/office', 'PreviewOffice', {fileId: panUtil.handleId(row.fileId)}, {filename: row.filename})
-    case 5: case 6: return openNewPage('/preview/iframe', 'PreviewIframe', {fileId: panUtil.handleId(row.fileId)}, {filename: row.filename})
-    case 7: return openNewPage('/preview/image', 'PreviewImage', {fileId: panUtil.handleId(row.fileId), parentId: panUtil.handleId(row.parentId)}, {filename: row.filename})
-    case 8: return openNewPage('/preview/music', 'PreviewMusic', {fileId: panUtil.handleId(row.fileId), parentId: panUtil.handleId(row.parentId)}, {filename: row.filename})
-    case 9: return openNewPage('/preview/video', 'PreviewVideo', {fileId: panUtil.handleId(row.fileId), parentId: panUtil.handleId(row.parentId)}, {filename: row.filename})
-    case 11: return openNewPage('/preview/code', 'PreviewCode', {fileId: panUtil.handleId(row.fileId)}, {filename: row.filename})
+    case 0:
+      return goInFolder(panUtil.handleId(row.fileId))
+    case 3:
+    case 4:
+    case 10:
+      return openNewPage(
+        '/preview/office',
+        'PreviewOffice',
+        { fileId: panUtil.handleId(row.fileId) },
+        { filename: row.filename }
+      )
+    case 5:
+    case 6:
+      return openNewPage(
+        '/preview/iframe',
+        'PreviewIframe',
+        { fileId: panUtil.handleId(row.fileId) },
+        { filename: row.filename }
+      )
+    case 7:
+      return openNewPage(
+        '/preview/image',
+        'PreviewImage',
+        { fileId: panUtil.handleId(row.fileId), parentId: panUtil.handleId(row.parentId) },
+        { filename: row.filename }
+      )
+    case 8:
+      return openNewPage(
+        '/preview/music',
+        'PreviewMusic',
+        { fileId: panUtil.handleId(row.fileId), parentId: panUtil.handleId(row.parentId) },
+        { filename: row.filename }
+      )
+    case 9:
+      return openNewPage(
+        '/preview/video',
+        'PreviewVideo',
+        { fileId: panUtil.handleId(row.fileId), parentId: panUtil.handleId(row.parentId) },
+        { filename: row.filename }
+      )
+    case 11:
+      return openNewPage(
+        '/preview/code',
+        'PreviewCode',
+        { fileId: panUtil.handleId(row.fileId) },
+        { filename: row.filename }
+      )
   }
 }
 
@@ -243,10 +329,11 @@ async function batchDownload(rows) {
   ElMessage.info(`正在打包 ${rows.length} 个文件...`)
   const fileIds = rows.map((r) => r.fileId).join('__,__')
   fileService.archiveDownload(
-    {fileIds},
+    { fileIds },
     (res) => {
       // res 是 Blob
-      const blob = res instanceof Blob ? res : new Blob([res.data || res], {type: 'application/zip'})
+      const blob =
+        res instanceof Blob ? res : new Blob([res.data || res], { type: 'application/zip' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
@@ -259,7 +346,7 @@ async function batchDownload(rows) {
     },
     (err) => {
       ElMessage.error(err.message || '打包下载失败')
-    },
+    }
   )
 }
 
@@ -268,13 +355,13 @@ function batchDelete(rows) {
   if (!rows || rows.length === 0) return
   const fileIds = rows.map((r) => r.fileId).join('__,__')
   fileService.delete(
-    {fileIds},
+    { fileIds },
     () => {
       ElMessage.success(`已删除 ${rows.length} 个文件`)
       selected.value = []
       fileStore.loadFileList()
     },
-    (err) => ElMessage.error(err.message),
+    (err) => ElMessage.error(err.message)
   )
 }
 
@@ -314,9 +401,13 @@ function onKeyDown(e) {
 }
 
 // 移动端强制网格视图
-watch(isMobile, (v) => {
-  if (v) view.value = 'grid'
-}, {immediate: true})
+watch(
+  isMobile,
+  (v) => {
+    if (v) view.value = 'grid'
+  },
+  { immediate: true }
+)
 
 onMounted(() => {
   fileStore.setMultipleSelection([])
@@ -336,12 +427,18 @@ function setupIntersectionObserver() {
   intersectionObserver = new IntersectionObserver(
     (entries) => {
       for (const entry of entries) {
-        if (entry.isIntersecting && hasMore.value && !isLoadingMore.value && !filterActive.value && !searchFlag.value) {
+        if (
+          entry.isIntersecting &&
+          hasMore.value &&
+          !isLoadingMore.value &&
+          !filterActive.value &&
+          !searchFlag.value
+        ) {
           fileStore.loadMore()
         }
       }
     },
-    {rootMargin: '200px'},
+    { rootMargin: '200px' }
   )
   nextTick(() => {
     if (loadMoreSentinel.value) {
@@ -368,14 +465,14 @@ watch([() => filteredList.value.length, hasMore], () => {
   })
 })
 
-defineExpose({setView: (v) => (view.value = v)})
+defineExpose({ setView: (v) => (view.value = v) })
 
 // ─── 预览（弹窗式） ────────────────────────────────────────────────────────
 const preview = useDrivePreview(() => fileList.value)
 
 // ─── 收藏 / 最近访问（P1.9） ───────────────────────────────────────────────
-const {isFavorite, toggle: toggleFavorite} = useFavorites()
-const {visit: visitRecent} = useRecent()
+const { isFavorite, toggle: toggleFavorite } = useFavorites()
+const { visit: visitRecent } = useRecent()
 
 function onRowDblclick(row) {
   visitRecent(row) // 记录最近访问
@@ -395,13 +492,13 @@ function previewDownload(item) {
 }
 
 // ─── 右键菜单（P1.12） ────────────────────────────────────────────────────
-const ctxMenu = ref({visible: false, x: 0, y: 0, row: null})
+const ctxMenu = ref({ visible: false, x: 0, y: 0, row: null })
 
 // ─── 版本历史（P1.13） ────────────────────────────────────────────────────
-const historyPanel = ref({open: false, fileId: null})
+const historyPanel = ref({ open: false, fileId: null })
 
 function openHistory(row) {
-  historyPanel.value = {open: true, fileId: panUtil.handleId(row.fileId)}
+  historyPanel.value = { open: true, fileId: panUtil.handleId(row.fileId) }
 }
 
 function onContextMenu(e, row) {
@@ -411,7 +508,7 @@ function onContextMenu(e, row) {
     selected.value = [row.fileId]
     handleSelectionChange([row.fileId])
   }
-  ctxMenu.value = {visible: true, x: e.clientX, y: e.clientY, row}
+  ctxMenu.value = { visible: true, x: e.clientX, y: e.clientY, row }
 }
 
 function closeCtxMenu() {
@@ -426,57 +523,79 @@ const ctxItems = computed(() => {
   const isMulti = selectedRows.value.length > 1
   return [
     {
-      key: 'open', label: isFolder ? '打开' : '预览', icon: Eye,
+      key: 'open',
+      label: isFolder ? '打开' : '预览',
+      icon: Eye,
       shortcut: 'Enter',
-      action: () => isFolder ? goInFolder(panUtil.handleId(r.fileId)) : onRowDblclick(r),
+      action: () => (isFolder ? goInFolder(panUtil.handleId(r.fileId)) : onRowDblclick(r))
     },
-    {divider: true},
+    { divider: true },
     {
-      key: 'download', label: isMulti ? `下载 ${selectedRows.value.length} 项` : '下载', icon: Download,
+      key: 'download',
+      label: isMulti ? `下载 ${selectedRows.value.length} 项` : '下载',
+      icon: Download,
       shortcut: 'Ctrl+D',
       disabled: isFolder,
-      action: () => batchDownload(selectedRows.value.length ? selectedRows.value : [r]),
+      action: () => batchDownload(selectedRows.value.length ? selectedRows.value : [r])
     },
     {
-      key: 'rename', label: '重命名', icon: Edit3,
+      key: 'rename',
+      label: '重命名',
+      icon: Edit3,
       shortcut: 'F2',
       disabled: isMulti,
-      action: () => promptRename(r),
+      action: () => promptRename(r)
     },
     {
-      key: 'copy', label: '复制到...', icon: Copy,
+      key: 'copy',
+      label: '复制到...',
+      icon: Copy,
       shortcut: 'Ctrl+C',
       action: () => {
         // 复用移动对话框，mode 改为 copy
-        moveDialog.value = {open: true, mode: 'copy', row: selectedRows.value.length ? selectedRows.value : [r]}
-      },
+        moveDialog.value = {
+          open: true,
+          mode: 'copy',
+          row: selectedRows.value.length ? selectedRows.value : [r]
+        }
+      }
     },
     {
-      key: 'move', label: '移动到...', icon: FolderInput,
-      action: () => openMoveDialog(selectedRows.value.length ? selectedRows.value : [r]),
+      key: 'move',
+      label: '移动到...',
+      icon: FolderInput,
+      action: () => openMoveDialog(selectedRows.value.length ? selectedRows.value : [r])
     },
     {
-      key: 'share', label: '分享', icon: Share2,
+      key: 'share',
+      label: '分享',
+      icon: Share2,
       disabled: isMulti,
-      action: () => ElMessage.info('分享功能：请点击工具栏的"分享"按钮'),
+      action: () => ElMessage.info('分享功能：请点击工具栏的"分享"按钮')
     },
-    {divider: true},
+    { divider: true },
     {
-      key: 'history', label: '查看历史版本', icon: History,
+      key: 'history',
+      label: '查看历史版本',
+      icon: History,
       disabled: isFolder,
-      action: () => openHistory(r),
+      action: () => openHistory(r)
     },
     {
-      key: 'favorite', label: favorited ? '取消收藏' : '收藏', icon: Star,
-      action: () => toggleFavorite(r),
+      key: 'favorite',
+      label: favorited ? '取消收藏' : '收藏',
+      icon: Star,
+      action: () => toggleFavorite(r)
     },
-    {divider: true},
+    { divider: true },
     {
-      key: 'delete', label: isMulti ? `删除 ${selectedRows.value.length} 项` : '删除', icon: Trash2,
+      key: 'delete',
+      label: isMulti ? `删除 ${selectedRows.value.length} 项` : '删除',
+      icon: Trash2,
       shortcut: 'Del',
       danger: true,
-      action: () => batchDelete(selectedRows.value.length ? selectedRows.value : [r]),
-    },
+      action: () => batchDelete(selectedRows.value.length ? selectedRows.value : [r])
+    }
   ]
 })
 
@@ -490,20 +609,21 @@ function onCtxSelect(item) {
 async function promptRename(row) {
   const oldName = row.filename || row.name || ''
   try {
-    const {value: newName} = await ElMessageBox.prompt('请输入新的文件名', '重命名', {
+    const { value: newName } = await ElMessageBox.prompt('请输入新的文件名', '重命名', {
       inputValue: oldName,
-      inputValidator: (val) => (val && val.trim() && val !== oldName) || '文件名不能为空或与原名相同',
+      inputValidator: (val) =>
+        (val && val.trim() && val !== oldName) || '文件名不能为空或与原名相同',
       confirmButtonText: '确认',
-      cancelButtonText: '取消',
+      cancelButtonText: '取消'
     })
     if (!newName) return
     fileService.update(
-      {fileId: row.fileId, filename: newName.trim()},
+      { fileId: row.fileId, filename: newName.trim() },
       () => {
         ElMessage.success('重命名成功')
         fileStore.loadFileList()
       },
-      (err) => ElMessage.error(err.message),
+      (err) => ElMessage.error(err.message)
     )
   } catch (e) {
     // 用户点取消
@@ -517,7 +637,7 @@ async function promptRename(row) {
     :selected-rows="selectedRows"
     :available-extensions="availableExtensions"
     @sort-change="() => {}"
-    @filter-change="(f) => filter = f"
+    @filter-change="(f) => (filter = f)"
     @batch-download="batchDownload"
     @batch-delete="batchDelete"
   />
@@ -538,61 +658,105 @@ async function promptRename(row) {
     @rowDblclick="onRowDblclick"
     @rowContextmenu="(e, row) => onContextMenu(e, row)"
   >
-    <template #cell-filename="{row}">
+    <template #cell-filename="{ row }">
       <BaseTooltip :text="row.filename" position="top">
-        <button type="button" class="group flex items-center gap-3 text-left w-full min-w-0" @click.stop="clickFilename(row)" @dblclick.stop="clickFilename(row)">
-          <FileThumbnail :file="row" :size="28" rounded="rounded-md"/>
-          <span class="truncate text-[var(--color-text)] group-hover:text-[var(--color-primary-600)] transition-colors">
+        <button
+          type="button"
+          class="group flex items-center gap-3 text-left w-full min-w-0"
+          @click.stop="clickFilename(row)"
+          @dblclick.stop="clickFilename(row)"
+        >
+          <FileThumbnail :file="row" :size="28" rounded="rounded-md" />
+          <span
+            class="truncate text-[var(--color-text)] group-hover:text-[var(--color-primary-600)] transition-colors"
+          >
             {{ row.filename }}
           </span>
         </button>
       </BaseTooltip>
     </template>
-    <template #cell-parentFilename="{row}">
-      <button type="button" class="text-[var(--color-primary-600)] hover:underline" @click="goInFolder(row.parentId)">
+    <template #cell-parentFilename="{ row }">
+      <button
+        type="button"
+        class="text-[var(--color-primary-600)] hover:underline"
+        @click="goInFolder(row.parentId)"
+      >
         {{ row.parentFilename }}
       </button>
     </template>
-    <template #cell-actions="{row}">
-      <div class="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+    <template #cell-actions="{ row }">
+      <div
+        class="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity"
+      >
         <button
           type="button"
           class="size-7 rounded-md flex items-center justify-center transition-colors"
-          :class="isFavorite(row.fileId) ? 'text-amber-500 hover:bg-amber-50' : 'text-[var(--color-text-muted)] hover:bg-[var(--color-surface-2)]'"
+          :class="
+            isFavorite(row.fileId)
+              ? 'text-amber-500 hover:bg-amber-50'
+              : 'text-[var(--color-text-muted)] hover:bg-[var(--color-surface-2)]'
+          "
           :title="isFavorite(row.fileId) ? '取消收藏' : '收藏'"
           @click="toggleFavorite(row)"
         >
-          <svg viewBox="0 0 24 24" :fill="isFavorite(row.fileId) ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2" class="size-4">
-            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+          <svg
+            viewBox="0 0 24 24"
+            :fill="isFavorite(row.fileId) ? 'currentColor' : 'none'"
+            stroke="currentColor"
+            stroke-width="2"
+            class="size-4"
+          >
+            <polygon
+              points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
+            />
           </svg>
         </button>
-        <BaseTooltip text="下载" position="top"><DownloadButton size="small" :item="row"/></BaseTooltip>
-        <BaseTooltip text="重命名" position="top"><RenameButton size="small" :item="row"/></BaseTooltip>
-        <BaseTooltip text="删除" position="top"><DeleteButton size="small" :item="row"/></BaseTooltip>
-        <BaseTooltip text="分享" position="top"><ShareButton size="small" :item="row"/></BaseTooltip>
-        <BaseTooltip text="复制到" position="top"><CopyButton size="small" :item="row"/></BaseTooltip>
-        <BaseTooltip text="移动到" position="top"><TransferButton size="small" :item="row"/></BaseTooltip>
+        <BaseTooltip text="下载" position="top"
+          ><DownloadButton size="small" :item="row"
+        /></BaseTooltip>
+        <BaseTooltip text="重命名" position="top"
+          ><RenameButton size="small" :item="row"
+        /></BaseTooltip>
+        <BaseTooltip text="删除" position="top"
+          ><DeleteButton size="small" :item="row"
+        /></BaseTooltip>
+        <BaseTooltip text="分享" position="top"
+          ><ShareButton size="small" :item="row"
+        /></BaseTooltip>
+        <BaseTooltip text="复制到" position="top"
+          ><CopyButton size="small" :item="row"
+        /></BaseTooltip>
+        <BaseTooltip text="移动到" position="top"
+          ><TransferButton size="small" :item="row"
+        /></BaseTooltip>
       </div>
     </template>
   </BaseTable>
 
   <!-- 网格视图 -->
   <div v-else>
-    <div v-if="tableLoading && filteredList.length === 0" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-      <div v-for="i in 8" :key="i" class="aspect-square rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 animate-pulse">
-        <div class="size-12 mx-auto rounded-xl bg-[var(--color-surface-2)] mb-3"/>
-        <div class="h-3 w-3/4 mx-auto rounded bg-[var(--color-surface-2)] mb-2"/>
-        <div class="h-2 w-1/2 mx-auto rounded bg-[var(--color-surface-2)]"/>
+    <div
+      v-if="tableLoading && filteredList.length === 0"
+      class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"
+    >
+      <div
+        v-for="i in 8"
+        :key="i"
+        class="aspect-square rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 animate-pulse"
+      >
+        <div class="size-12 mx-auto rounded-xl bg-[var(--color-surface-2)] mb-3" />
+        <div class="h-3 w-3/4 mx-auto rounded bg-[var(--color-surface-2)] mb-2" />
+        <div class="h-2 w-1/2 mx-auto rounded bg-[var(--color-surface-2)]" />
       </div>
     </div>
 
-  <!-- 加载更多 sentinel -->
+    <!-- 加载更多 sentinel -->
     <div
       v-if="!filterActive && hasMore && filteredList.length > 0"
       ref="loadMoreSentinel"
       class="col-span-full py-6 flex items-center justify-center text-xs text-[var(--color-text-muted)]"
     >
-      <Loader2 v-if="isLoadingMore" :size="14" class="animate-spin mr-2"/>
+      <Loader2 v-if="isLoadingMore" :size="14" class="animate-spin mr-2" />
       {{ isLoadingMore ? '加载中...' : '滚动加载更多' }}
     </div>
     <div
@@ -602,27 +766,37 @@ async function promptRename(row) {
       已加载全部 {{ total }} 个文件
     </div>
 
-    <div v-else-if="filteredList.length === 0" class="text-center py-20 text-sm text-[var(--color-text-muted)]">
-      <template v-if="filterActive">
-        没有符合筛选条件的文件
-      </template>
+    <div
+      v-else-if="filteredList.length === 0"
+      class="text-center py-20 text-sm text-[var(--color-text-muted)]"
+    >
+      <template v-if="filterActive"> 没有符合筛选条件的文件 </template>
       <template v-else>该文件夹为空，试试上传文件</template>
     </div>
 
-    <div v-else class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+    <div
+      v-else
+      class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"
+    >
       <button
         v-for="row in filteredList"
         :key="row.fileId"
         type="button"
         class="group relative aspect-square rounded-2xl border bg-[var(--color-surface)] hover:shadow-md transition-all p-4 flex flex-col items-center justify-center text-center"
-        :class="selected.includes(row.fileId) ? 'border-[var(--color-primary-500)] ring-2 ring-[var(--color-primary-500)]/30' : 'border-[var(--color-border)] hover:border-[var(--color-primary-400)]'"
+        :class="
+          selected.includes(row.fileId)
+            ? 'border-[var(--color-primary-500)] ring-2 ring-[var(--color-primary-500)]/30'
+            : 'border-[var(--color-border)] hover:border-[var(--color-primary-400)]'
+        "
         @click="onRowClick(row)"
         @dblclick="onRowDblclick(row)"
         @contextmenu="onContextMenu($event, row)"
       >
-        <FileThumbnail :file="row" :size="64" rounded="rounded-xl" class="mb-3"/>
+        <FileThumbnail :file="row" :size="64" rounded="rounded-xl" class="mb-3" />
         <BaseTooltip :text="row.filename" position="top">
-          <p class="text-sm font-medium text-[var(--color-text)] line-clamp-2 mb-1 w-full break-all">
+          <p
+            class="text-sm font-medium text-[var(--color-text)] line-clamp-2 mb-1 w-full break-all"
+          >
             {{ row.filename }}
           </p>
         </BaseTooltip>

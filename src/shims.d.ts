@@ -31,18 +31,7 @@ declare module '*.webp'
 
 declare module '*.md'
 
-// 第三方无类型库兜底
-declare module 'simple-uploader.js'
-declare module 'nprogress'
-declare module 'aplayer'
-declare module 'artplayer'
-declare module 'vditor'
-declare module 'spark-md5'
-declare module '@luohc92/vue3-image-viewer' {
-  import type { DefineComponent } from 'vue'
-  const ImageViewer: DefineComponent<Record<string, unknown>, Record<string, unknown>, unknown>
-  export default ImageViewer
-}
+// 第三方库类型兜底集中在 src/types/third-party-stubs.d.ts
 
 // Vite 客户端类型（让 import.meta.env 在 .ts 文件中可访问）
 /// <reference types="vite/client" />

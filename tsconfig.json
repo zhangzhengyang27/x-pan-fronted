@@ -20,11 +20,12 @@
     "useDefineForClassFields": true,
     "allowImportingTsExtensions": false,
     "noEmit": true,
-    "allowJs": true,
+    "allowJs": false,
     "checkJs": false,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@luohc92/vue3-image-viewer": ["./src/types/third-party-stubs.d.ts"]
     },
     "typeRoots": [
       "./node_modules/@types",

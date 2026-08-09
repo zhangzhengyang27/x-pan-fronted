@@ -18,7 +18,9 @@ const COLORS: Record<ToastLevel, ToastColors> = {
 
 function fmt(args: unknown[]): string {
   return args
-    .map((a) => (typeof a === 'string' ? a : (a as { message?: string })?.message ?? JSON.stringify(a)))
+    .map((a) =>
+      typeof a === 'string' ? a : ((a as { message?: string })?.message ?? JSON.stringify(a))
+    )
     .join(' ')
 }
 
@@ -36,7 +38,8 @@ function ensureContainer(): HTMLElement {
   if (_container && document.body.contains(_container)) return _container
   const el = document.createElement('div')
   el.id = '__x_pan_toast_container'
-  el.style.cssText = 'position:fixed;top:24px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none;'
+  el.style.cssText =
+    'position:fixed;top:24px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none;'
   document.body.appendChild(el)
   _container = el
   return el
@@ -84,7 +87,9 @@ export const ElMessage = {
     showToast('info', m)
     log('info', [m])
   },
-  closeAll: () => { /* noop */ }
+  closeAll: () => {
+    /* noop */
+  }
 }
 
 interface NotificationOpts {
@@ -143,8 +148,12 @@ export interface ConfirmOptions {
 }
 
 export const ElMessageBox = {
-  confirm: (msg: string | { message?: string }, title = '提示', opts: ConfirmOptions = {}): Promise<boolean> => {
-    const message = typeof msg === 'string' ? msg : msg?.message ?? ''
+  confirm: (
+    msg: string | { message?: string },
+    title = '提示',
+    opts: ConfirmOptions = {}
+  ): Promise<boolean> => {
+    const message = typeof msg === 'string' ? msg : (msg?.message ?? '')
     return pushConfirm({
       title,
       message,
@@ -155,13 +164,20 @@ export const ElMessageBox = {
     })
   },
   alert: (msg: string | { message?: string }, title = '提示') => {
-    window.alert(`${title}\n${typeof msg === 'string' ? msg : msg?.message ?? ''}`)
+    window.alert(`${title}\n${typeof msg === 'string' ? msg : (msg?.message ?? '')}`)
   },
-  prompt: async (): Promise<{ value: string | null; action: 'confirm' | 'cancel' }> => ({ value: null, action: 'cancel' })
+  prompt: async (): Promise<{ value: string | null; action: 'confirm' | 'cancel' }> => ({
+    value: null,
+    action: 'cancel'
+  })
 }
 
 export const ElLoading = {
-  service: (): { close: () => void } => ({ close: () => { /* noop */ } }),
+  service: (): { close: () => void } => ({
+    close: () => {
+      /* noop */
+    }
+  }),
   directive: {}
 }
 

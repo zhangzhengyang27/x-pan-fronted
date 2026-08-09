@@ -19,12 +19,20 @@ export const EFileStatus = {
   MERGE: { code: 7, text: '服务器处理中' }
 } as const
 
-export type FileStatusCode = typeof EFileStatus[keyof typeof EFileStatus]['code']
+export type FileStatusCode = (typeof EFileStatus)[keyof typeof EFileStatus]['code']
 
 export type IconName =
-  | 'Folder' | 'Box' | 'Grid' | 'Document' | 'Tickets'
-  | 'Notebook' | 'Picture' | 'Headset' | 'VideoCamera'
-  | 'DataAnalysis' | 'Cpu'
+  | 'Folder'
+  | 'Box'
+  | 'Grid'
+  | 'Document'
+  | 'Tickets'
+  | 'Notebook'
+  | 'Picture'
+  | 'Headset'
+  | 'VideoCamera'
+  | 'DataAnalysis'
+  | 'Cpu'
 
 const KB_STR = 'K'
 const MB_STR = 'M'
@@ -53,8 +61,14 @@ const panUtil: PanUtil = {
   translateFileSize(fileSize: number): string {
     let size = fileSize / UNIT
     let suffix = KB_STR
-    if (size >= UNIT) { size = size / UNIT; suffix = MB_STR }
-    if (size >= UNIT) { size = size / UNIT; suffix = GB_STR }
+    if (size >= UNIT) {
+      size = size / UNIT
+      suffix = MB_STR
+    }
+    if (size >= UNIT) {
+      size = size / UNIT
+      suffix = GB_STR
+    }
     return size.toFixed(2) + suffix
   },
 
@@ -100,24 +114,52 @@ const panUtil: PanUtil = {
   getFileFontElement(type: number): IconName {
     let iconName: IconName = 'Document'
     switch (type) {
-      case 0: iconName = 'Folder'; break
-      case 2: iconName = 'Box'; break
-      case 3: iconName = 'Grid'; break
-      case 4: iconName = 'Document'; break
-      case 5: iconName = 'Tickets'; break
-      case 6: iconName = 'Notebook'; break
-      case 7: iconName = 'Picture'; break
-      case 8: iconName = 'Headset'; break
-      case 9: iconName = 'VideoCamera'; break
-      case 10: iconName = 'DataAnalysis'; break
-      case 11: iconName = 'Cpu'; break
-      default: break
+      case 0:
+        iconName = 'Folder'
+        break
+      case 2:
+        iconName = 'Box'
+        break
+      case 3:
+        iconName = 'Grid'
+        break
+      case 4:
+        iconName = 'Document'
+        break
+      case 5:
+        iconName = 'Tickets'
+        break
+      case 6:
+        iconName = 'Notebook'
+        break
+      case 7:
+        iconName = 'Picture'
+        break
+      case 8:
+        iconName = 'Headset'
+        break
+      case 9:
+        iconName = 'VideoCamera'
+        break
+      case 10:
+        iconName = 'DataAnalysis'
+        break
+      case 11:
+        iconName = 'Cpu'
+        break
+      default:
+        break
     }
     return iconName
   },
 
   getPreviewUrl(fileId: string): string {
-    return 'http://127.0.0.1:8080/file/preview?fileId=' + this.handleId(fileId) + '&authorization=' + getToken()
+    return (
+      'http://127.0.0.1:8080/file/preview?fileId=' +
+      this.handleId(fileId) +
+      '&authorization=' +
+      getToken()
+    )
   },
 
   getUrlPrefix(): string {
