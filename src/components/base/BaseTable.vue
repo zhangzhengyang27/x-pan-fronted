@@ -5,6 +5,7 @@
  * - 行 hover
  * - 多选（checkbox 列）
  * - 加载 / 空 / 错误三态
+ * - skeleton 骨架屏（skeleton=true 时启用）
  *
  * 列定义通过 columns prop 传入：
  *   [{ key: 'name', title: '文件名', width: 'auto', align: 'left' }, ...]
@@ -17,11 +18,13 @@ const props = defineProps({
   columns: {type: Array, required: true},
   data: {type: Array, default: () => []},
   loading: {type: Boolean, default: false},
+  skeleton: {type: Boolean, default: false}, // 首次加载骨架屏
   error: {type: [String, Object], default: ''},
   rowKey: {type: String, default: 'id'},
   selectable: {type: Boolean, default: false},
   selected: {type: Array, default: () => []},
   emptyText: {type: String, default: '暂无数据'},
+  skeletonRows: {type: Number, default: 5},
 })
 
 const emit = defineEmits(['update:selected', 'rowClick'])
@@ -88,13 +91,16 @@ function rowClass(row, idx) {
           </th>
         </tr>
       </thead>
-      <tbody v-if="loading">
-        <tr>
-          <td :colspan="columns.length + (selectable ? 1 : 0)" class="px-4 py-16 text-center text-[var(--color-text-muted)]">
-            <span class="inline-flex items-center gap-2">
-              <span class="size-4 rounded-full border-2 border-[var(--color-primary-500)] border-t-transparent animate-spin"/>
-              加载中…
-            </span>
+      <tbody v-if="loading || skeleton">
+        <tr v-for="i in skeletonRows" :key="i" class="border-b border-[var(--color-border)] last:border-b-0">
+          <td v-if="selectable" class="w-12 px-4 py-3">
+            <span class="block size-4 rounded bg-[var(--color-surface-2)] animate-pulse"/>
+          </td>
+          <td v-for="col in columns" :key="col.key" class="px-4 py-3">
+            <span
+              class="inline-block h-3 rounded bg-[var(--color-surface-2)] animate-pulse"
+              :style="{width: `${50 + (i * 13) % 40}%`, maxWidth: col.width && typeof col.width === 'number' ? `${col.width - 32}px` : '100%'}"
+            />
           </td>
         </tr>
       </tbody>

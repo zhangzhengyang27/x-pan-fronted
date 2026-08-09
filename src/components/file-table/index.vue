@@ -1,7 +1,7 @@
 <script setup>
 /**
  * AppFileTable —— 主文件列表
- * 基于 BaseTable，加悬浮行操作 + 列定义
+ * 支持列表/网格双视图切换、悬浮行操作、列定义
  */
 import {ref, computed, onMounted} from 'vue'
 import DownloadButton from '@/components/buttons/download-button/index.vue'
@@ -22,7 +22,10 @@ import '@luohc92/vue3-image-viewer/dist/style.css'
 
 import BaseTable from '@/components/base/BaseTable.vue'
 import BaseTooltip from '@/components/base/BaseTooltip.vue'
-import {Folder, FileText, FileArchive, FileSpreadsheet, FileImage, FileAudio, FileVideo, FileCode, FileBarChart2} from '@lucide/vue'
+import {
+  Folder, FileText, FileArchive, FileSpreadsheet, FileImage,
+  FileAudio, FileVideo, FileCode, FileBarChart2,
+} from '@lucide/vue'
 
 const router = useRouter()
 const fileStore = useFileStore()
@@ -30,32 +33,17 @@ const breadcrumbStore = useBreadcrumbStore()
 const {fileList, tableLoading, searchFlag} = storeToRefs(fileStore)
 
 const selected = ref([])
-
-const iconMap = {
-  Folder, FileText, FileArchive, FileSpreadsheet,
-  FileImage, FileAudio, FileVideo, FileCode, FileBarChart2,
-}
+const view = ref('list') // 'list' | 'grid'
 
 function fileIcon(type) {
   return {
-    0: Folder,
-    2: FileArchive,
-    3: FileSpreadsheet,
-    4: FileText,
-    5: FileText,
-    6: FileText,
-    7: FileImage,
-    8: FileAudio,
-    9: FileVideo,
-    10: FileBarChart2,
-    11: FileCode,
+    0: Folder, 2: FileArchive, 3: FileSpreadsheet, 4: FileText,
+    7: FileImage, 8: FileAudio, 9: FileVideo, 10: FileBarChart2, 11: FileCode,
   }[type] || FileText
 }
 
 const columns = computed(() => {
-  const base = [
-    {key: 'filename', title: '文件名', width: 'auto'},
-  ]
+  const base = [{key: 'filename', title: '文件名', width: 'auto'}]
   if (searchFlag.value) base.push({key: 'parentFilename', title: '位置', width: 140, align: 'center'})
   base.push(
     {key: 'fileSizeDesc', title: '大小', width: 120, align: 'right'},
@@ -116,78 +104,79 @@ function clickFilename(row) {
   }
 }
 
+defineExpose({setView: (v) => (view.value = v)})
 onMounted(() => fileStore.setMultipleSelection([]))
 </script>
 
 <template>
+  <!-- 列表视图 -->
   <BaseTable
+    v-if="view === 'list'"
     :columns="columns"
     :data="fileList"
     :loading="tableLoading"
+    :skeleton="tableLoading && fileList.length === 0"
     selectable
     row-key="fileId"
     :selected="selected"
-    @update:selected="(v) => { selected = v; handleSelectionChange(v) }"
     empty-text="该文件夹为空，试试上传文件"
+    @update:selected="(v) => { selected = v; handleSelectionChange(v) }"
   >
     <template #cell-filename="{row}">
-      <button
-        type="button"
-        class="group flex items-center gap-3 text-left w-full"
-        @click="clickFilename(row)"
-      >
-        <component
-          :is="fileIcon(row.fileType)"
-          :size="20"
-          class="shrink-0 text-[var(--color-primary-500)] group-hover:text-[var(--color-primary-600)] transition-colors"
-        />
+      <button type="button" class="group flex items-center gap-3 text-left w-full" @click="clickFilename(row)">
+        <component :is="fileIcon(row.fileType)" :size="20"
+                   class="shrink-0 text-[var(--color-primary-500)] group-hover:text-[var(--color-primary-600)] transition-colors"/>
         <span class="truncate text-[var(--color-text)] group-hover:text-[var(--color-primary-600)] transition-colors">
           {{ row.filename }}
         </span>
       </button>
     </template>
-
     <template #cell-parentFilename="{row}">
-      <button
-        type="button"
-        class="text-[var(--color-primary-600)] hover:underline"
-        @click="goInFolder(row.parentId)"
-      >
+      <button type="button" class="text-[var(--color-primary-600)] hover:underline" @click="goInFolder(row.parentId)">
         {{ row.parentFilename }}
       </button>
     </template>
-
     <template #cell-actions="{row}">
       <div class="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-        <BaseTooltip text="下载" position="top">
-          <DownloadButton size="small" :item="row"/>
-        </BaseTooltip>
-        <BaseTooltip text="重命名" position="top">
-          <RenameButton size="small" :item="row"/>
-        </BaseTooltip>
-        <BaseTooltip text="删除" position="top">
-          <DeleteButton size="small" :item="row"/>
-        </BaseTooltip>
-        <BaseTooltip text="分享" position="top">
-          <ShareButton size="small" :item="row"/>
-        </BaseTooltip>
-        <BaseTooltip text="复制到" position="top">
-          <CopyButton size="small" :item="row"/>
-        </BaseTooltip>
-        <BaseTooltip text="移动到" position="top">
-          <TransferButton size="small" :item="row"/>
-        </BaseTooltip>
+        <BaseTooltip text="下载" position="top"><DownloadButton size="small" :item="row"/></BaseTooltip>
+        <BaseTooltip text="重命名" position="top"><RenameButton size="small" :item="row"/></BaseTooltip>
+        <BaseTooltip text="删除" position="top"><DeleteButton size="small" :item="row"/></BaseTooltip>
+        <BaseTooltip text="分享" position="top"><ShareButton size="small" :item="row"/></BaseTooltip>
+        <BaseTooltip text="复制到" position="top"><CopyButton size="small" :item="row"/></BaseTooltip>
+        <BaseTooltip text="移动到" position="top"><TransferButton size="small" :item="row"/></BaseTooltip>
       </div>
     </template>
   </BaseTable>
-</template>
 
-<style scoped>
-/* 让 BaseTable 内的行在 hover 时显示操作 */
-:deep(tr) {
-  position: relative;
-}
-:deep(tr:hover) .opacity-0 {
-  opacity: 1;
-}
-</style>
+  <!-- 网格视图 -->
+  <div v-else>
+    <div v-if="tableLoading && fileList.length === 0" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+      <div v-for="i in 8" :key="i" class="aspect-square rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 animate-pulse">
+        <div class="size-12 mx-auto rounded-xl bg-[var(--color-surface-2)] mb-3"/>
+        <div class="h-3 w-3/4 mx-auto rounded bg-[var(--color-surface-2)] mb-2"/>
+        <div class="h-2 w-1/2 mx-auto rounded bg-[var(--color-surface-2)]"/>
+      </div>
+    </div>
+
+    <div v-else-if="fileList.length === 0" class="text-center py-20 text-sm text-[var(--color-text-muted)]">
+      该文件夹为空，试试上传文件
+    </div>
+
+    <div v-else class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+      <button
+        v-for="row in fileList"
+        :key="row.fileId"
+        type="button"
+        class="group relative aspect-square rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-primary-400)] hover:shadow-md transition-all p-4 flex flex-col items-center justify-center text-center"
+        @click="clickFilename(row)"
+      >
+        <component :is="fileIcon(row.fileType)" :size="48"
+                   class="text-[var(--color-primary-500)] group-hover:scale-110 transition-transform mb-3"/>
+        <p class="text-sm font-medium text-[var(--color-text)] line-clamp-2 mb-1 w-full break-all">
+          {{ row.filename }}
+        </p>
+        <p class="text-xs text-[var(--color-text-muted)]">{{ row.fileSizeDesc }}</p>
+      </button>
+    </div>
+  </div>
+</template>
