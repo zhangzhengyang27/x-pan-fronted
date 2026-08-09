@@ -8,8 +8,8 @@
  * - 每张图片 URL 缓存（避免重复请求）
  * - 加载态占位
  */
-import {onMounted, ref, watch, onBeforeUnmount, computed} from 'vue'
-import {ChevronLeft, ChevronRight, X, ZoomIn, ZoomOut, RotateCcw, Download} from '@lucide/vue'
+import {onMounted, ref, watch, onBeforeUnmount, computed, onActivated, onDeactivated} from 'vue'
+import {ChevronLeft, ChevronRight, X, ZoomIn, ZoomOut, RotateCcw, Download, Play, Pause} from '@lucide/vue'
 import {resolvePreviewUrl, getDownloadUrl} from '@/utils/preview'
 
 const props = defineProps({
@@ -26,6 +26,32 @@ const urlMap = ref({})
 const loadingIds = ref(new Set())
 const scale = ref(1)
 const rotation = ref(0)
+
+// ─── P1.10：幻灯片自动播放 ─────────────────────────────────────────────────
+const isPlaying = ref(false)
+const intervalMs = 3000
+let slideTimer = null
+
+function startSlideshow() {
+  if (slideTimer) return
+  isPlaying.value = true
+  slideTimer = setInterval(() => {
+    if (props.items.length > 1) next()
+  }, intervalMs)
+}
+
+function stopSlideshow() {
+  if (slideTimer) {
+    clearInterval(slideTimer)
+    slideTimer = null
+  }
+  isPlaying.value = false
+}
+
+function toggleSlideshow() {
+  if (isPlaying.value) stopSlideshow()
+  else startSlideshow()
+}
 
 const currentItem = computed(() => props.items[props.activeIndex] || null)
 const currentSrc = computed(() => {
@@ -102,6 +128,10 @@ function onKey(e) {
   else if (e.key === 'Escape') close()
   else if (e.key === '+' || e.key === '=') zoomIn()
   else if (e.key === '-') zoomOut()
+  else if (e.key === ' ') {
+    e.preventDefault()
+    toggleSlideshow()
+  }
 }
 
 onMounted(() => {
@@ -111,9 +141,13 @@ onMounted(() => {
 
 watch(() => props.items, (items) => loadUrls(items))
 watch(() => props.activeIndex, resetView)
+watch(isPlaying, (v) => {
+  // 播放时如果用户手动切换也保持
+})
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKey)
+  stopSlideshow()
 })
 </script>
 
@@ -129,6 +163,10 @@ onBeforeUnmount(() => {
         <span v-if="items.length" class="text-xs text-white/50 tabular-nums shrink-0">{{ activeIndex + 1 }} / {{ items.length }}</span>
       </div>
       <div class="flex items-center gap-1">
+        <button v-if="items.length > 1" type="button" class="size-9 rounded-lg hover:bg-white/10 flex items-center justify-center" :aria-label="isPlaying ? '暂停' : '播放'" :title="isPlaying ? '暂停 (空格)' : '播放 (空格)'" @click="toggleSlideshow">
+          <Pause v-if="isPlaying" :size="16"/>
+          <Play v-else :size="16"/>
+        </button>
         <button type="button" class="size-9 rounded-lg hover:bg-white/10 flex items-center justify-center" aria-label="缩小" @click="zoomOut">
           <ZoomOut :size="16"/>
         </button>

@@ -12,6 +12,7 @@ import FileTypeFilter from '@/components/file-type-filter/index.vue'
 import BaseTooltip from '@/components/base/BaseTooltip.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import DashboardCards from '@/components/dashboard/DashboardCards.vue'
+import DashboardCharts from '@/components/dashboard/DashboardCharts.vue'
 import {useFileStore} from '@/stores/file'
 import {useBreadcrumbStore} from '@/stores/breadcrumb'
 import {useUploader} from '@/composables/useUploader'
@@ -131,6 +132,9 @@ onUnmounted(() => {
 
     <!-- P1.9 仪表盘：仅在根目录显示 -->
     <DashboardCards v-if="showDashboard && !searchFlag && fileList.length > 0" :files="fileList"/>
+
+    <!-- P1.10 图表 -->
+    <DashboardCharts v-if="showDashboard && !searchFlag && fileList.length > 0" :files="fileList"/>
 
     <FileTable :key="view"/>
   </div>

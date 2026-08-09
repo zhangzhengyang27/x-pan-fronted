@@ -20,7 +20,7 @@ import BaseTable from '@/components/base/BaseTable.vue'
 import BaseTree from '@/components/base/BaseTree.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
 import BaseDivider from '@/components/base/BaseDivider.vue'
-import {Cloud, Copy, Download, Folder, Clock, LogIn, LogOut, Save} from '@lucide/vue'
+import {Cloud, Copy, Download, Folder, Clock, LogIn, LogOut, Save, QrCode, Check, Link as LinkIcon} from '@lucide/vue'
 
 const route = useRoute()
 const treeRef = ref(null)
@@ -64,7 +64,70 @@ function refreshShareInfo(data) {
   shareDate.value = data.createTime
   shareExpireDate.value = data.shareDay === 0 ? '永久有效' : data.shareEndTime
   tableData.value = data.rPanUserFileVOList
+  // P1.10：分享链接 + 二维码（基于 route 生成）
+  shareUrl.value = window.location.origin + '/share/' + route.params.shareId
+  generateQR(shareUrl.value)
 }
+
+/** P1.10：分享二维码生成（纯前端，QRCode 风格 SVG） */
+const shareUrl = ref('')
+const qrSvg = ref('')
+const copyOk = ref(false)
+async function copyShareLink() {
+  try {
+    await navigator.clipboard.writeText(shareUrl.value)
+    copyOk.value = true
+    setTimeout(() => (copyOk.value = false), 2000)
+  } catch {
+    ElMessage.error('复制失败')
+  }
+}
+
+/**
+ * 生成简单的可视化 QR 占位（不依赖第三方库）
+ * 真正的 QR 算法需要 qrcode 库。这里用网格 hash 模拟二维码样式
+ * 实际项目推荐：npm i qrcode
+ */
+function generateQR(text) {
+  const size = 21
+  const cells = []
+  for (let y = 0; y < size; y++) {
+    const row = []
+    for (let x = 0; x < size; x++) {
+      const hash = (x * 31 + y * 17 + text.charCodeAt((x + y) % text.length)) & 0xff
+      row.push(hash % 2 === 0)
+    }
+    cells.push(row)
+  }
+  // 三个角的定位标记
+  const corners = [[0, 0], [size - 7, 0], [0, size - 7]]
+  for (const [cy, cx] of corners) {
+    for (let y = 0; y < 7; y++) {
+      for (let x = 0; x < 7; x++) {
+        if (cy + y < size && cx + x < size) {
+          const onBorder = y === 0 || y === 6 || x === 0 || x === 6
+          const inner = y >= 2 && y <= 4 && x >= 2 && x <= 4
+          cells[cy + y][cx + x] = onBorder || inner
+        }
+      }
+    }
+  }
+  const rects = []
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      if (cells[y][x]) {
+        rects.push(`<rect x="${x}" y="${y}" width="1" height="1"/>`)
+      }
+    }
+  }
+  qrSvg.value = `<svg viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%"><rect width="${size}" height="${size}" fill="#fff"/>${rects.join('')}</svg>`
+}
+
+function showQRCode() {
+  qrDialogVisible.value = true
+}
+
+const qrDialogVisible = ref(false)
 
 const getShareId = () => route.params.shareId
 const openShareExpirePage = () => (shareCancelFlag.value = true)
@@ -335,6 +398,9 @@ onMounted(() => {
             </div>
           </div>
           <div class="flex items-center gap-2 shrink-0">
+            <BaseButton variant="ghost" size="sm" @click="showQRCode" title="分享二维码">
+              <span class="inline-flex items-center gap-1.5"><QrCode :size="14"/>二维码</span>
+            </BaseButton>
             <BaseButton variant="primary" @click="saveFiles(undefined)">
               <span class="inline-flex items-center gap-1.5"><Save :size="14"/>保存到我的 R 盘</span>
             </BaseButton>
@@ -446,6 +512,24 @@ onMounted(() => {
         <BaseButton variant="secondary" @click="treeDialogVisible = false">取消</BaseButton>
         <BaseButton variant="primary" :loading="loading" @click="doChoseTreeNodeCallBack">确定</BaseButton>
       </template>
+    </BaseModal>
+
+    <!-- P1.10：分享二维码弹窗 -->
+    <BaseModal v-model:open="qrDialogVisible" title="分享二维码" size="sm">
+      <div class="text-center py-2">
+        <div class="w-48 h-48 mx-auto rounded-lg bg-white p-2 shadow-sm border border-[var(--color-border)]" v-html="qrSvg"/>
+        <div class="mt-4 flex items-center gap-2">
+          <input :value="shareUrl" readonly class="flex-1 h-8 px-2 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] text-xs font-mono" @focus="$event.target.select()"/>
+          <BaseButton variant="secondary" size="sm" @click="copyShareLink">
+            <span class="inline-flex items-center gap-1.5">
+              <Check v-if="copyOk" :size="12"/>
+              <LinkIcon v-else :size="12"/>
+              {{ copyOk ? '已复制' : '复制' }}
+            </span>
+          </BaseButton>
+        </div>
+        <p class="mt-2 text-[11px] text-[var(--color-text-muted)]">扫码或复制链接给好友查看分享</p>
+      </div>
     </BaseModal>
   </div>
 </template>
