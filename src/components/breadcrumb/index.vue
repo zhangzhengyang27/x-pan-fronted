@@ -1,20 +1,9 @@
-<template>
-    <div class="pan-main-breadcrumb-content">
-        <el-breadcrumb style="display: inline-block;">
-            <el-breadcrumb-item>
-                <a class="breadcrumb-item-a" @click="goBack" href="#">返回</a>
-            </el-breadcrumb-item>
-        </el-breadcrumb>
-        <el-divider direction="vertical" style="vertical-align: top !important;"/>
-        <el-breadcrumb separator-icon="ArrowRight" style="display: inline-block;">
-            <el-breadcrumb-item v-for="(item, index) in breadCrumbs" :key="index">
-                <a class="breadcrumb-item-a" @click="goToThis(item.id)" href="#">{{ item.name }}</a>
-            </el-breadcrumb-item>
-        </el-breadcrumb>
-    </div>
-</template>
-
 <script setup>
+/**
+ * AppBreadcrumb —— 路径面包屑
+ * "返回" + 分隔符 + 路径节点
+ */
+import {ArrowLeft, ChevronRight} from '@lucide/vue'
 import {useBreadcrumbStore} from '@/stores/breadcrumb'
 import {useFileStore} from '@/stores/file'
 import {storeToRefs} from 'pinia'
@@ -24,42 +13,73 @@ const fileStore = useFileStore()
 
 const {breadCrumbs} = storeToRefs(breadcrumbStore)
 
-const goBack = () => {
-    fileStore.setSearchFlag(false)
-    if (breadCrumbs.value.length > 1) {
-        let resolveBreadCrumbs = [...breadCrumbs.value]
-        resolveBreadCrumbs.pop()
-        let newId = resolveBreadCrumbs.pop().id
-        goToThis(newId)
-    }
+function goBack() {
+  fileStore.setSearchFlag(false)
+  if (breadCrumbs.value.length > 1) {
+    const list = [...breadCrumbs.value]
+    list.pop()
+    const newId = list.pop()?.id
+    if (newId !== undefined) goToThis(newId)
+  }
 }
 
-const goToThis = (id) => {
-    if (id !== '-1') {
-        let newBreadCrumbs = new Array()
-        breadCrumbs.value.some(item => {
-            newBreadCrumbs.push(item)
-            if (item.id == id) {
-                return true
-            }
-        })
-        breadcrumbStore.reset(newBreadCrumbs)
-        fileStore.setParentId(id)
-        fileStore.setSearchFlag(false)
-        fileStore.loadFileList()
-    }
+function goToThis(id) {
+  if (id === '-1') return
+  const next = []
+  for (const item of breadCrumbs.value) {
+    next.push(item)
+    if (item.id == id) break
+  }
+  breadcrumbStore.reset(next)
+  fileStore.setParentId(id)
+  fileStore.setSearchFlag(false)
+  fileStore.loadFileList()
 }
-
 </script>
 
-<style scoped>
-.pan-main-breadcrumb-content {
-    width: 100%;
-    padding: 10px 0 0 25px;
-}
+<template>
+  <nav
+    v-if="breadCrumbs.length"
+    aria-label="面包屑"
+    class="flex items-center gap-1.5 text-sm py-3 px-1"
+  >
+    <button
+      type="button"
+      class="inline-flex items-center gap-1 px-2 h-7 rounded-md text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-2)] transition-colors"
+      :disabled="breadCrumbs.length <= 1"
+      @click="goBack"
+    >
+      <ArrowLeft :size="14"/>
+      <span>返回</span>
+    </button>
 
-.breadcrumb-item-a {
-    cursor: pointer !important;
-    color: #409EFF !important;
-}
-</style>
+    <ChevronRight :size="14" class="text-[var(--color-text-muted)] mx-0.5"/>
+
+    <ol class="flex items-center gap-1.5 flex-wrap">
+      <li
+        v-for="(item, index) in breadCrumbs"
+        :key="index"
+        class="flex items-center gap-1.5"
+      >
+        <button
+          type="button"
+          :class="[
+            'px-1.5 py-0.5 rounded transition-colors truncate max-w-[200px]',
+            index === breadCrumbs.length - 1
+              ? 'text-[var(--color-text)] font-medium cursor-default'
+              : 'text-[var(--color-primary-600)] hover:underline hover:bg-[var(--color-primary-50)]',
+          ]"
+          :disabled="index === breadCrumbs.length - 1"
+          @click="goToThis(item.id)"
+        >
+          {{ item.name }}
+        </button>
+        <ChevronRight
+          v-if="index < breadCrumbs.length - 1"
+          :size="12"
+          class="text-[var(--color-text-muted)]"
+        />
+      </li>
+    </ol>
+  </nav>
+</template>
