@@ -7,7 +7,7 @@
  * 3. 批量下载（多文件下载）
  * 4. 多选 + 快捷键（Ctrl+A / Delete / F2）
  */
-import {ref, computed, onMounted, onBeforeUnmount, watch, nextTick} from 'vue'
+import {ref, computed, onMounted, onBeforeUnmount, watch, nextTick, onActivated, onDeactivated} from 'vue'
 import DownloadButton from '@/components/buttons/download-button/index.vue'
 import DeleteButton from '@/components/buttons/delete-button/index.vue'
 import RenameButton from '@/components/buttons/rename-button/index.vue'
@@ -34,13 +34,13 @@ import {useDrivePreview} from '@/composables/useDrivePreview'
 import {getDownloadUrl} from '@/utils/preview'
 import {
   Folder, FileText, FileArchive, FileSpreadsheet, FileImage,
-  FileAudio, FileVideo, FileCode, FileBarChart2,
+  FileAudio, FileVideo, FileCode, FileBarChart2, Loader2,
 } from '@lucide/vue'
 
 const router = useRouter()
 const fileStore = useFileStore()
 const breadcrumbStore = useBreadcrumbStore()
-const {fileList, tableLoading, searchFlag} = storeToRefs(fileStore)
+const {fileList, tableLoading, searchFlag, hasMore, isLoadingMore, total} = storeToRefs(fileStore)
 
 const selected = ref([]) // 多选 fileId
 const view = ref('list') // 'list' | 'grid'
@@ -55,6 +55,31 @@ function fileIcon(type) {
 // ─── 排序 / 筛选 ────────────────────────────────────────────────────────────
 const {sortField, sortOrder, toggleSort, sortItems} = useTableSort('name', 'asc')
 const filter = ref({extensions: [], sizeMin: '', sizeMax: '', dateFrom: '', dateTo: ''})
+
+const filterActive = computed(() => {
+  return (
+    filter.value.extensions.length > 0 ||
+    filter.value.sizeMin !== '' ||
+    filter.value.sizeMax !== '' ||
+    filter.value.dateFrom !== '' ||
+    filter.value.dateTo !== ''
+  )
+})
+
+// 筛选 / 排序 / 切目录时，重置选择
+watch([filterActive, () => fileStore.parentId], () => {
+  selected.value = []
+  fileStore.setMultipleSelection([])
+})
+
+// 启用筛选 → 自动拉全量；关闭筛选 → 恢复分页
+watch(filterActive, (active) => {
+  if (active && !searchFlag.value) {
+    fileStore.loadAllForFilter()
+  } else if (!active && !searchFlag.value && fileStore.total > 0) {
+    fileStore.loadFileList()
+  }
+})
 
 const availableExtensions = computed(() => {
   const set = new Set()
@@ -276,9 +301,51 @@ function onKeyDown(e) {
 onMounted(() => {
   fileStore.setMultipleSelection([])
   window.addEventListener('keydown', onKeyDown)
+  setupIntersectionObserver()
 })
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeyDown)
+  teardownIntersectionObserver()
+})
+
+// ─── 滚动加载（P1.2） ───────────────────────────────────────────────────────
+const loadMoreSentinel = ref(null)
+let intersectionObserver = null
+
+function setupIntersectionObserver() {
+  intersectionObserver = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting && hasMore.value && !isLoadingMore.value && !filterActive.value && !searchFlag.value) {
+          fileStore.loadMore()
+        }
+      }
+    },
+    {rootMargin: '200px'},
+  )
+  nextTick(() => {
+    if (loadMoreSentinel.value) {
+      intersectionObserver.observe(loadMoreSentinel.value)
+    }
+  })
+}
+
+function teardownIntersectionObserver() {
+  if (intersectionObserver) {
+    intersectionObserver.disconnect()
+    intersectionObserver = null
+  }
+}
+
+// 列表结构变化时重新观察 sentinel
+watch([() => filteredList.value.length, hasMore], () => {
+  if (!intersectionObserver) return
+  nextTick(() => {
+    if (loadMoreSentinel.value) {
+      intersectionObserver.unobserve(loadMoreSentinel.value)
+      intersectionObserver.observe(loadMoreSentinel.value)
+    }
+  })
 })
 
 defineExpose({setView: (v) => (view.value = v)})
@@ -355,8 +422,24 @@ function previewDownload(item) {
       </div>
     </div>
 
+  <!-- 加载更多 sentinel -->
+    <div
+      v-if="!filterActive && hasMore && filteredList.length > 0"
+      ref="loadMoreSentinel"
+      class="col-span-full py-6 flex items-center justify-center text-xs text-[var(--color-text-muted)]"
+    >
+      <Loader2 v-if="isLoadingMore" :size="14" class="animate-spin mr-2"/>
+      {{ isLoadingMore ? '加载中...' : '滚动加载更多' }}
+    </div>
+    <div
+      v-else-if="!filterActive && !hasMore && filteredList.length > 0 && total > 0"
+      class="col-span-full py-6 text-center text-xs text-[var(--color-text-muted)]"
+    >
+      已加载全部 {{ total }} 个文件
+    </div>
+
     <div v-else-if="filteredList.length === 0" class="text-center py-20 text-sm text-[var(--color-text-muted)]">
-      <template v-if="filter.extensions.length || filter.sizeMin || filter.sizeMax || filter.dateFrom || filter.dateTo">
+      <template v-if="filterActive">
         没有符合筛选条件的文件
       </template>
       <template v-else>该文件夹为空，试试上传文件</template>
