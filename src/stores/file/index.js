@@ -133,6 +133,41 @@ export const useFileStore = defineStore('file', () => {
         }
     }
 
+    /**
+     * 带高级筛选的搜索（P1.3）：keyword + extensions + size 范围 + 日期范围
+     * 后端已支持 extensions + dateFrom/dateTo，size 留给前端做
+     */
+    function searchWithFilter(filter) {
+        if (!searchFlag.value) setSearchFlag(true)
+        setTableLoading(true)
+        const params = {
+            keyword: searchKey.value,
+            fileTypes: '-1',
+        }
+        if (filter?.extensions?.length) params.extensions = filter.extensions.join(',')
+        if (filter?.dateFrom) params.dateFrom = filter.dateFrom
+        if (filter?.dateTo) params.dateTo = filter.dateTo
+        // size 范围前端处理（后端表没有 file_size 数值列）
+        fileService.search(params, res => {
+            let list = res.data || []
+            if (filter?.sizeMin !== '' && filter?.sizeMin != null) {
+                const min = Number(filter.sizeMin) * 1024 * 1024
+                list = list.filter((r) => Number(r.fileSize || parseFileSizeDesc(r.fileSizeDesc) || 0) >= min)
+            }
+            if (filter?.sizeMax !== '' && filter?.sizeMax != null) {
+                const max = Number(filter.sizeMax) * 1024 * 1024
+                list = list.filter((r) => Number(r.fileSize || parseFileSizeDesc(r.fileSizeDesc) || 0) <= max)
+            }
+            setFileList(list)
+            setTableLoading(false)
+            hasMore.value = false
+            total.value = list.length
+        }, res => {
+            setTableLoading(false)
+            ElMessage.error(res.message)
+        })
+    }
+
     function loadMore() {
         if (searchFlag.value || !hasMore.value || isLoadingMore.value) return
         isLoadingMore.value = true
@@ -229,5 +264,20 @@ export const useFileStore = defineStore('file', () => {
         loadFileList,
         loadMore,
         loadAllForFilter,
+        searchWithFilter,
     }
 })
+
+/**
+ * 把 fileSizeDesc 字符串解析为字节数（用于 size 范围前端筛选）
+ * 例："1.5 MB" -> 1572864
+ */
+function parseFileSizeDesc(desc) {
+    if (!desc) return 0
+    const m = String(desc).trim().match(/^([\d.]+)\s*(B|KB|MB|GB|K|M|G)?$/i)
+    if (!m) return 0
+    const n = parseFloat(m[1])
+    const unit = (m[2] || 'B').toUpperCase()
+    const mul = {B: 1, K: 1024, KB: 1024, M: 1024 * 1024, MB: 1024 * 1024, G: 1024 * 1024 * 1024, GB: 1024 * 1024 * 1024}[unit] || 1
+    return Math.floor(n * mul)
+}

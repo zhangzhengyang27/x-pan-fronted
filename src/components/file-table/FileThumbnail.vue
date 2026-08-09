@@ -72,13 +72,12 @@ const visual = computed(() => {
 const isImage = computed(() => props.file.fileType === 7)
 const showImage = computed(() => isImage.value && !imageErrored.value)
 
-// 后端预览 URL（图片直出预览）
+// 后端预览 URL（图片直出预览）；后端 thumbnail 字段（P1.8）优先
 const previewUrl = computed(() => {
   if (!isImage.value) return null
-  // 已存在的工具函数 getPreviewUrl
-  const fn = props.file.previewUrl ||
-    (typeof window !== 'undefined' && window.panUtil?.getPreviewUrl?.(props.file.fileId))
-  return fn || `/api/file/preview?fileId=${encodeURIComponent(props.file.fileId)}`
+  return props.file.thumbnail ||
+    (typeof window !== 'undefined' && window.panUtil?.getPreviewUrl?.(props.file.fileId)) ||
+    `/api/file/preview?fileId=${encodeURIComponent(props.file.fileId)}`
 })
 
 const iconSize = computed(() => Math.max(20, Math.round(props.size * 0.45)))

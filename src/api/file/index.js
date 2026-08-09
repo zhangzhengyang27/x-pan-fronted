@@ -83,6 +83,17 @@ let fileService = {
             data: data,
             method: 'post'
         }).then(res => resolve(res)).catch(err => reject(err))
+    },
+    /**
+     * P1.7：批量打包下载（返回 Blob 用于浏览器下载）
+     */
+    archiveDownload: function (data, resolve, reject) {
+        http({
+            url: '/file/archive-download',
+            data: data,
+            method: 'post',
+            responseType: 'blob',
+        }).then(res => resolve(res)).catch(err => reject(err))
     }
 }
 

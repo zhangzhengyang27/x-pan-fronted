@@ -213,29 +213,44 @@ function onRowDblclick(row) {
 // ─── 批量下载 ────────────────────────────────────────────────────────────────
 async function batchDownload(rows) {
   if (!rows || rows.length === 0) return
-  ElMessage.info(`开始下载 ${rows.length} 个文件...`)
-  let ok = 0
-  let failed = 0
-  for (let i = 0; i < rows.length; i++) {
-    const r = rows[i]
-    try {
-      const url = getDownloadUrl(r.fileId)
+
+  // 单文件 → 走单个下载
+  if (rows.length === 1) {
+    const r = rows[0]
+    const url = getDownloadUrl(r.fileId)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = r.filename || r.name || ''
+    a.target = '_blank'
+    a.rel = 'noopener noreferrer'
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    return
+  }
+
+  // 多文件 → 后端 zip 打包下载（P1.7）
+  ElMessage.info(`正在打包 ${rows.length} 个文件...`)
+  const fileIds = rows.map((r) => r.fileId).join('__,__')
+  fileService.archiveDownload(
+    {fileIds},
+    (res) => {
+      // res 是 Blob
+      const blob = res instanceof Blob ? res : new Blob([res.data || res], {type: 'application/zip'})
+      const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = r.filename || r.name || ''
-      a.target = '_blank'
-      a.rel = 'noopener noreferrer'
+      a.download = `xpan-files-${Date.now()}.zip`
       document.body.appendChild(a)
       a.click()
       a.remove()
-      ok++
-      // 间隔 200ms 避免浏览器拦截
-      await new Promise((r) => setTimeout(r, 200))
-    } catch {
-      failed++
-    }
-  }
-  ElMessage.success(`已下载 ${ok} 个文件${failed ? `，失败 ${failed} 个` : ''}`)
+      setTimeout(() => URL.revokeObjectURL(url), 30000)
+      ElMessage.success(`已下载 ${rows.length} 个文件（zip 打包）`)
+    },
+    (err) => {
+      ElMessage.error(err.message || '打包下载失败')
+    },
+  )
 }
 
 // ─── 批量删除 ────────────────────────────────────────────────────────────────
