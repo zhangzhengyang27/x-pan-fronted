@@ -104,6 +104,23 @@ function clickFilename(row) {
   }
 }
 
+function onRowClick(row) {
+  // 单击：仅切换选中状态（不进入文件夹 / 预览）
+  const id = row.fileId
+  const idx = selected.value.indexOf(id)
+  if (idx === -1) {
+    selected.value = [id]
+  } else {
+    selected.value = selected.value.filter((x) => x !== id)
+  }
+  handleSelectionChange(selected.value)
+}
+
+function onRowDblclick(row) {
+  // 双击：进入文件夹 / 预览
+  clickFilename(row)
+}
+
 defineExpose({setView: (v) => (view.value = v)})
 onMounted(() => fileStore.setMultipleSelection([]))
 </script>
@@ -121,15 +138,19 @@ onMounted(() => fileStore.setMultipleSelection([]))
     :selected="selected"
     empty-text="该文件夹为空，试试上传文件"
     @update:selected="(v) => { selected = v; handleSelectionChange(v) }"
+    @rowClick="onRowClick"
+    @rowDblclick="onRowDblclick"
   >
     <template #cell-filename="{row}">
-      <button type="button" class="group flex items-center gap-3 text-left w-full" @click="clickFilename(row)">
-        <component :is="fileIcon(row.fileType)" :size="20"
-                   class="shrink-0 text-[var(--color-primary-500)] group-hover:text-[var(--color-primary-600)] transition-colors"/>
-        <span class="truncate text-[var(--color-text)] group-hover:text-[var(--color-primary-600)] transition-colors">
-          {{ row.filename }}
-        </span>
-      </button>
+      <BaseTooltip :text="row.filename" position="top">
+        <button type="button" class="group flex items-center gap-3 text-left w-full min-w-0" @click.stop="clickFilename(row)" @dblclick.stop="clickFilename(row)">
+          <component :is="fileIcon(row.fileType)" :size="20"
+                     class="shrink-0 text-[var(--color-primary-500)] group-hover:text-[var(--color-primary-600)] transition-colors"/>
+          <span class="truncate text-[var(--color-text)] group-hover:text-[var(--color-primary-600)] transition-colors">
+            {{ row.filename }}
+          </span>
+        </button>
+      </BaseTooltip>
     </template>
     <template #cell-parentFilename="{row}">
       <button type="button" class="text-[var(--color-primary-600)] hover:underline" @click="goInFolder(row.parentId)">
@@ -172,9 +193,11 @@ onMounted(() => fileStore.setMultipleSelection([]))
       >
         <component :is="fileIcon(row.fileType)" :size="48"
                    class="text-[var(--color-primary-500)] group-hover:scale-110 transition-transform mb-3"/>
-        <p class="text-sm font-medium text-[var(--color-text)] line-clamp-2 mb-1 w-full break-all">
-          {{ row.filename }}
-        </p>
+        <BaseTooltip :text="row.filename" position="top">
+          <p class="text-sm font-medium text-[var(--color-text)] line-clamp-2 mb-1 w-full break-all">
+            {{ row.filename }}
+          </p>
+        </BaseTooltip>
         <p class="text-xs text-[var(--color-text-muted)]">{{ row.fileSizeDesc }}</p>
       </button>
     </div>

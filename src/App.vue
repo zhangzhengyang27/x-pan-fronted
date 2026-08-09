@@ -6,11 +6,13 @@
             </Transition>
         </router-view>
     </div>
+    <ConfirmHost/>
 </template>
 
 <script setup>
-import {RouterView} from 'vue-router'</script>
+import {RouterView} from 'vue-router'
+import ConfirmHost from '@/components/confirm-host/index.vue'
+</script>
 
 <style scoped>
-
 </style>

@@ -27,7 +27,7 @@ const props = defineProps({
   skeletonRows: {type: Number, default: 5},
 })
 
-const emit = defineEmits(['update:selected', 'rowClick'])
+const emit = defineEmits(['update:selected', 'rowClick', 'rowDblclick'])
 
 const allSelected = computed(
   () => props.selectable && props.data.length > 0 && props.selected.length === props.data.length,
@@ -125,6 +125,7 @@ function rowClass(row, idx) {
           :class="rowClass(row, idx)"
           class="border-b border-[var(--color-border)] last:border-b-0"
           @click="emit('rowClick', row, idx)"
+          @dblclick="emit('rowDblclick', row, idx)"
         >
           <td v-if="selectable" class="w-12 px-4 py-3" @click.stop>
             <button
