@@ -14,6 +14,7 @@ import fileService from '@/api/file'
 import {ElMessage} from '@/composables/useToast'
 import {useFileStore} from '@/stores/file'
 import {useTaskStore} from '@/stores/task'
+import {useUserStore} from '@/stores/user'
 
 let _uploader = null
 let _attachCount = 0
@@ -210,6 +211,11 @@ export function useUploader() {
       () => {
         ElMessage.success('文件：' + file.name + ' 上传完成')
         _uploader.removeFile(file)
+        try {
+          useUserStore().usedSpace += file.size || 0
+        } catch {
+          /* noop */
+        }
         fileStore.loadFileList()
         taskStore.updateStatus({
           filename: file.name,
@@ -233,6 +239,12 @@ export function useUploader() {
   function finishFile(file) {
     ElMessage.success('文件：' + file.name + ' 上传完成')
     _uploader.removeFile(file)
+    // 累计已用空间（前端估算；后端 UserInfoVO 暂未暴露字段）
+    try {
+      useUserStore().usedSpace += file.size || 0
+    } catch {
+      /* noop */
+    }
     fileStore.loadFileList()
     taskStore.updateStatus({
       filename: file.name,

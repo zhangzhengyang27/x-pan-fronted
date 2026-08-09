@@ -1,57 +1,38 @@
 <script setup>
 /**
- * PreviewCode —— 代码预览（M7 简化版）
- * 后续可替换为 highlight.js / shiki
+ * PreviewCode —— 代码预览（Shiki 高亮）
  */
-import {computed, onMounted, ref} from 'vue'
+import {computed} from 'vue'
 import {useRoute} from 'vue-router'
-import {FileCode, Download, Copy} from '@lucide/vue'
-import fileService from '@/api/file'
-import panUtil from '@/utils/common'
-import {ElMessage} from '@/composables/useToast'
+import {FileCode, Download} from '@lucide/vue'
+import {getDownloadUrl} from '@/utils/preview'
 import BaseButton from '@/components/base/BaseButton.vue'
+import CodePreviewer from '@/components/preview/code-previewer.vue'
 
 const route = useRoute()
-const content = ref('')
-const filename = ref(route.query.filename || '')
-
-onMounted(() => {
-  fileService.previewCode(
-    {fileId: panUtil.handleId(route.params.fileId)},
-    (res) => {
-      content.value = res.data || ''
-    },
-    (res) => ElMessage.error(res.message),
-  )
-})
-
-const lines = computed(() => content.value.split('\n'))
-
-async function copyAll() {
-  await navigator.clipboard.writeText(content.value)
-  ElMessage.success('已复制')
-}
+const fileId = computed(() => route.params.fileId)
+const filename = computed(() => route.query.filename || 'code')
+const downloadUrl = computed(() => getDownloadUrl(fileId.value))
 </script>
 
 <template>
-  <div class="min-h-screen flex flex-col bg-[#0b0d10] text-[#e6e8eb]">
-    <header class="h-14 px-6 flex items-center justify-between border-b border-white/10 bg-black/40 backdrop-blur">
-      <div class="flex items-center gap-2">
-        <FileCode :size="20" class="text-[var(--color-primary-400)]"/>
-        <h1 class="text-base font-medium">{{ filename || '代码预览' }}</h1>
+  <div class="min-h-screen flex flex-col bg-[var(--color-bg)]">
+    <header class="h-14 px-6 flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface)]">
+      <div class="flex items-center gap-2 min-w-0">
+        <FileCode :size="20" class="text-[var(--color-primary-600)] shrink-0"/>
+        <h1 class="text-base font-medium truncate">{{ filename }}</h1>
       </div>
-      <div class="flex items-center gap-2">
-        <BaseButton variant="ghost" size="sm" class="text-white hover:bg-white/10" @click="copyAll">
-          <span class="inline-flex items-center gap-1.5"><Copy :size="14"/>复制</span>
+      <a :href="downloadUrl" target="_blank">
+        <BaseButton variant="ghost" size="sm">
+          <span class="inline-flex items-center gap-1.5">
+            <Download :size="14"/>
+            下载
+          </span>
         </BaseButton>
-      </div>
+      </a>
     </header>
-    <div class="flex-1 overflow-auto">
-      <pre class="font-mono text-sm leading-relaxed p-6 m-0"><code><span
-        v-for="(line, i) in lines"
-        :key="i"
-        class="block whitespace-pre"
-      ><span class="inline-block w-10 text-right pr-3 text-white/30 select-none">{{ i + 1 }}</span>{{ line }}</span></code></pre>
-    </div>
+    <main class="flex-1 min-h-0">
+      <CodePreviewer :file-id="fileId" :filename="filename"/>
+    </main>
   </div>
 </template>

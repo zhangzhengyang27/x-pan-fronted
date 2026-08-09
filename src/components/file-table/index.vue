@@ -95,11 +95,11 @@ function showImg(row) {
 function clickFilename(row) {
   switch (row.fileType) {
     case 0: return goInFolder(panUtil.handleId(row.fileId))
-    case 3: case 4: case 10: return openNewPage('/preview/office', 'PreviewOffice', {fileId: panUtil.handleId(row.fileId)})
-    case 5: case 6: return openNewPage('/preview/iframe', 'PreviewIframe', {fileId: panUtil.handleId(row.fileId)})
-    case 7: return showImg(row)
-    case 8: return openNewPage('/preview/music', 'PreviewMusic', {fileId: panUtil.handleId(row.fileId), parentId: panUtil.handleId(row.parentId)})
-    case 9: return openNewPage('/preview/video', 'PreviewVideo', {fileId: panUtil.handleId(row.fileId), parentId: panUtil.handleId(row.parentId)})
+    case 3: case 4: case 10: return openNewPage('/preview/office', 'PreviewOffice', {fileId: panUtil.handleId(row.fileId)}, {filename: row.filename})
+    case 5: case 6: return openNewPage('/preview/iframe', 'PreviewIframe', {fileId: panUtil.handleId(row.fileId)}, {filename: row.filename})
+    case 7: return openNewPage('/preview/image', 'PreviewImage', {fileId: panUtil.handleId(row.fileId), parentId: panUtil.handleId(row.parentId)}, {filename: row.filename})
+    case 8: return openNewPage('/preview/music', 'PreviewMusic', {fileId: panUtil.handleId(row.fileId), parentId: panUtil.handleId(row.parentId)}, {filename: row.filename})
+    case 9: return openNewPage('/preview/video', 'PreviewVideo', {fileId: panUtil.handleId(row.fileId), parentId: panUtil.handleId(row.parentId)}, {filename: row.filename})
     case 11: return openNewPage('/preview/code', 'PreviewCode', {fileId: panUtil.handleId(row.fileId)}, {filename: row.filename})
   }
 }
