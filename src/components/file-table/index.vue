@@ -30,6 +30,8 @@ import DrivePreviewModal from '@/components/preview/drive-preview-modal.vue'
 import FileTableToolbar from './FileTableToolbar.vue'
 import FileThumbnail from './FileThumbnail.vue'
 import {useTableSort} from '@/composables/useTableSort'
+import {useFavorites} from '@/composables/useFavorites'
+import {useRecent} from '@/composables/useRecent'
 import {useDrivePreview} from '@/composables/useDrivePreview'
 import {getDownloadUrl} from '@/utils/preview'
 import {
@@ -199,17 +201,6 @@ function onRowClick(row) {
   handleSelectionChange([...selected.value])
 }
 
-function onRowDblclick(row) {
-  if (row.fileType === 0) {
-    clickFilename(row)
-    return
-  }
-  const opened = preview.openPreview(row)
-  if (!opened) {
-    clickFilename(row)
-  }
-}
-
 // ─── 批量下载 ────────────────────────────────────────────────────────────────
 async function batchDownload(rows) {
   if (!rows || rows.length === 0) return
@@ -368,6 +359,22 @@ defineExpose({setView: (v) => (view.value = v)})
 // ─── 预览（弹窗式） ────────────────────────────────────────────────────────
 const preview = useDrivePreview(() => fileList.value)
 
+// ─── 收藏 / 最近访问（P1.9） ───────────────────────────────────────────────
+const {isFavorite, toggle: toggleFavorite} = useFavorites()
+const {visit: visitRecent} = useRecent()
+
+function onRowDblclick(row) {
+  visitRecent(row) // 记录最近访问
+  if (row.fileType === 0) {
+    clickFilename(row)
+    return
+  }
+  const opened = preview.openPreview(row)
+  if (!opened) {
+    clickFilename(row)
+  }
+}
+
 function previewDownload(item) {
   const url = getDownloadUrl(item.fileId || item.id)
   window.open(url, '_blank')
@@ -417,6 +424,17 @@ function previewDownload(item) {
     </template>
     <template #cell-actions="{row}">
       <div class="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+        <button
+          type="button"
+          class="size-7 rounded-md flex items-center justify-center transition-colors"
+          :class="isFavorite(row.fileId) ? 'text-amber-500 hover:bg-amber-50' : 'text-[var(--color-text-muted)] hover:bg-[var(--color-surface-2)]'"
+          :title="isFavorite(row.fileId) ? '取消收藏' : '收藏'"
+          @click="toggleFavorite(row)"
+        >
+          <svg viewBox="0 0 24 24" :fill="isFavorite(row.fileId) ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2" class="size-4">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+          </svg>
+        </button>
         <BaseTooltip text="下载" position="top"><DownloadButton size="small" :item="row"/></BaseTooltip>
         <BaseTooltip text="重命名" position="top"><RenameButton size="small" :item="row"/></BaseTooltip>
         <BaseTooltip text="删除" position="top"><DeleteButton size="small" :item="row"/></BaseTooltip>

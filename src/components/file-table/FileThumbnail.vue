@@ -75,9 +75,9 @@ const showImage = computed(() => isImage.value && !imageErrored.value)
 // 后端预览 URL（图片直出预览）；后端 thumbnail 字段（P1.8）优先
 const previewUrl = computed(() => {
   if (!isImage.value) return null
-  return props.file.thumbnail ||
-    (typeof window !== 'undefined' && window.panUtil?.getPreviewUrl?.(props.file.fileId)) ||
-    `/api/file/preview?fileId=${encodeURIComponent(props.file.fileId)}`
+  if (props.file.thumbnail) return props.file.thumbnail
+  // 后端 thumbnail 接口（P1.8 后端）：/file/thumbnail?fileId=...
+  return `/file/thumbnail?fileId=${encodeURIComponent(props.file.fileId)}`
 })
 
 const iconSize = computed(() => Math.max(20, Math.round(props.size * 0.45)))

@@ -11,6 +11,7 @@ import UploadTaskPanel from '@/components/upload-task-panel/index.vue'
 import FileTypeFilter from '@/components/file-type-filter/index.vue'
 import BaseTooltip from '@/components/base/BaseTooltip.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
+import DashboardCards from '@/components/dashboard/DashboardCards.vue'
 import {useFileStore} from '@/stores/file'
 import {useBreadcrumbStore} from '@/stores/breadcrumb'
 import {useUploader} from '@/composables/useUploader'
@@ -18,8 +19,9 @@ import {storeToRefs} from 'pinia'
 
 const fileStore = useFileStore()
 const breadcrumbStore = useBreadcrumbStore()
-const {searchFlag, defaultParentId, defaultParentFilename} = storeToRefs(fileStore)
+const {searchFlag, defaultParentId, defaultParentFilename, fileList} = storeToRefs(fileStore)
 
+const showDashboard = ref(true)
 const view = ref('list')
 const isDragOver = ref(false)
 const {addFiles} = useUploader()
@@ -126,6 +128,10 @@ onUnmounted(() => {
     </div>
 
     <BreadCrumb/>
+
+    <!-- P1.9 仪表盘：仅在根目录显示 -->
+    <DashboardCards v-if="showDashboard && !searchFlag && fileList.length > 0" :files="fileList"/>
+
     <FileTable :key="view"/>
   </div>
 
