@@ -1,91 +1,173 @@
 /**
- * 文件预览相关工具
- * - getPreviewUrl(fileId): 给 <img>/<video>/<audio> 用的预览流 URL（带 token）
- * - getDownloadUrl(fileId): 下载 URL
- * - getPreviewKind(filename, fileType): 判断预览类型 image/video/audio/code/markdown/pdf/office/unsupported
- * - getCodeLanguage(filename): 从扩展名映射 shiki 语言
- * - formatFileSize(bytes): 人类可读
+ * 文件预览工具（参考 html5-examples utils/drive-preview）
+ * - resolvePreviewKind: 11 种预览类型（image/video/audio/pdf/docx/excel/pptx/markdown/code/text/unsupported）
+ * - URL 缓存（10min TTL + 并发去重，参考 useDrivePreview）
+ * - Shiki 语言归一化
  */
 import {getToken} from '@/utils/cookie'
 import panUtil from '@/utils/common'
 
-export function getPreviewUrl(fileId) {
-  const fid = typeof fileId === 'string' ? fileId : panUtil.handleId(fileId)
-  const token = getToken() || ''
-  return `${panUtil.getUrlPrefix()}/file/preview?fileId=${encodeURIComponent(fid)}&Authorization=${encodeURIComponent(token)}`
-}
-
-export function getDownloadUrl(fileId) {
-  const fid = typeof fileId === 'string' ? fileId : panUtil.handleId(fileId)
-  const token = getToken() || ''
-  return `${panUtil.getUrlPrefix()}/file/download?fileId=${encodeURIComponent(fid)}&Authorization=${encodeURIComponent(token)}`
-}
-
-const IMG_EXT = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg', 'ico', 'avif']
-const VIDEO_EXT = ['mp4', 'webm', 'ogg', 'mov', 'm4v', 'mkv']
-const AUDIO_EXT = ['mp3', 'wav', 'flac', 'aac', 'ogg', 'm4a']
-const CODE_EXT = [
-  'js', 'ts', 'jsx', 'tsx', 'json', 'html', 'css', 'scss', 'sass', 'less',
-  'vue', 'svelte', 'py', 'java', 'kt', 'go', 'rs', 'c', 'cpp', 'h', 'hpp',
-  'cs', 'php', 'rb', 'swift', 'm', 'mm', 'sh', 'bash', 'zsh', 'sql', 'xml',
-  'yaml', 'yml', 'toml', 'ini', 'conf', 'log', 'md', 'txt',
+// ─── 预览类型 ──────────────────────────────────────────────────────────────
+export const PREVIEW_KINDS = [
+  'image', 'video', 'audio', 'pdf', 'docx', 'excel', 'pptx',
+  'markdown', 'code', 'text', 'unsupported',
 ]
-const MD_EXT = ['md', 'markdown']
-const PDF_EXT = ['pdf']
 
-export function getExt(name = '') {
-  const m = String(name).match(/\.([a-zA-Z0-9]+)$/)
-  return m ? m[1].toLowerCase() : ''
+export const IMAGE_EXTENSIONS = [
+  'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'avif', 'ico', 'tif', 'tiff',
+]
+export const VIDEO_EXTENSIONS = ['mp4', 'webm', 'ogg', 'mov', 'm4v', 'mkv', 'avi', 'm3u8']
+export const AUDIO_EXTENSIONS = ['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a', 'wma', 'opus']
+export const DOCX_EXTENSIONS = ['docx', 'doc']
+export const EXCEL_EXTENSIONS = ['xlsx', 'xls', 'csv']
+export const PPTX_EXTENSIONS = ['pptx', 'ppt']
+export const MARKDOWN_EXTENSIONS = ['md', 'markdown', 'mdown', 'mkd']
+export const CODE_EXTENSIONS = [
+  'js', 'mjs', 'cjs', 'ts', 'jsx', 'tsx', 'vue', 'html', 'htm', 'css', 'scss', 'less',
+  'json', 'jsonc', 'xml', 'yaml', 'yml', 'toml', 'py', 'java', 'go', 'rs', 'c', 'h',
+  'cpp', 'hpp', 'cs', 'php', 'rb', 'swift', 'kt', 'sh', 'bash', 'zsh', 'sql',
+  'graphql', 'proto', 'dockerfile',
+]
+export const TEXT_EXTENSIONS = [
+  'txt', 'log', 'ini', 'conf', 'cfg', 'env', 'properties', 'srt', 'lrc', 'vtt',
+]
+
+// ─── 签名 URL 缓存 ──────────────────────────────────────────────────────────
+const URL_CACHE_TTL = 10 * 60 * 1000
+const urlCache = new Map()
+const pendingRequests = new Map()
+
+function buildPreviewUrl(fileId) {
+  const fid = typeof fileId === 'string' ? fileId : panUtil.handleId(fileId)
+  const token = encodeURIComponent(getToken() || '')
+  return `${panUtil.getUrlPrefix()}/file/preview?fileId=${encodeURIComponent(fid)}&Authorization=${token}`
+}
+
+function buildDownloadUrl(fileId) {
+  const fid = typeof fileId === 'string' ? fileId : panUtil.handleId(fileId)
+  const token = encodeURIComponent(getToken() || '')
+  return `${panUtil.getUrlPrefix()}/file/download?fileId=${encodeURIComponent(fid)}&Authorization=${token}`
 }
 
 /**
- * 根据 filename/fileType 推断预览类型
- * 后端 fileType 约定（参考 file-table）：
- *   0=文件夹 3/4=文档 5/6=iframe(pdf/office) 7=image 8=audio 9=video 10=office 11=code
+ * 获取预览 URL（带 10min 缓存 + 并发去重）
+ * @param {string|number} fileId
+ * @returns {Promise<string>}
  */
-export function getPreviewKind(filename, fileType) {
-  const ext = getExt(filename)
-  if (IMG_EXT.includes(ext)) return 'image'
-  if (VIDEO_EXT.includes(ext)) return 'video'
-  if (AUDIO_EXT.includes(ext)) return 'audio'
-  if (PDF_EXT.includes(ext)) return 'pdf'
-  if (MD_EXT.includes(ext)) return 'markdown'
-  if (CODE_EXT.includes(ext)) return 'code'
+export async function resolvePreviewUrl(fileId) {
+  const key = String(fileId)
+  const cached = urlCache.get(key)
+  if (cached && cached.expiresAt > Date.now()) return cached.url
 
-  // 退化按 fileType 推断
-  if (fileType === 7) return 'image'
-  if (fileType === 8) return 'audio'
-  if (fileType === 9) return 'video'
-  if (fileType === 11) return 'code'
+  const pending = pendingRequests.get(key)
+  if (pending) return pending
+
+  const request = new Promise((resolve, reject) => {
+    try {
+      const url = buildPreviewUrl(fileId)
+      urlCache.set(key, {url, expiresAt: Date.now() + URL_CACHE_TTL})
+      resolve(url)
+    } catch (e) {
+      reject(e)
+    }
+  }).finally(() => {
+    pendingRequests.delete(key)
+  })
+
+  pendingRequests.set(key, request)
+  return request
+}
+
+/** 同步获取预览 URL（不缓存）—— 给 <img>/<video>/<audio> 直接用 */
+export function getPreviewUrl(fileId) {
+  return buildPreviewUrl(fileId)
+}
+
+/** 同步获取下载 URL */
+export function getDownloadUrl(fileId) {
+  return buildDownloadUrl(fileId)
+}
+
+// ─── 类型检测 ──────────────────────────────────────────────────────────────
+export function getFileExtension(name = '') {
+  const index = name.lastIndexOf('.')
+  if (index <= 0 || index === name.length - 1) return ''
+  return name.slice(index + 1).toLowerCase()
+}
+
+/**
+ * 判定文件预览类型
+ * @param {object} source {name, mimeType, extension, fileType}
+ * @returns {string} preview kind
+ */
+export function resolvePreviewKind(source) {
+  const isFolder = source.fileType === 0 || source.type === 'folder'
+  if (isFolder) return 'unsupported'
+
+  const ext = (source.extension || getFileExtension(source.name)).replace(/^\./, '').toLowerCase()
+  const mime = (source.mimeType || '').toLowerCase()
+
+  if (IMAGE_EXTENSIONS.includes(ext)) return 'image'
+  if (VIDEO_EXTENSIONS.includes(ext)) return 'video'
+  if (AUDIO_EXTENSIONS.includes(ext)) return 'audio'
+  if (ext === 'pdf' || mime.includes('pdf')) return 'pdf'
+  if (DOCX_EXTENSIONS.includes(ext)) return 'docx'
+  if (EXCEL_EXTENSIONS.includes(ext)) return 'excel'
+  if (PPTX_EXTENSIONS.includes(ext)) return 'pptx'
+  if (MARKDOWN_EXTENSIONS.includes(ext)) return 'markdown'
+  if (CODE_EXTENSIONS.includes(ext)) return 'code'
+  if (TEXT_EXTENSIONS.includes(ext)) return 'text'
+
+  // mimeType 兜底
+  if (mime.startsWith('image/')) return 'image'
+  if (mime.startsWith('video/')) return 'video'
+  if (mime.startsWith('audio/')) return 'audio'
+  if (mime.startsWith('text/')) return 'text'
+
   return 'unsupported'
 }
 
-const CODE_LANG_MAP = {
-  js: 'javascript', jsx: 'jsx', ts: 'typescript', tsx: 'tsx',
-  json: 'json', html: 'html', css: 'css', scss: 'scss', sass: 'sass', less: 'less',
-  vue: 'vue', svelte: 'svelte',
-  py: 'python', java: 'java', kt: 'kotlin', go: 'go', rs: 'rust',
-  c: 'c', cpp: 'cpp', h: 'c', hpp: 'cpp',
-  cs: 'csharp', php: 'php', rb: 'ruby', swift: 'swift',
-  m: 'objc', mm: 'objc',
-  sh: 'bash', bash: 'bash', zsh: 'bash',
-  sql: 'sql', xml: 'xml', yaml: 'yaml', yml: 'yaml',
-  toml: 'toml', ini: 'ini', conf: 'ini', log: 'log',
-  md: 'markdown', txt: 'plaintext',
+export function isPreviewable(kind) {
+  return kind !== 'unsupported'
 }
 
-export function getCodeLanguage(filename) {
-  return CODE_LANG_MAP[getExt(filename)] || 'plaintext'
+export function isOffice(kind) {
+  return kind === 'docx' || kind === 'excel' || kind === 'pptx'
 }
 
-export function formatFileSize(bytes) {
-  if (!bytes || bytes < 0) return '0 B'
+// ─── Shiki 语言归一化 ──────────────────────────────────────────────────────
+export function resolveShikiLanguage(ext) {
+  const map = {
+    htm: 'html',
+    dockerfile: 'bash',
+    proto: 'json',
+    toml: 'yaml',
+    mjs: 'javascript',
+    cjs: 'javascript',
+  }
+  return map[ext] || ext
+}
+
+// ─── 格式化 ────────────────────────────────────────────────────────────────
+export function formatFileSize(value) {
+  const bytes = typeof value === 'string' ? Number(value) : value ?? 0
+  if (!Number.isFinite(bytes) || bytes <= 0) return '—'
   const units = ['B', 'KB', 'MB', 'GB', 'TB']
+  let size = bytes
   let i = 0
-  let v = bytes
-  while (v >= 1024 && i < units.length - 1) {
-    v /= 1024
+  while (size >= 1024 && i < units.length - 1) {
+    size /= 1024
     i++
   }
-  return v.toFixed(v >= 100 || i === 0 ? 0 : 1) + ' ' + units[i]
+  return `${size.toFixed(size >= 100 || i === 0 ? 0 : 1)} ${units[i]}`
+}
+
+export function formatDateTime(value) {
+  if (!value) return '—'
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return '—'
+  return d.toLocaleString('zh-CN', {
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit',
+  })
 }

@@ -22,6 +22,7 @@ import '@luohc92/vue3-image-viewer/dist/style.css'
 
 import BaseTable from '@/components/base/BaseTable.vue'
 import BaseTooltip from '@/components/base/BaseTooltip.vue'
+import DrivePreviewModal from '@/components/preview/drive-preview-modal.vue'
 import {
   Folder, FileText, FileArchive, FileSpreadsheet, FileImage,
   FileAudio, FileVideo, FileCode, FileBarChart2,
@@ -117,12 +118,30 @@ function onRowClick(row) {
 }
 
 function onRowDblclick(row) {
-  // 双击：进入文件夹 / 预览
-  clickFilename(row)
+  // 双击：进入文件夹 / 调用 PreviewModal 弹窗预览
+  if (row.fileType === 0) {
+    clickFilename(row)
+    return
+  }
+  const opened = preview.openPreview(row)
+  if (!opened) {
+    // 不支持预览的类型，回退为新标签页打开预览 URL
+    clickFilename(row)
+  }
 }
 
 defineExpose({setView: (v) => (view.value = v)})
 onMounted(() => fileStore.setMultipleSelection([]))
+
+// ─── 预览（弹窗式） ────────────────────────────────────────────────────────
+import {useDrivePreview} from '@/composables/useDrivePreview'
+import {getDownloadUrl} from '@/utils/preview'
+const preview = useDrivePreview(() => fileList.value)
+
+function previewDownload(item) {
+  const url = getDownloadUrl(item.fileId || item.id)
+  window.open(url, '_blank')
+}
 </script>
 
 <template>
@@ -202,4 +221,12 @@ onMounted(() => fileStore.setMultipleSelection([]))
       </button>
     </div>
   </div>
+
+  <!-- 预览弹窗（参考 html5-examples DrivePreviewModal） -->
+  <DrivePreviewModal
+    :state="preview.state.value"
+    :resolve-url="preview.resolvePreviewUrl"
+    @close="preview.closePreview"
+    @download="previewDownload"
+  />
 </template>

@@ -1,13 +1,14 @@
 <script setup>
 /**
- * VideoPreviewer —— ArtPlayer 视频预览（懒加载）
+ * VideoPreviewer —— ArtPlayer 视频预览（动态 import）
+ * 1:1 复现 html5-examples VideoPreviewer
  */
 import {onBeforeUnmount, onMounted, ref} from 'vue'
 import {getPreviewUrl} from '@/utils/preview'
 
 const props = defineProps({
   fileId: {type: [String, Number], required: true},
-  filename: {type: String, default: ''},
+  title: {type: String, default: ''},
 })
 
 const containerRef = ref(null)
@@ -15,11 +16,11 @@ let player = null
 
 onMounted(async () => {
   if (!containerRef.value) return
-  const Artplayer = (await import('artplayer')).default
+  const {default: Artplayer} = await import('artplayer')
   player = new Artplayer({
     container: containerRef.value,
     url: getPreviewUrl(props.fileId),
-    title: props.filename,
+    title: props.title,
     autoplay: true,
     autoSize: false,
     autoMini: true,
@@ -40,14 +41,16 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   if (player) {
-    player.destroy(true)
+    try {
+      player.destroy(true)
+    } catch {
+      /* noop */
+    }
     player = null
   }
 })
 </script>
 
 <template>
-  <div class="h-full w-full bg-black flex items-center justify-center">
-    <div ref="containerRef" class="w-full h-full"/>
-  </div>
+  <div ref="containerRef" class="drive-video-container h-full w-full min-h-[360px]"/>
 </template>
