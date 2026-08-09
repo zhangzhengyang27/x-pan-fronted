@@ -8,7 +8,7 @@ import userService from '@/api/user'
 import fileService from '@/api/file'
 import {clearShareToken, clearToken, getShareToken, getToken, setShareToken, setToken} from '@/utils/cookie'
 import shareService from '@/api/share'
-import {onMounted, reactive, ref} from 'vue'
+import {onMounted, onUnmounted, reactive, ref, computed} from 'vue'
 import {ElMessage, ElMessageBox} from '@/composables/useToast'
 import {useRoute} from 'vue-router'
 
@@ -20,7 +20,7 @@ import BaseTable from '@/components/base/BaseTable.vue'
 import BaseTree from '@/components/base/BaseTree.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
 import BaseDivider from '@/components/base/BaseDivider.vue'
-import {Cloud, Copy, Download, Folder, Clock, LogIn, LogOut, Save, QrCode, Check, Link as LinkIcon} from '@lucide/vue'
+import {Cloud, Copy, Download, Folder, Clock, LogIn, LogOut, Save, QrCode, Check, Link as LinkIcon, Eye, Hash, TrendingUp} from '@lucide/vue'
 
 const route = useRoute()
 const treeRef = ref(null)
@@ -50,6 +50,45 @@ const treeCheckedNode = ref(null)
 
 const selected = ref([])
 
+// P1.12：分享统计
+const downloadCount = ref(0)
+const downloadLimit = ref(0)
+const countdownText = ref('')
+let countdownTimer = null
+
+/** P1.12：倒计时（精确到秒） */
+function startCountdown(expireAt) {
+  if (!expireAt) {
+    countdownText.value = '永久有效'
+    if (countdownTimer) clearInterval(countdownTimer)
+    return
+  }
+  if (countdownTimer) clearInterval(countdownTimer)
+  const target = new Date(expireAt).getTime()
+  const tick = () => {
+    const diff = target - Date.now()
+    if (diff <= 0) {
+      countdownText.value = '已过期'
+      shareCancelFlag.value = true
+      clearInterval(countdownTimer)
+      return
+    }
+    const d = Math.floor(diff / 86400000)
+    const h = Math.floor((diff % 86400000) / 3600000)
+    const m = Math.floor((diff % 3600000) / 60000)
+    const s = Math.floor((diff % 60000) / 1000)
+    countdownText.value = d > 0 ? `${d}天${h}小时${m}分${s}秒` : `${h}小时${m}分${s}秒`
+  }
+  tick()
+  countdownTimer = setInterval(tick, 1000)
+}
+
+/** P1.12：剩余下载次数 */
+const remainingDownloads = computed(() => {
+  if (!downloadLimit.value) return null
+  return Math.max(0, downloadLimit.value - downloadCount.value)
+})
+
 // 列定义
 const columns = [
   {key: 'filename', title: '文件名', width: 'auto'},
@@ -62,11 +101,17 @@ function refreshShareInfo(data) {
   const u = data.shareUserInfoVO.username
   shareCodeHeader.value = u + '的分享：' + data.shareName
   shareDate.value = data.createTime
+  // 永久有效时不显示具体日期
   shareExpireDate.value = data.shareDay === 0 ? '永久有效' : data.shareEndTime
   tableData.value = data.rPanUserFileVOList
   // P1.10：分享链接 + 二维码（基于 route 生成）
   shareUrl.value = window.location.origin + '/share/' + route.params.shareId
   generateQR(shareUrl.value)
+  // P1.12：分享统计信息
+  downloadCount.value = data.downloadCount || 0
+  downloadLimit.value = data.downloadLimit || 0
+  // 倒计时：永久有效时 expireAt=null
+  startCountdown(data.shareDay === 0 ? null : data.shareEndTime)
 }
 
 /** P1.10：分享二维码生成（纯前端，QRCode 风格 SVG） */
@@ -353,6 +398,10 @@ onMounted(() => {
   loadUserInfo()
   pageLoading.value = false
 })
+
+onUnmounted(() => {
+  if (countdownTimer) clearInterval(countdownTimer)
+})
 </script>
 
 <template>
@@ -393,8 +442,26 @@ onMounted(() => {
             <div class="mt-2 flex items-center gap-4 text-xs text-[var(--color-text-muted)] flex-wrap">
               <span class="inline-flex items-center gap-1"><Clock :size="12"/>分享时间：{{ shareDate }}</span>
               <span class="inline-flex items-center gap-1" :class="shareExpireDate === '永久有效' ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]'">
-                <Clock :size="12"/>失效时间：{{ shareExpireDate }}
+                <Clock :size="12"/>{{ shareExpireDate === '永久有效' ? '永久有效' : `失效：${countdownText}` }}
               </span>
+            </div>
+            <!-- P1.12：分享统计行 -->
+            <div class="mt-3 flex items-center gap-2 flex-wrap">
+              <BaseBadge variant="primary" size="sm">
+                <span class="inline-flex items-center gap-1">
+                  <Eye :size="11"/>已被查看 {{ downloadCount }} 次
+                </span>
+              </BaseBadge>
+              <BaseBadge v-if="downloadLimit > 0" variant="warning" size="sm">
+                <span class="inline-flex items-center gap-1">
+                  <TrendingUp :size="11"/>剩余下载 {{ remainingDownloads }} / {{ downloadLimit }} 次
+                </span>
+              </BaseBadge>
+              <BaseBadge v-else variant="ghost" size="sm">
+                <span class="inline-flex items-center gap-1">
+                  <Hash :size="11"/>下载不限次
+                </span>
+              </BaseBadge>
             </div>
           </div>
           <div class="flex items-center gap-2 shrink-0">

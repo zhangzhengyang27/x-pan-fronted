@@ -49,6 +49,11 @@ const router = createRouter({
                     path: '/videos',
                     name: 'Videos',
                     component: () => import('@/views/list-page/video/index.vue')
+                },
+                {
+                    path: '/offline',
+                    name: 'Offline',
+                    component: () => import('@/views/list-page/offline/index.vue')
                 }
             ]
         },

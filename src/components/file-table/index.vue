@@ -19,24 +19,29 @@ import panUtil from '@/utils/common'
 import {useFileStore} from '@/stores/file'
 import {useBreadcrumbStore} from '@/stores/breadcrumb'
 import {storeToRefs} from 'pinia'
-import {ElMessage} from '@/composables/useToast'
+import {ElMessage, ElMessageBox} from '@/composables/useToast'
 import {useRouter} from 'vue-router'
 import ImageViewer from '@luohc92/vue3-image-viewer'
 import '@luohc92/vue3-image-viewer/dist/style.css'
 
 import BaseTable from '@/components/base/BaseTable.vue'
 import BaseTooltip from '@/components/base/BaseTooltip.vue'
+import ContextMenu from '@/components/base/ContextMenu.vue'
+import FolderPickerDialog from '@/components/base/FolderPickerDialog.vue'
 import DrivePreviewModal from '@/components/preview/drive-preview-modal.vue'
 import FileTableToolbar from './FileTableToolbar.vue'
 import FileThumbnail from './FileThumbnail.vue'
+import FileHistoryPanel from './FileHistoryPanel.vue'
 import {useTableSort} from '@/composables/useTableSort'
 import {useFavorites} from '@/composables/useFavorites'
 import {useRecent} from '@/composables/useRecent'
 import {useDrivePreview} from '@/composables/useDrivePreview'
+import {useMediaQuery} from '@/composables/useMediaQuery'
 import {getDownloadUrl} from '@/utils/preview'
 import {
   Folder, FileText, FileArchive, FileSpreadsheet, FileImage,
   FileAudio, FileVideo, FileCode, FileBarChart2, Loader2,
+  Download, Edit3, Copy, Scissors, Trash2, Share2, FolderInput, FolderPlus, Star, Eye, FilePlus, Clipboard, History,
 } from '@lucide/vue'
 
 const router = useRouter()
@@ -46,12 +51,26 @@ const {fileList, tableLoading, searchFlag, hasMore, isLoadingMore, total} = stor
 
 const selected = ref([]) // 多选 fileId
 const view = ref('list') // 'list' | 'grid'
+const isMobile = useMediaQuery('mobile')
 
 function fileIcon(type) {
   return {
     0: Folder, 2: FileArchive, 3: FileSpreadsheet, 4: FileText,
     7: FileImage, 8: FileAudio, 9: FileVideo, 10: FileBarChart2, 11: FileCode,
   }[type] || FileText
+}
+
+// ─── 移动/复制对话框（占位 → 真实 FolderPickerDialog） ─────────────────
+const moveDialog = ref({open: false, mode: 'move', row: null})
+
+function openMoveDialog(row) {
+  moveDialog.value = {open: true, mode: 'move', row: row || null}
+}
+
+function onMoveComplete() {
+  ElMessage.success('已移动到目标文件夹')
+  moveDialog.value.open = false
+  fileStore.loadFileList()
 }
 
 // ─── 排序 / 筛选 ────────────────────────────────────────────────────────────
@@ -283,18 +302,8 @@ function onKeyDown(e) {
     e.preventDefault()
     const row = selectedRows.value[0]
     if (row) {
-      // 触发 rename-button 内部逻辑（这里用 confirm 提示替代）
-      const newName = prompt('重命名', row.filename || row.name || '')
-      if (newName && newName !== (row.filename || row.name)) {
-        fileService.update(
-          {fileId: row.fileId, filename: newName},
-          () => {
-            ElMessage.success('重命名成功')
-            fileStore.loadFileList()
-          },
-          (err) => ElMessage.error(err.message),
-        )
-      }
+      // 重用 promptRename，复用 ElMessageBox.prompt 统一体验
+      promptRename(row)
     }
   }
   // Escape: 清空选择
@@ -303,6 +312,11 @@ function onKeyDown(e) {
     handleSelectionChange([])
   }
 }
+
+// 移动端强制网格视图
+watch(isMobile, (v) => {
+  if (v) view.value = 'grid'
+}, {immediate: true})
 
 onMounted(() => {
   fileStore.setMultipleSelection([])
@@ -379,6 +393,122 @@ function previewDownload(item) {
   const url = getDownloadUrl(item.fileId || item.id)
   window.open(url, '_blank')
 }
+
+// ─── 右键菜单（P1.12） ────────────────────────────────────────────────────
+const ctxMenu = ref({visible: false, x: 0, y: 0, row: null})
+
+// ─── 版本历史（P1.13） ────────────────────────────────────────────────────
+const historyPanel = ref({open: false, fileId: null})
+
+function openHistory(row) {
+  historyPanel.value = {open: true, fileId: panUtil.handleId(row.fileId)}
+}
+
+function onContextMenu(e, row) {
+  e.preventDefault()
+  // 若未选中右键目标，且当前右键的不是已选中的，加入选择
+  if (row && !selected.value.includes(row.fileId)) {
+    selected.value = [row.fileId]
+    handleSelectionChange([row.fileId])
+  }
+  ctxMenu.value = {visible: true, x: e.clientX, y: e.clientY, row}
+}
+
+function closeCtxMenu() {
+  ctxMenu.value.visible = false
+}
+
+const ctxItems = computed(() => {
+  const r = ctxMenu.value.row
+  if (!r) return []
+  const isFolder = r.fileType === 0
+  const favorited = isFavorite(r.fileId)
+  const isMulti = selectedRows.value.length > 1
+  return [
+    {
+      key: 'open', label: isFolder ? '打开' : '预览', icon: Eye,
+      shortcut: 'Enter',
+      action: () => isFolder ? goInFolder(panUtil.handleId(r.fileId)) : onRowDblclick(r),
+    },
+    {divider: true},
+    {
+      key: 'download', label: isMulti ? `下载 ${selectedRows.value.length} 项` : '下载', icon: Download,
+      shortcut: 'Ctrl+D',
+      disabled: isFolder,
+      action: () => batchDownload(selectedRows.value.length ? selectedRows.value : [r]),
+    },
+    {
+      key: 'rename', label: '重命名', icon: Edit3,
+      shortcut: 'F2',
+      disabled: isMulti,
+      action: () => promptRename(r),
+    },
+    {
+      key: 'copy', label: '复制到...', icon: Copy,
+      shortcut: 'Ctrl+C',
+      action: () => {
+        // 复用移动对话框，mode 改为 copy
+        moveDialog.value = {open: true, mode: 'copy', row: selectedRows.value.length ? selectedRows.value : [r]}
+      },
+    },
+    {
+      key: 'move', label: '移动到...', icon: FolderInput,
+      action: () => openMoveDialog(selectedRows.value.length ? selectedRows.value : [r]),
+    },
+    {
+      key: 'share', label: '分享', icon: Share2,
+      disabled: isMulti,
+      action: () => ElMessage.info('分享功能：请点击工具栏的"分享"按钮'),
+    },
+    {divider: true},
+    {
+      key: 'history', label: '查看历史版本', icon: History,
+      disabled: isFolder,
+      action: () => openHistory(r),
+    },
+    {
+      key: 'favorite', label: favorited ? '取消收藏' : '收藏', icon: Star,
+      action: () => toggleFavorite(r),
+    },
+    {divider: true},
+    {
+      key: 'delete', label: isMulti ? `删除 ${selectedRows.value.length} 项` : '删除', icon: Trash2,
+      shortcut: 'Del',
+      danger: true,
+      action: () => batchDelete(selectedRows.value.length ? selectedRows.value : [r]),
+    },
+  ]
+})
+
+function onCtxSelect(item) {
+  if (item && typeof item.action === 'function') item.action()
+}
+
+/**
+ * 重命名交互：使用 ElMessageBox.prompt（与项目其它确认对话框统一）
+ */
+async function promptRename(row) {
+  const oldName = row.filename || row.name || ''
+  try {
+    const {value: newName} = await ElMessageBox.prompt('请输入新的文件名', '重命名', {
+      inputValue: oldName,
+      inputValidator: (val) => (val && val.trim() && val !== oldName) || '文件名不能为空或与原名相同',
+      confirmButtonText: '确认',
+      cancelButtonText: '取消',
+    })
+    if (!newName) return
+    fileService.update(
+      {fileId: row.fileId, filename: newName.trim()},
+      () => {
+        ElMessage.success('重命名成功')
+        fileStore.loadFileList()
+      },
+      (err) => ElMessage.error(err.message),
+    )
+  } catch (e) {
+    // 用户点取消
+  }
+}
 </script>
 
 <template>
@@ -406,6 +536,7 @@ function previewDownload(item) {
     @update:selected="(v) => handleSelectionChange(v)"
     @rowClick="onRowClick"
     @rowDblclick="onRowDblclick"
+    @rowContextmenu="(e, row) => onContextMenu(e, row)"
   >
     <template #cell-filename="{row}">
       <BaseTooltip :text="row.filename" position="top">
@@ -487,6 +618,7 @@ function previewDownload(item) {
         :class="selected.includes(row.fileId) ? 'border-[var(--color-primary-500)] ring-2 ring-[var(--color-primary-500)]/30' : 'border-[var(--color-border)] hover:border-[var(--color-primary-400)]'"
         @click="onRowClick(row)"
         @dblclick="onRowDblclick(row)"
+        @contextmenu="onContextMenu($event, row)"
       >
         <FileThumbnail :file="row" :size="64" rounded="rounded-xl" class="mb-3"/>
         <BaseTooltip :text="row.filename" position="top">
@@ -505,5 +637,33 @@ function previewDownload(item) {
     :resolve-url="preview.resolvePreviewUrl"
     @close="preview.closePreview"
     @download="previewDownload"
+  />
+
+  <!-- P1.12：右键菜单 -->
+  <ContextMenu
+    :visible="ctxMenu.visible"
+    :x="ctxMenu.x"
+    :y="ctxMenu.y"
+    :items="ctxItems"
+    @select="onCtxSelect"
+    @close="closeCtxMenu"
+  />
+
+  <!-- P1.13：版本历史弹窗 -->
+  <FileHistoryPanel
+    :file-id="historyPanel.fileId"
+    :open="historyPanel.open"
+    @update:open="(v) => (historyPanel.open = v)"
+    @rolled-back="fileStore.loadFileList()"
+  />
+
+  <!-- P1.12：移动/复制对话框 -->
+  <FolderPickerDialog
+    v-if="moveDialog.open"
+    :open="moveDialog.open"
+    :mode="moveDialog.mode"
+    :row="moveDialog.row"
+    @update:open="(v) => (moveDialog.open = v)"
+    @complete="onMoveComplete"
   />
 </template>

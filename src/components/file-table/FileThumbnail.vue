@@ -12,9 +12,10 @@ import {ref, computed} from 'vue'
 import {
   Folder, FileText, FileArchive, FileSpreadsheet, FileImage,
   FileAudio, FileVideo, FileCode, FileBarChart2, File,
-  Loader2, Eye, Film, Music2, FileCode2,
+  Loader2, Eye,
 } from '@lucide/vue'
 import {cn} from '@/utils/classnames'
+import panUtil from '@/utils/common'
 
 const props = defineProps({
   file: {type: Object, required: true},
@@ -73,11 +74,13 @@ const isImage = computed(() => props.file.fileType === 7)
 const showImage = computed(() => isImage.value && !imageErrored.value)
 
 // 后端预览 URL（图片直出预览）；后端 thumbnail 字段（P1.8）优先
+// P2 修复：使用 panUtil.getUrlPrefix() 拼绝对路径，避免相对路径 404
 const previewUrl = computed(() => {
   if (!isImage.value) return null
   if (props.file.thumbnail) return props.file.thumbnail
-  // 后端 thumbnail 接口（P1.8 后端）：/file/thumbnail?fileId=...
-  return `/file/thumbnail?fileId=${encodeURIComponent(props.file.fileId)}`
+  const base = panUtil.getUrlPrefix() || ''
+  // fileId 需加密；不解密直接传密文（后端解密）
+  return `${base}/file/thumbnail?fileId=${encodeURIComponent(props.file.fileId)}`
 })
 
 const iconSize = computed(() => Math.max(20, Math.round(props.size * 0.45)))

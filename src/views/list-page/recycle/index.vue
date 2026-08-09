@@ -4,7 +4,7 @@
  * P1.7：过期清理提示（基于 updateTime 计算 X 天后清除）
  */
 import {computed, onMounted, ref} from 'vue'
-import {RefreshCw, Trash2, Folder, FileText, FileArchive, FileSpreadsheet, FileImage, FileAudio, FileVideo, FileCode, FileBarChart2, AlertTriangle, Clock} from '@lucide/vue'
+import {RefreshCw, Trash2, Folder, FileText, FileArchive, FileSpreadsheet, FileImage, FileAudio, FileVideo, FileCode, FileBarChart2, AlertTriangle, Clock, Eraser} from '@lucide/vue'
 import recycleService from '@/api/recycle'
 import {ElMessage, ElMessageBox} from '@/composables/useToast'
 import BaseTable from '@/components/base/BaseTable.vue'
@@ -59,8 +59,61 @@ function expireInfo(row) {
   return {text: `还剩 ${left} 天`, urgent: false, expired: false, left}
 }
 
+function cleanRecycle() {
+  if (tableData.value.length === 0) return ElMessage.warning('回收站已经是空的')
+  ElMessageBox({
+    title: '清空回收站',
+    message: `将永久删除 ${tableData.value.length} 个文件/文件夹（${summary.value.totalSize}），此操作不可恢复！`,
+    confirmText: '确认清空',
+    cancelText: '取消',
+    type: 'danger',
+  })
+    .then(() => {
+      doDelete(tableData.value.map((f) => f.fileId).join('__,__'))
+    })
+    .catch(() => {})
+}
+
+function cleanExpired() {
+  const expired = tableData.value.filter((r) => expireInfo(r).expired)
+  if (expired.length === 0) return ElMessage.warning('没有过期文件可清理')
+  ElMessageBox({
+    title: '清理过期文件',
+    message: `将删除 ${expired.length} 个已过期文件，释放 ${summary.value.expiredSize} 空间`,
+    confirmText: '确认清理',
+    cancelText: '取消',
+    type: 'warning',
+  })
+    .then(() => {
+      doDelete(expired.map((f) => f.fileId).join('__,__'))
+    })
+    .catch(() => {})
+}
+
+/** 解析 fileSizeDesc（B/KB/MB/GB）成字节，用于累加 */
+function parseSize(desc) {
+  if (!desc) return 0
+  const m = String(desc).match(/^([\d.]+)\s*(B|KB|MB|GB|TB)?$/i)
+  if (!m) return 0
+  const num = parseFloat(m[1])
+  const unit = (m[2] || 'B').toUpperCase()
+  const mul = {B: 1, KB: 1024, MB: 1024 ** 2, GB: 1024 ** 3, TB: 1024 ** 4}[unit] || 1
+  return num * mul
+}
+
+function formatSize(bytes) {
+  if (!bytes) return '0 B'
+  const units = ['B', 'KB', 'MB', 'GB', 'TB']
+  let i = 0
+  let v = bytes
+  while (v >= 1024 && i < units.length - 1) {
+    v /= 1024
+    i++
+  }
+  return `${v.toFixed(v >= 100 ? 0 : v >= 10 ? 1 : 2)} ${units[i]}`
+}
+
 function doDelete(fileIds) {
-  if (!window.confirm('文件删除后将不可恢复，您确定这样做吗？')) return
   recycleService.deleteRecycle(
     {fileIds},
     () => {
@@ -69,11 +122,6 @@ function doDelete(fileIds) {
     },
     (res) => ElMessage.error(res.message),
   )
-}
-
-function cleanRecycle() {
-  if (tableData.value.length === 0) return
-  doDelete(tableData.value.map((f) => f.fileId).join('__,__'))
 }
 
 function doRestore(fileIds) {
@@ -89,19 +137,51 @@ function doRestore(fileIds) {
 
 function restoreRecycle() {
   if (selected.value.length === 0) return ElMessage.error('请选择要还原的文件')
-  const ids = selected.value.map((i) => tableData.value[i]?.fileId).filter(Boolean).join('__,__')
+  // selected.value 本身就是 fileId 数组（BaseTable 行 key 映射），不要再 map 索引
+  const ids = selected.value.filter(Boolean).join('__,__')
   doRestore(ids)
 }
 
 const totalExpired = computed(() => tableData.value.filter((r) => expireInfo(r).expired).length)
 const totalUrgent = computed(() => tableData.value.filter((r) => expireInfo(r).urgent && !expireInfo(r).expired).length)
 
+const summary = computed(() => {
+  const rows = tableData.value
+  let totalBytes = 0
+  let expiredBytes = 0
+  rows.forEach((r) => {
+    const b = parseSize(r.fileSizeDesc)
+    totalBytes += b
+    if (expireInfo(r).expired) expiredBytes += b
+  })
+  return {
+    count: rows.length,
+    totalSize: formatSize(totalBytes),
+    expiredSize: formatSize(expiredBytes),
+  }
+})
+
 onMounted(loadTableData)
 </script>
 
 <template>
   <div class="flex flex-col gap-1">
-    <div class="flex items-center justify-between py-3">
+    <!-- P1.12：回收站统计 -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+      <div class="px-4 py-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]">
+        <div class="text-xs text-[var(--color-text-muted)]">回收站文件数</div>
+        <div class="mt-1 text-2xl font-semibold tabular-nums">{{ summary.count }}</div>
+      </div>
+      <div class="px-4 py-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]">
+        <div class="text-xs text-[var(--color-text-muted)]">占用空间</div>
+        <div class="mt-1 text-2xl font-semibold tabular-nums">{{ summary.totalSize }}</div>
+      </div>
+      <div class="px-4 py-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]">
+        <div class="text-xs text-[var(--color-text-muted)]">将释放空间（清理过期）</div>
+        <div class="mt-1 text-2xl font-semibold tabular-nums text-[var(--color-warning)]">{{ summary.expiredSize }}</div>
+      </div>
+    </div>
+    <div class="flex items-center justify-between py-3 flex-wrap gap-2">
       <div class="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
         <Clock :size="14"/>
         回收站文件将在 {{ RECYCLE_EXPIRE_DAYS }} 天后被自动清理
@@ -114,10 +194,15 @@ onMounted(loadTableData)
         </span>
       </div>
       <div class="flex items-center gap-2">
+        <BaseTooltip v-if="totalExpired > 0" text="清理所有已过期文件" position="top">
+          <BaseButton variant="warning" @click="cleanExpired">
+            <span class="flex items-center gap-2"><Eraser :size="16"/> 清理过期</span>
+          </BaseButton>
+        </BaseTooltip>
         <BaseButton variant="primary" @click="restoreRecycle">
           <span class="flex items-center gap-2"><RefreshCw :size="16"/> 还原</span>
         </BaseButton>
-        <BaseButton variant="danger" @click="cleanRecycle">
+        <BaseButton variant="danger" :disabled="summary.count === 0" @click="cleanRecycle">
           <span class="flex items-center gap-2"><Trash2 :size="16"/> 清空回收站</span>
         </BaseButton>
       </div>
