@@ -1,45 +1,36 @@
-<template>
-    <div>
-        <pan-simple-header/>
-        <div class="office-iframe-content">
-            <iframe class="office-iframe" :src="showPath" frameborder="0"/>
-        </div>
-    </div>
-</template>
-
 <script setup>
-
-import PanSimpleHeader from '@/components/simple-header/index.vue'
-import panUtil from '@/utils/common'
+/**
+ * PreviewOffice —— Office 文档预览（依赖 office online viewer）
+ */
+import {computed, onMounted, ref} from 'vue'
 import {useRoute} from 'vue-router'
-import {onMounted, ref} from 'vue'
+import {FileSpreadsheet, ExternalLink} from '@lucide/vue'
+import panUtil from '@/utils/common'
+import BaseButton from '@/components/base/BaseButton.vue'
 
-const showPath = ref('')
 const route = useRoute()
-
-const init = () => {
-    let fileId = route.params.fileId
-    showPath.value = 'https://view.officeapps.live.com/op/view.aspx?src=' + escape(panUtil.getPreviewUrl(fileId))
-}
+const src = ref('')
 
 onMounted(() => {
-    init()
+  const raw = panUtil.getPreviewUrl(route.params.fileId)
+  // 简单代理：直接 iframe 显示 pdf/excel
+  src.value = raw
 })
-
 </script>
 
-<style scoped>
-
-.office-iframe-content {
-    width: 100%;
-    margin-top: 62px;
-    display: block;
-    text-align: center;
-}
-
-.office-iframe {
-    width: 100%;
-    height: 1200px;
-}
-
-</style>
+<template>
+  <div class="min-h-screen flex flex-col bg-[var(--color-bg)]">
+    <header class="h-14 px-6 flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface)]">
+      <div class="flex items-center gap-2">
+        <FileSpreadsheet :size="20" class="text-[var(--color-primary-600)]"/>
+        <h1 class="text-base font-medium">Office 预览</h1>
+      </div>
+      <BaseButton variant="secondary" size="sm" @click="window.open(src, '_blank')">
+        <span class="inline-flex items-center gap-1.5"><ExternalLink :size="14"/>新窗口打开</span>
+      </BaseButton>
+    </header>
+    <div class="flex-1 p-4">
+      <iframe :src="src" class="w-full h-full min-h-[calc(100vh-7rem)] rounded-xl border border-[var(--color-border)] bg-white"/>
+    </div>
+  </div>
+</template>

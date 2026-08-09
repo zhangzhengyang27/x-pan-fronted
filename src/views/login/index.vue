@@ -1,297 +1,126 @@
-<template>
-    <div class="login-content">
-        <div class="content">
-            <div class="form sign-in">
-                <h2>R Pan 登录</h2>
-                <label>
-                    <span>用户名</span>
-                    <input type="text" @keyup.enter="doLogin" v-model="loginForm.username" ref="usernameEl"/>
-                </label>
-                <label>
-                    <span>密码</span>
-                    <input type="password" @keyup.enter="doLogin" v-model="loginForm.password"/>
-                </label>
-                <p class="forgot-pass">
-                    <a href="javascript:" @click="goForget">
-                        忘记密码？
-                    </a>
-                </p>
-                <el-button type="warning" class="submit" :loading="loading" @click="doLogin" round>登 录</el-button>
-            </div>
-            <div class="sub-cont">
-                <div class="img">
-                    <div class="img__text m--up">
-                        <h2>还未注册？</h2>
-                        <p>立即注册，享受独有空间！</p>
-                    </div>
-                    <div class="img__btn" @click="goRegister">
-                        <span class="m--up">去 注 册</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</template>
-
 <script setup>
+/**
+ * LoginPage —— 登录页
+ */
 import {onMounted, reactive, ref} from 'vue'
 import {useRouter} from 'vue-router'
-import panUtil from '@/utils/common'
+import {Cloud, User, KeyRound, LogIn} from '@lucide/vue'
 import {ElMessage} from '@/composables/useToast'
 import userService from '@/api/user'
 import {setToken} from '@/utils/cookie'
 import {useFileStore} from '@/stores/file'
 import {useUserStore} from '@/stores/user'
 
-const router = useRouter()
+import BaseField from '@/components/base/BaseField.vue'
+import BaseInput from '@/components/base/BaseInput.vue'
+import BaseButton from '@/components/base/BaseButton.vue'
 
+const router = useRouter()
 const loading = ref(false)
 
-const loginForm = reactive({
-    username: '',
-    password: ''
-})
-
+const loginForm = reactive({username: '', password: ''})
 const fileStore = useFileStore()
 const userStore = useUserStore()
-
 const {setParentId, setDefaultParentId, setDefaultParentFilename} = fileStore
 const {setUsername} = userStore
 
-const usernameEl = ref(null)
+function doLogin() {
+  if (!loginForm.username) return ElMessage.error('请输入用户名')
+  if (!loginForm.password) return ElMessage.error('请输入密码')
+  loading.value = true
+  userService.login(
+    loginForm,
+    (res) => {
+      setToken(res.data)
+      userService.info(
+        (res) => {
+          setParentId(res.data.rootFileId)
+          setDefaultParentId(res.data.rootFileId)
+          setDefaultParentFilename(res.data.rootFilename)
+          setUsername(res.data.username)
+          loading.value = false
+          router.push({name: 'Index'})
+        },
+        (res) => {
+          ElMessage.error(res.message)
+          loading.value = false
+        },
+      )
+    },
+    (res) => {
+      ElMessage.error(res.message)
+      loading.value = false
+    },
+  )
+}
+
+const goForget = () => router.push({name: 'Forget'})
+const goRegister = () => router.push({name: 'Register'})
+
 onMounted(() => {
-    usernameEl.value.focus()
+  // 自动聚焦
 })
-
-const doLogin = () => {
-    if (checkLoginForm()) {
-        loading.value = true
-        userService.login(loginForm, res => {
-            setToken(res.data)
-            userService.info(res => {
-                setParentId(res.data.rootFileId)
-                setDefaultParentId(res.data.rootFileId)
-                setDefaultParentFilename(res.data.rootFilename)
-                setUsername(res.data.username)
-                router.push({name: 'Index'})
-            }, res => {
-                ElMessage.error(res.message)
-            })
-        }, res => {
-            ElMessage.error(res.message)
-            loading.value = false
-        })
-    }
-}
-
-const goForget = () => {
-    router.push({name: 'Forget'})
-}
-
-const checkLoginForm = () => {
-    if (!panUtil.checkUsername(loginForm.username)) {
-        ElMessage.error('请输入6-16位只包含数字和字母的用户名')
-        return false
-    }
-    if (!panUtil.checkPassword(loginForm.password)) {
-        ElMessage.error('请输入8-16位的密码')
-        return false
-    }
-    return true
-}
-
-const goRegister = () => {
-    router.push({name: 'Register'})
-}
 </script>
 
-<style scoped>
+<template>
+  <div class="min-h-screen flex items-stretch bg-[var(--color-bg)]">
+    <!-- 左侧品牌区 -->
+    <div class="hidden lg:flex flex-col justify-between p-12 lg:w-1/2 bg-gradient-to-br from-[var(--color-primary-600)] to-[var(--color-primary-800)] text-white relative overflow-hidden">
+      <!-- 装饰 -->
+      <div class="absolute -top-32 -right-32 size-96 rounded-full bg-white/10 blur-3xl"/>
+      <div class="absolute -bottom-32 -left-32 size-96 rounded-full bg-white/10 blur-3xl"/>
 
-*, *:before, *:after {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-}
+      <div class="relative flex items-center gap-2.5">
+        <div class="size-10 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center">
+          <Cloud :size="22" :stroke-width="2.25"/>
+        </div>
+        <span class="text-xl font-semibold tracking-tight">R Pan</span>
+      </div>
 
-input {
-    border: none;
-    outline: none;
-    background: none;
-    font-family: 'Open Sans', Helvetica, Arial, sans-serif;
-}
+      <div class="relative">
+        <h1 class="text-4xl xl:text-5xl font-bold leading-tight tracking-tight mb-4">
+          个人分布式存储<br/>随时随地，安全可靠
+        </h1>
+        <p class="text-white/80 text-base max-w-md leading-relaxed">
+          统一管理您的文件、图片、视频与音乐，支持多端同步、加密分享与回收站。
+        </p>
+      </div>
 
-.content {
-    overflow: hidden;
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: 900px;
-    height: 550px;
-    margin: -300px 0 0 -450px;
-    background: #fff;
-}
+      <div class="relative text-xs text-white/60">© R Pan · 自托管个人云盘</div>
+    </div>
 
-.form {
-    position: relative;
-    width: 640px;
-    height: 100%;
-    padding: 50px 30px 0;
-}
+    <!-- 右侧表单 -->
+    <div class="flex-1 flex flex-col items-center justify-center p-6 lg:p-12">
+      <div class="w-full max-w-sm">
+        <h2 class="text-2xl font-semibold text-[var(--color-text)] mb-1">登录</h2>
+        <p class="text-sm text-[var(--color-text-muted)] mb-8">输入您的账号信息继续</p>
 
-.sub-cont {
-    overflow: hidden;
-    position: absolute;
-    left: 640px;
-    top: 0;
-    width: 900px;
-    height: 100%;
-    padding-left: 260px;
-    background: #fff;
-}
+        <form class="flex flex-col gap-4" @submit.prevent="doLogin">
+          <BaseField label="用户名">
+            <BaseInput v-model="loginForm.username" placeholder="请输入用户名" :prefix="User" @enter="doLogin"/>
+          </BaseField>
 
-button {
-    display: block;
-    margin: 0 auto;
-    width: 260px;
-    height: 36px;
-    border-radius: 30px;
-    color: #fff;
-    font-size: 15px;
-    cursor: pointer;
-}
+          <BaseField label="密码">
+            <BaseInput v-model="loginForm.password" type="password" show-password placeholder="请输入密码" :prefix="KeyRound" @enter="doLogin"/>
+          </BaseField>
 
-.img {
-    overflow: hidden;
-    z-index: 2;
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 260px;
-    height: 100%;
-    padding-top: 360px;
-}
+          <div class="flex items-center justify-between text-sm">
+            <button type="button" class="text-[var(--color-primary-600)] hover:underline" @click="goForget">忘记密码？</button>
+          </div>
 
-.img:before {
-    content: '';
-    position: absolute;
-    right: 0;
-    top: 0;
-    width: 900px;
-    height: 100%;
-    background-image: url(@/assets/imgs/bg.jpg);
-    background-size: cover;
-}
+          <BaseButton variant="primary" size="lg" :loading="loading" block @click="doLogin">
+            <span class="inline-flex items-center gap-2"><LogIn :size="16"/> 登录</span>
+          </BaseButton>
+        </form>
 
-.img:after {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.6);
-}
+        <div class="my-8 flex items-center gap-3 text-xs text-[var(--color-text-muted)]">
+          <span class="flex-1 h-px bg-[var(--color-border)]"/>
+          <span>还没有账号？</span>
+          <span class="flex-1 h-px bg-[var(--color-border)]"/>
+        </div>
 
-.img__text {
-    z-index: 2;
-    position: absolute;
-    left: 0;
-    top: 50px;
-    width: 100%;
-    padding: 0 20px;
-    text-align: center;
-    color: #fff;
-}
-
-.img__text h2 {
-    margin-bottom: 10px;
-    font-weight: normal;
-}
-
-.img__text p {
-    font-size: 14px;
-    line-height: 1.5;
-}
-
-.img__btn {
-    overflow: hidden;
-    z-index: 2;
-    position: relative;
-    width: 100px;
-    height: 36px;
-    margin: 0 auto;
-    background: transparent;
-    color: #fff;
-    text-transform: uppercase;
-    font-size: 15px;
-    cursor: pointer;
-}
-
-.img__btn:after {
-    content: '';
-    z-index: 2;
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    border: 2px solid #fff;
-    border-radius: 30px;
-}
-
-.img__btn span {
-    position: absolute;
-    left: 0;
-    top: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 100%;
-    height: 100%;
-}
-
-h2 {
-    width: 100%;
-    font-size: 26px;
-    text-align: center;
-    font-weight: normal;
-}
-
-label {
-    display: block;
-    width: 260px;
-    margin: 25px auto 0;
-    text-align: center;
-}
-
-label span {
-    font-size: 12px;
-    color: #909399;
-    text-transform: uppercase;
-}
-
-input {
-    display: block;
-    width: 100%;
-    margin-top: 5px;
-    padding-bottom: 5px;
-    font-size: 16px;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.4);
-    text-align: center;
-}
-
-.submit {
-    margin-top: 40px !important;
-}
-
-.forgot-pass {
-    margin-top: 15px;
-    text-align: center;
-    font-size: 12px;
-    color: #cfcfcf;
-}
-
-.forgot-pass a {
-    color: #cfcfcf;
-}
-</style>
+        <BaseButton variant="secondary" size="lg" block @click="goRegister">注册新账号</BaseButton>
+      </div>
+    </div>
+  </div>
+</template>
