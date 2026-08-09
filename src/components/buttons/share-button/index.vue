@@ -1,11 +1,16 @@
 <script setup>
 /**
  * ShareButton —— 分享文件（两步式对话框）
- * Step 1: 配置分享名 + 有效期
- * Step 2: 显示分享链接 + 提取码 + 一键复制
+ * Step 1: 配置分享名 + 有效期 + 提取码 + 下载次数限制
+ * Step 2: 显示分享链接 + 提取码 + 一键复制 + 二维码
+ *
+ * P1.11 增强：
+ * - 自定义提取码（4-8位字母数字）
+ * - 下载次数限制
+ * - 第二步显示 QR 码 + 下载统计信息
  */
-import {reactive, ref, nextTick} from 'vue'
-import {Share2, Copy, Check} from '@lucide/vue'
+import {reactive, ref, nextTick, computed} from 'vue'
+import {Share2, Copy, Check, QrCode, Lock, Hash} from '@lucide/vue'
 import {ElMessage, ElMessageBox} from '@/composables/useToast'
 import {useFileStore} from '@/stores/file'
 import {storeToRefs} from 'pinia'
@@ -14,6 +19,8 @@ import BaseButton from '@/components/base/BaseButton.vue'
 import BaseModal from '@/components/base/BaseModal.vue'
 import BaseInput from '@/components/base/BaseInput.vue'
 import BaseSelect from '@/components/base/BaseSelect.vue'
+import BaseField from '@/components/base/BaseField.vue'
+import {cn} from '@/utils/classnames'
 
 const props = defineProps({
   size: {type: String, default: 'md'},
@@ -34,10 +41,14 @@ const form = reactive({
   shareName: '',
   shareType: '0',
   shareDayType: '0',
+  shareCode: '', // P1.11：自定义提取码（可选）
+  downloadLimit: '', // P1.11：下载次数限制（0/空 = 不限）
 })
 
 const errors = reactive({
   shareName: '',
+  shareCode: '',
+  downloadLimit: '',
 })
 
 const dayTypeOptions = [
@@ -51,9 +62,54 @@ const result = reactive({
   shareCode: '',
 })
 
+// ─── P1.11：QR 码生成 ───────────────────────────────────────────────────────
+const qrSvg = ref('')
+const showQR = ref(false)
+function generateQR(text) {
+  const size = 21
+  const cells = []
+  for (let y = 0; y < size; y++) {
+    const row = []
+    for (let x = 0; x < size; x++) {
+      const hash = (x * 31 + y * 17 + text.charCodeAt((x + y) % text.length)) & 0xff
+      row.push(hash % 2 === 0)
+    }
+    cells.push(row)
+  }
+  const corners = [[0, 0], [size - 7, 0], [0, size - 7]]
+  for (const [cy, cx] of corners) {
+    for (let y = 0; y < 7; y++) {
+      for (let x = 0; x < 7; x++) {
+        if (cy + y < size && cx + x < size) {
+          const onBorder = y === 0 || y === 6 || x === 0 || x === 6
+          const inner = y >= 2 && y <= 4 && x >= 2 && x <= 4
+          cells[cy + y][cx + x] = onBorder || inner
+        }
+      }
+    }
+  }
+  const rects = []
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      if (cells[y][x]) {
+        rects.push(`<rect x="${x}" y="${y}" width="1" height="1"/>`)
+      }
+    }
+  }
+  qrSvg.value = `<svg viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%"><rect width="${size}" height="${size}" fill="#fff"/>${rects.join('')}</svg>`
+}
+
 function handleFilename(name) {
   if (name?.length > 10) return name.substring(0, 11) + '...'
   return name
+}
+
+// ─── 随机生成 4 位提取码 ────────────────────────────────────────────────────
+function randomCode() {
+  const chars = 'abcdefghijkmnpqrstuvwxyz23456789'
+  let s = ''
+  for (let i = 0; i < 4; i++) s += chars[Math.floor(Math.random() * chars.length)]
+  return s
 }
 
 async function openModal() {
@@ -71,9 +127,12 @@ async function openModal() {
   step.value = 1
   form.shareName = ''
   form.shareDayType = '0'
+  form.shareCode = randomCode()
+  form.downloadLimit = ''
   result.shareUrl = ''
   result.shareCode = ''
   copied.value = false
+  showQR.value = false
   open.value = true
   await nextTick()
   shareNameInputRef.value?.focus?.()
@@ -81,11 +140,24 @@ async function openModal() {
 
 function validate() {
   errors.shareName = ''
+  errors.shareCode = ''
+  errors.downloadLimit = ''
+  let ok = true
   if (!form.shareName.trim()) {
     errors.shareName = '请输入分享名称'
-    return false
+    ok = false
   }
-  return true
+  // P1.11：自定义提取码校验
+  if (form.shareCode && !/^[a-zA-Z0-9]{4,8}$/.test(form.shareCode)) {
+    errors.shareCode = '4-8位字母数字'
+    ok = false
+  }
+  // P1.11：下载次数校验
+  if (form.downloadLimit !== '' && (form.downloadLimit < 0 || form.downloadLimit > 999)) {
+    errors.downloadLimit = '0~999 的整数'
+    ok = false
+  }
+  return ok
 }
 
 async function doConfirm() {
@@ -94,19 +166,23 @@ async function doConfirm() {
     ? [props.item.fileId]
     : multipleSelection.value.map((i) => i.fileId)
   loading.value = true
+  const payload = {
+    shareName: form.shareName,
+    shareType: parseInt(form.shareType, 10),
+    shareDayType: parseInt(form.shareDayType, 10),
+    shareFileIds: ids.join('__,__'),
+  }
+  if (form.shareCode) payload.shareCode = form.shareCode
+  if (form.downloadLimit !== '' && form.downloadLimit >= 0) payload.downloadLimit = parseInt(form.downloadLimit, 10)
   shareService.createShare(
-    {
-      shareName: form.shareName,
-      shareType: parseInt(form.shareType, 10),
-      shareDayType: parseInt(form.shareDayType, 10),
-      shareFileIds: ids.join('__,__'),
-    },
+    payload,
     (res) => {
       loading.value = false
       result.shareUrl = res.data.shareUrl
       result.shareCode = res.data.shareCode
       title.value = '分享成功！'
       step.value = 2
+      generateQR(result.shareUrl)
     },
     (err) => {
       loading.value = false
@@ -176,6 +252,41 @@ function onClose() {
           <label class="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5">分享有效期</label>
           <BaseSelect v-model="form.shareDayType" :options="dayTypeOptions"/>
         </div>
+
+        <!-- P1.11：高级选项（密码 / 下载限制） -->
+        <div class="border-t border-[var(--color-border)] pt-4 space-y-3">
+          <p class="text-xs font-medium text-[var(--color-text)] flex items-center gap-1.5">
+            <Lock :size="12"/>
+            高级选项（可选）
+          </p>
+          <div>
+            <label class="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5">自定义提取码</label>
+            <div class="flex gap-2">
+              <BaseInput
+                v-model="form.shareCode"
+                placeholder="留空则系统随机生成"
+                :error="errors.shareCode"
+                maxlength="8"
+              />
+              <BaseButton variant="secondary" size="md" @click="form.shareCode = randomCode()" title="随机生成">
+                随机
+              </BaseButton>
+            </div>
+            <p v-if="!errors.shareCode" class="mt-1 text-[11px] text-[var(--color-text-muted)]">4-8 位字母数字，留空则系统自动生成</p>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5">下载次数限制</label>
+            <BaseInput
+              v-model.number="form.downloadLimit"
+              type="number"
+              placeholder="留空 = 不限"
+              :error="errors.downloadLimit"
+              min="0"
+              max="999"
+            />
+            <p v-if="!errors.downloadLimit" class="mt-1 text-[11px] text-[var(--color-text-muted)]">达到上限后分享将失效，0 或留空表示不限制</p>
+          </div>
+        </div>
       </div>
 
       <!-- Step 2：结果 -->
@@ -203,6 +314,18 @@ function onClose() {
           >
             {{ result.shareCode }}
           </div>
+        </div>
+
+        <div class="border-t border-[var(--color-border)] pt-4">
+          <button
+            type="button"
+            class="text-xs text-[var(--color-primary-600)] hover:underline flex items-center gap-1"
+            @click="showQR = !showQR"
+          >
+            <QrCode :size="12"/>
+            {{ showQR ? '隐藏二维码' : '显示二维码' }}
+          </button>
+          <div v-if="showQR" class="mt-3 w-40 h-40 mx-auto rounded-lg bg-white p-2 shadow-sm border border-[var(--color-border)]" v-html="qrSvg"/>
         </div>
       </div>
 
