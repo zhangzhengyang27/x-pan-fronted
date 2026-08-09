@@ -1,9 +1,13 @@
 <script setup>
 /**
  * AppFileTable —— 主文件列表
- * 支持列表/网格双视图切换、悬浮行操作、列定义
+ * P0 增强：
+ * 1. 排序（name/size/date asc/desc）
+ * 2. 筛选（扩展名 / 大小 / 时间）
+ * 3. 批量下载（多文件下载）
+ * 4. 多选 + 快捷键（Ctrl+A / Delete / F2）
  */
-import {ref, computed, onMounted} from 'vue'
+import {ref, computed, onMounted, onBeforeUnmount, watch, nextTick} from 'vue'
 import DownloadButton from '@/components/buttons/download-button/index.vue'
 import DeleteButton from '@/components/buttons/delete-button/index.vue'
 import RenameButton from '@/components/buttons/rename-button/index.vue'
@@ -23,6 +27,10 @@ import '@luohc92/vue3-image-viewer/dist/style.css'
 import BaseTable from '@/components/base/BaseTable.vue'
 import BaseTooltip from '@/components/base/BaseTooltip.vue'
 import DrivePreviewModal from '@/components/preview/drive-preview-modal.vue'
+import FileTableToolbar from './FileTableToolbar.vue'
+import {useTableSort} from '@/composables/useTableSort'
+import {useDrivePreview} from '@/composables/useDrivePreview'
+import {getDownloadUrl} from '@/utils/preview'
 import {
   Folder, FileText, FileArchive, FileSpreadsheet, FileImage,
   FileAudio, FileVideo, FileCode, FileBarChart2,
@@ -33,7 +41,7 @@ const fileStore = useFileStore()
 const breadcrumbStore = useBreadcrumbStore()
 const {fileList, tableLoading, searchFlag} = storeToRefs(fileStore)
 
-const selected = ref([])
+const selected = ref([]) // 多选 fileId
 const view = ref('list') // 'list' | 'grid'
 
 function fileIcon(type) {
@@ -42,6 +50,53 @@ function fileIcon(type) {
     7: FileImage, 8: FileAudio, 9: FileVideo, 10: FileBarChart2, 11: FileCode,
   }[type] || FileText
 }
+
+// ─── 排序 / 筛选 ────────────────────────────────────────────────────────────
+const {sortField, sortOrder, toggleSort, sortItems} = useTableSort('name', 'asc')
+const filter = ref({extensions: [], sizeMin: '', sizeMax: '', dateFrom: '', dateTo: ''})
+
+const availableExtensions = computed(() => {
+  const set = new Set()
+  fileList.value.forEach((r) => {
+    const fn = r.filename || r.name || ''
+    const idx = fn.lastIndexOf('.')
+    if (idx > 0 && idx < fn.length - 1) {
+      set.add(fn.slice(idx + 1).toLowerCase())
+    }
+  })
+  return Array.from(set).sort()
+})
+
+const filteredList = computed(() => {
+  let items = fileList.value
+  if (filter.value.extensions.length) {
+    items = items.filter((r) => {
+      const fn = r.filename || r.name || ''
+      const idx = fn.lastIndexOf('.')
+      if (idx <= 0) return false
+      return filter.value.extensions.includes(fn.slice(idx + 1).toLowerCase())
+    })
+  }
+  if (filter.value.sizeMin !== '') {
+    const min = Number(filter.value.sizeMin) * 1024 * 1024
+    items = items.filter((r) => Number(r.fileSize || r.size || 0) >= min)
+  }
+  if (filter.value.sizeMax !== '') {
+    const max = Number(filter.value.sizeMax) * 1024 * 1024
+    items = items.filter((r) => Number(r.fileSize || r.size || 0) <= max)
+  }
+  if (filter.value.dateFrom) {
+    const from = new Date(filter.value.dateFrom).getTime()
+    items = items.filter((r) => new Date(r.updateTime || r.updatedAt || 0).getTime() >= from)
+  }
+  if (filter.value.dateTo) {
+    const to = new Date(filter.value.dateTo).getTime() + 86400000
+    items = items.filter((r) => new Date(r.updateTime || r.updatedAt || 0).getTime() <= to)
+  }
+  return sortItems(items)
+})
+
+const selectedRows = computed(() => filteredList.value.filter((r) => selected.value.includes(r.fileId)))
 
 const columns = computed(() => {
   const base = [{key: 'filename', title: '文件名', width: 'auto'}]
@@ -55,7 +110,8 @@ const columns = computed(() => {
 })
 
 function handleSelectionChange(keys) {
-  const rows = fileList.value.filter((r, i) => keys.includes(r.fileId ?? i))
+  selected.value = keys
+  const rows = fileList.value.filter((r) => keys.includes(r.fileId))
   fileStore.setMultipleSelection(rows)
 }
 
@@ -106,36 +162,127 @@ function clickFilename(row) {
 }
 
 function onRowClick(row) {
-  // 单击：仅切换选中状态（不进入文件夹 / 预览）
+  // 单击：切换选中（多选）
   const id = row.fileId
   const idx = selected.value.indexOf(id)
   if (idx === -1) {
-    selected.value = [id]
+    selected.value.push(id)
   } else {
-    selected.value = selected.value.filter((x) => x !== id)
+    selected.value.splice(idx, 1)
   }
-  handleSelectionChange(selected.value)
+  handleSelectionChange([...selected.value])
 }
 
 function onRowDblclick(row) {
-  // 双击：进入文件夹 / 调用 PreviewModal 弹窗预览
   if (row.fileType === 0) {
     clickFilename(row)
     return
   }
   const opened = preview.openPreview(row)
   if (!opened) {
-    // 不支持预览的类型，回退为新标签页打开预览 URL
     clickFilename(row)
   }
 }
 
+// ─── 批量下载 ────────────────────────────────────────────────────────────────
+async function batchDownload(rows) {
+  if (!rows || rows.length === 0) return
+  ElMessage.info(`开始下载 ${rows.length} 个文件...`)
+  let ok = 0
+  let failed = 0
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i]
+    try {
+      const url = getDownloadUrl(r.fileId)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = r.filename || r.name || ''
+      a.target = '_blank'
+      a.rel = 'noopener noreferrer'
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      ok++
+      // 间隔 200ms 避免浏览器拦截
+      await new Promise((r) => setTimeout(r, 200))
+    } catch {
+      failed++
+    }
+  }
+  ElMessage.success(`已下载 ${ok} 个文件${failed ? `，失败 ${failed} 个` : ''}`)
+}
+
+// ─── 批量删除 ────────────────────────────────────────────────────────────────
+function batchDelete(rows) {
+  if (!rows || rows.length === 0) return
+  const fileIds = rows.map((r) => r.fileId).join('__,__')
+  fileService.delete(
+    {fileIds},
+    () => {
+      ElMessage.success(`已删除 ${rows.length} 个文件`)
+      selected.value = []
+      fileStore.loadFileList()
+    },
+    (err) => ElMessage.error(err.message),
+  )
+}
+
+// ─── 快捷键 ────────────────────────────────────────────────────────────────
+function onKeyDown(e) {
+  // 跳过输入框
+  const tag = e.target?.tagName?.toLowerCase()
+  if (tag === 'input' || tag === 'textarea' || e.target?.isContentEditable) return
+
+  // Ctrl+A: 全选
+  if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+    e.preventDefault()
+    selected.value = filteredList.value.map((r) => r.fileId)
+    handleSelectionChange([...selected.value])
+    return
+  }
+  // Delete: 删除选中
+  if (e.key === 'Delete' && selected.value.length > 0) {
+    e.preventDefault()
+    batchDelete(selectedRows.value)
+    return
+  }
+  // F2: 重命名第一个选中
+  if (e.key === 'F2' && selected.value.length === 1) {
+    e.preventDefault()
+    const row = selectedRows.value[0]
+    if (row) {
+      // 触发 rename-button 内部逻辑（这里用 confirm 提示替代）
+      const newName = prompt('重命名', row.filename || row.name || '')
+      if (newName && newName !== (row.filename || row.name)) {
+        fileService.update(
+          {fileId: row.fileId, filename: newName},
+          () => {
+            ElMessage.success('重命名成功')
+            fileStore.loadFileList()
+          },
+          (err) => ElMessage.error(err.message),
+        )
+      }
+    }
+  }
+  // Escape: 清空选择
+  if (e.key === 'Escape') {
+    selected.value = []
+    handleSelectionChange([])
+  }
+}
+
+onMounted(() => {
+  fileStore.setMultipleSelection([])
+  window.addEventListener('keydown', onKeyDown)
+})
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onKeyDown)
+})
+
 defineExpose({setView: (v) => (view.value = v)})
-onMounted(() => fileStore.setMultipleSelection([]))
 
 // ─── 预览（弹窗式） ────────────────────────────────────────────────────────
-import {useDrivePreview} from '@/composables/useDrivePreview'
-import {getDownloadUrl} from '@/utils/preview'
 const preview = useDrivePreview(() => fileList.value)
 
 function previewDownload(item) {
@@ -145,18 +292,28 @@ function previewDownload(item) {
 </script>
 
 <template>
+  <!-- 工具栏：排序 + 筛选 + 批量操作 -->
+  <FileTableToolbar
+    :selected-rows="selectedRows"
+    :available-extensions="availableExtensions"
+    @sort-change="() => {}"
+    @filter-change="(f) => filter = f"
+    @batch-download="batchDownload"
+    @batch-delete="batchDelete"
+  />
+
   <!-- 列表视图 -->
   <BaseTable
     v-if="view === 'list'"
     :columns="columns"
-    :data="fileList"
+    :data="filteredList"
     :loading="tableLoading"
-    :skeleton="tableLoading && fileList.length === 0"
+    :skeleton="tableLoading && filteredList.length === 0"
     selectable
     row-key="fileId"
     :selected="selected"
     empty-text="该文件夹为空，试试上传文件"
-    @update:selected="(v) => { selected = v; handleSelectionChange(v) }"
+    @update:selected="(v) => handleSelectionChange(v)"
     @rowClick="onRowClick"
     @rowDblclick="onRowDblclick"
   >
@@ -190,7 +347,7 @@ function previewDownload(item) {
 
   <!-- 网格视图 -->
   <div v-else>
-    <div v-if="tableLoading && fileList.length === 0" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+    <div v-if="tableLoading && filteredList.length === 0" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
       <div v-for="i in 8" :key="i" class="aspect-square rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 animate-pulse">
         <div class="size-12 mx-auto rounded-xl bg-[var(--color-surface-2)] mb-3"/>
         <div class="h-3 w-3/4 mx-auto rounded bg-[var(--color-surface-2)] mb-2"/>
@@ -198,17 +355,22 @@ function previewDownload(item) {
       </div>
     </div>
 
-    <div v-else-if="fileList.length === 0" class="text-center py-20 text-sm text-[var(--color-text-muted)]">
-      该文件夹为空，试试上传文件
+    <div v-else-if="filteredList.length === 0" class="text-center py-20 text-sm text-[var(--color-text-muted)]">
+      <template v-if="filter.extensions.length || filter.sizeMin || filter.sizeMax || filter.dateFrom || filter.dateTo">
+        没有符合筛选条件的文件
+      </template>
+      <template v-else>该文件夹为空，试试上传文件</template>
     </div>
 
     <div v-else class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
       <button
-        v-for="row in fileList"
+        v-for="row in filteredList"
         :key="row.fileId"
         type="button"
-        class="group relative aspect-square rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-primary-400)] hover:shadow-md transition-all p-4 flex flex-col items-center justify-center text-center"
-        @click="clickFilename(row)"
+        class="group relative aspect-square rounded-2xl border bg-[var(--color-surface)] hover:shadow-md transition-all p-4 flex flex-col items-center justify-center text-center"
+        :class="selected.includes(row.fileId) ? 'border-[var(--color-primary-500)] ring-2 ring-[var(--color-primary-500)]/30' : 'border-[var(--color-border)] hover:border-[var(--color-primary-400)]'"
+        @click="onRowClick(row)"
+        @dblclick="onRowDblclick(row)"
       >
         <component :is="fileIcon(row.fileType)" :size="48"
                    class="text-[var(--color-primary-500)] group-hover:scale-110 transition-transform mb-3"/>
