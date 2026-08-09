@@ -6,7 +6,7 @@
 
 import axios from 'axios'
 import {getShareToken, getToken} from '../cookie'
-import {ElMessage} from 'element-plus'
+import {ElMessage} from '@/composables/useToast'
 import panUtil from '@/utils/common'
 
 const httpSimple = axios.create({

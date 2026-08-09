@@ -58,7 +58,7 @@ import fileService from '@/api/file'
 import {ref} from 'vue'
 import {useFileStore} from '@/stores/file'
 import {storeToRefs} from 'pinia'
-import {ElMessage} from 'element-plus'
+import {ElMessage} from '@/composables/useToast'
 
 const fileStore = useFileStore()
 const {multipleSelection} = storeToRefs(fileStore)

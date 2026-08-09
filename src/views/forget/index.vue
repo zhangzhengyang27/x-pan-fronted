@@ -68,7 +68,7 @@
 import {nextTick, onMounted, ref} from 'vue'
 import {useRouter} from 'vue-router'
 import panUtil from '@/utils/common'
-import {ElMessage} from 'element-plus'
+import {ElMessage} from '@/composables/useToast'
 import userService from '@/api/user'
 
 const currentStep = ref(1)

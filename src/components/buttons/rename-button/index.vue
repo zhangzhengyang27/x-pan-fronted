@@ -51,7 +51,7 @@ import fileService from '@/api/file'
 import {reactive, ref} from 'vue'
 import {useFileStore} from '@/stores/file'
 import {storeToRefs} from 'pinia'
-import {ElMessage} from 'element-plus'
+import {ElMessage} from '@/composables/useToast'
 
 const renameDialogVisible = ref(false)
 const loading = ref(false)

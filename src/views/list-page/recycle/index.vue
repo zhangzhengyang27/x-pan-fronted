@@ -86,7 +86,7 @@ import recycleService from '@/api/recycle'
 import panUtil from '@/utils/common'
 import {onMounted, ref} from 'vue'
 import {useFileStore} from '@/stores/file'
-import {ElMessage, ElMessageBox} from 'element-plus'
+import {ElMessage, ElMessageBox} from '@/composables/useToast'
 
 const fileStore = useFileStore()
 

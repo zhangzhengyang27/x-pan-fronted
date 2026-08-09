@@ -44,7 +44,7 @@ import fileService from '@/api/file'
 import panUtil from '@/utils/common'
 import {useRoute} from 'vue-router'
 import {onMounted, ref} from 'vue'
-import {ElMessage} from 'element-plus'
+import {ElMessage} from '@/composables/useToast'
 
 const route = useRoute()
 const musicName = ref('')

@@ -6,7 +6,7 @@
 
 import axios from 'axios'
 import {clearToken, getToken} from '@/utils/cookie'
-import {ElMessage, ElMessageBox} from 'element-plus'
+import {ElMessage, ElMessageBox} from '@/composables/useToast'
 import panUtil from '@/utils/common'
 import {useBreadcrumbStore} from '@/stores/breadcrumb'
 import {useFileStore} from '@/stores/file'

@@ -241,7 +241,7 @@ import fileService from '@/api/file'
 import {clearShareToken, clearToken, getShareToken, getToken, setShareToken, setToken} from '@/utils/cookie'
 import shareService from '@/api/share'
 import {onMounted, reactive, ref} from 'vue'
-import {ElMessage, ElMessageBox} from 'element-plus'
+import {ElMessage, ElMessageBox} from '@/composables/useToast'
 import {useRoute} from 'vue-router'
 
 const route = useRoute()

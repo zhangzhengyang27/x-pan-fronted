@@ -60,7 +60,7 @@
 <script setup>
 import {onMounted, reactive, ref} from 'vue'
 import {storeToRefs} from 'pinia'
-import {ElMessage, ElMessageBox, ElNotification} from 'element-plus'
+import {ElMessage, ElMessageBox, ElNotification} from '@/composables/useToast'
 import userService from '@/api/user'
 import {clearToken} from '@/utils/cookie'
 import {useUserStore} from '@/stores/user'
