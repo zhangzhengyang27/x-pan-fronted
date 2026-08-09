@@ -1,198 +1,142 @@
-/**
-* Created by rubin on 2020/7/5.
-*/
-
-<template>
-    <div>
-        <pan-simple-header/>
-        <div class="pan-music-content">
-            <div class="music-name-content">
-                <p class="music-name">{{ musicName }}</p>
-            </div>
-            <el-divider></el-divider>
-            <el-row>
-                <el-col :span="18">
-                    <div class="record-img-content">
-                        <img class="record-img" src="@/assets/imgs/record.png">
-                    </div>
-                    <!--音频播放容器-->
-                    <div class="music-content">
-                        <audio id="r_pan_music_player" :src="musicShowPath" autoplay="true" controls="true"/>
-                    </div>
-                </el-col>
-                <el-col :span="6">
-                    <div class="music-list-content">
-                        <el-menu class="music-list"
-                                 :default-active="activeIndex"
-                                 @select="selectMusic">
-                            <el-menu-item v-for="(item, index) in musicList" :key="index" :index="item.fileId">
-                                <el-icon><Headset/></el-icon>
-                                <span slot="title">{{ item.filename }}</span>
-                            </el-menu-item>
-                        </el-menu>
-                    </div>
-                </el-col>
-            </el-row>
-        </div>
-    </div>
-</template>
-
 <script setup>
-
-import PanSimpleHeader from '@/components/simple-header/index.vue'
+/**
+ * PreviewMusic —— 音乐预览页
+ */
+import {onMounted, ref, computed, onBeforeUnmount} from 'vue'
+import {useRoute} from 'vue-router'
+import {Headphones, SkipBack, SkipForward, Play, Pause, Volume2} from '@lucide/vue'
 import fileService from '@/api/file'
 import panUtil from '@/utils/common'
-import {useRoute} from 'vue-router'
-import {onMounted, ref} from 'vue'
-import {ElMessage} from 'element-plus'
+import {ElMessage} from '@/composables/useToast'
+import BaseButton from '@/components/base/BaseButton.vue'
 
 const route = useRoute()
-const musicName = ref('')
 const musicList = ref([])
-const musicShowPath = ref('')
-const activeIndex = ref('0')
+const musicName = ref('')
+const musicSrc = ref('')
+const playing = ref(false)
+const audioRef = ref(null)
+const volume = ref(0.8)
+const activeIndex = ref('')
 
-const renderMusicList = (dataList) => {
-    musicList.value = new Array()
-    dataList.forEach((item, index) => {
-        item.filename = item.filename.substring(0, item.filename.lastIndexOf('.'))
-        if (item.filename.length > 15) {
-            item.filename = item.filename.substring(0, 16) + '...'
-        }
-        if (item.fileId === route.params.fileId) {
-            musicName.value = item.filename
-            musicShowPath.value = panUtil.getPreviewUrl(item.fileId)
-        }
-        musicList.value.push(item)
-    })
-    activeIndex.value = route.params.fileId
+function renderList(dataList) {
+  musicList.value = (dataList || []).map((it) => ({
+    ...it,
+    displayName: it.filename.length > 30 ? it.filename.slice(0, 30) + '…' : it.filename,
+  }))
+  const target = musicList.value.find((it) => it.fileId === route.params.fileId)
+  if (target) {
+    musicName.value = target.filename
+    musicSrc.value = panUtil.getPreviewUrl(target.fileId)
+    activeIndex.value = target.fileId
+  }
 }
 
-const selectNext = () => {
-    let i = '',
-        currentFileId = activeIndex.value
-    musicList.value.some((item, index) => {
-        if (item.fileId === currentFileId) {
-            i = index
-            return true
-        }
-    })
-    if (i === musicList.value.length - 1) {
-        return
-    }
-    let item = musicList.value[++i]
-    musicName.value = item.filename
-    musicShowPath.value = panUtil.getPreviewUrl(item.fileId)
-    activeIndex.value = item.fileId
+function selectMusic(fileId) {
+  const target = musicList.value.find((it) => it.fileId === fileId)
+  if (!target) return
+  musicName.value = target.filename
+  musicSrc.value = panUtil.getPreviewUrl(target.fileId)
+  activeIndex.value = fileId
+  audioRef.value?.play().catch(() => {})
 }
 
-const selectMusic = (index, indexPath) => {
-    activeIndex.value = index
-    musicList.value.some(item => {
-        if (item.fileId === index) {
-            musicName.value = item.filename
-            musicShowPath.value = panUtil.getPreviewUrl(item.fileId)
-            return true
-        }
-    })
+function toggle() {
+  if (!audioRef.value) return
+  if (audioRef.value.paused) audioRef.value.play()
+  else audioRef.value.pause()
 }
 
-const listenMusicPlayer = () => {
-    document.getElementById('r_pan_music_player').addEventListener('ended', () => {
-        selectNext()
-    }, false)
+function onTimeUpdate() {
+  playing.value = !audioRef.value?.paused
 }
 
-const init = () => {
-    fileService.list({
-        parentId: route.params.parentId,
-        fileTypes: '8'
-    }, res => {
-        if (res.code === 0) {
-            renderMusicList(res.data)
-            listenMusicPlayer()
-        } else {
-            ElMessage.error(res.message)
-        }
-    }, res => {
-        ElMessage.error(res.message)
-    })
+function onVolume(e) {
+  volume.value = Number(e.target.value)
+  if (audioRef.value) audioRef.value.volume = volume.value
+}
+
+function next() {
+  const i = musicList.value.findIndex((it) => it.fileId === activeIndex.value)
+  if (i >= 0 && i < musicList.value.length - 1) selectMusic(musicList.value[i + 1].fileId)
+}
+function prev() {
+  const i = musicList.value.findIndex((it) => it.fileId === activeIndex.value)
+  if (i > 0) selectMusic(musicList.value[i - 1].fileId)
 }
 
 onMounted(() => {
-    init()
+  fileService.preview(
+    {fileId: panUtil.handleId(route.params.parentId)},
+    renderList,
+    (res) => ElMessage.error(res.message),
+  )
 })
-
-
+onBeforeUnmount(() => audioRef.value?.pause())
 </script>
 
-<style scoped>
-.pan-music-content {
-    width: 100%;
-    margin-top: 62px;
-    display: block;
-}
+<template>
+  <div class="min-h-screen flex flex-col bg-[var(--color-bg)] text-[var(--color-text)]">
+    <!-- 顶部 -->
+    <header class="h-16 px-6 flex items-center border-b border-[var(--color-border)] bg-[var(--color-surface)]">
+      <Headphones :size="22" class="text-[var(--color-primary-600)] mr-3"/>
+      <h1 class="text-base font-semibold">音乐播放</h1>
+    </header>
 
-.pan-music-content .music-name-content {
-    display: block;
-    width: 100%;
-    text-align: center;
-    padding: 10px 0 0 0;
-}
+    <div class="flex-1 flex min-h-0">
+      <!-- 左侧：唱片 + 控件 -->
+      <div class="flex-1 flex flex-col items-center justify-center p-8 gap-8">
+        <div class="size-64 rounded-full bg-gradient-to-br from-[var(--color-primary-400)] via-[var(--color-primary-600)] to-[var(--color-primary-800)] shadow-xl flex items-center justify-center"
+             :class="playing && 'animate-[spin_8s_linear_infinite]'">
+          <div class="size-16 rounded-full bg-[var(--color-surface)] border-4 border-[var(--color-primary-800)]"/>
+        </div>
 
-.pan-music-content .music-name-content .music-name {
-    color: #409EFF;
-    font-size: 35px;
-    font-weight: bold;
-    font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", Arial, sans-serif;
-}
+        <div class="text-center">
+          <h2 class="text-xl font-semibold mb-1">{{ musicName || '未选择' }}</h2>
+          <p class="text-sm text-[var(--color-text-muted)]">R Pan 音乐</p>
+        </div>
 
-.pan-music-content .record-img-content {
-    display: inline-block;
-    width: 100%;
-    height: 100%;
-    margin-top: 80px;
-    text-align: center;
-}
+        <audio
+          ref="audioRef"
+          :src="musicSrc"
+          autoplay
+          @play="playing = true"
+          @pause="playing = false"
+          @timeupdate="onTimeUpdate"
+          @ended="next"
+          class="hidden"
+        />
 
-.pan-music-content .record-img-content .record-img {
-    width: 300px;
-}
+        <div class="flex items-center gap-3">
+          <BaseButton variant="ghost" size="lg" @click="prev"><SkipBack :size="20"/></BaseButton>
+          <BaseButton variant="primary" size="lg" class="!rounded-full !size-14" @click="toggle">
+            <Pause v-if="playing" :size="22"/>
+            <Play v-else :size="22"/>
+          </BaseButton>
+          <BaseButton variant="ghost" size="lg" @click="next"><SkipForward :size="20"/></BaseButton>
+        </div>
 
-.pan-music-content .music-content {
-    width: 100%;
-    height: 100px;
-    display: block;
-    margin-top: 60px;
-    text-align: center;
-    position: relative;
-}
+        <label class="flex items-center gap-2 text-sm text-[var(--color-text-muted)]">
+          <Volume2 :size="16"/>
+          <input type="range" min="0" max="1" step="0.01" :value="volume" @input="onVolume" class="w-32 accent-[var(--color-primary-600)]"/>
+        </label>
+      </div>
 
-.pan-music-content .music-content #r_pan_music_player {
-    display: inline-block;
-    width: 100%;
-    position: absolute;
-    bottom: 10px;
-    left: 0;
-}
-
-.pan-music-content .music-list-content {
-    display: block;
-    margin: 0 auto;
-    width: 250px;
-    height: 500px;
-    line-height: 500px;
-    overflow: hidden;
-}
-
-.pan-music-content .music-list-content .music-list {
-    width: 100%;
-    height: 100%;
-    overflow: scroll;
-}
-
-.pan-music-content .music-list i {
-    margin-right: 15px;
-}
-
-</style>
+      <!-- 右侧：播放列表 -->
+      <aside class="w-80 border-l border-[var(--color-border)] bg-[var(--color-surface)] overflow-y-auto">
+        <div class="px-5 py-3 text-sm font-medium text-[var(--color-text-muted)] border-b border-[var(--color-border)]">播放列表（{{ musicList.length }}）</div>
+        <ul class="p-2">
+          <li
+            v-for="item in musicList"
+            :key="item.fileId"
+            :class="['flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer text-sm transition-colors', activeIndex === item.fileId ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)]' : 'hover:bg-[var(--color-surface-2)]']"
+            @click="selectMusic(item.fileId)"
+          >
+            <Headphones :size="14"/>
+            <span class="truncate">{{ item.displayName }}</span>
+          </li>
+        </ul>
+      </aside>
+    </div>
+  </div>
+</template>

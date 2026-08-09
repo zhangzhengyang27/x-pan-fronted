@@ -1,7 +1,7 @@
 import {computed, ref} from 'vue'
 import {defineStore} from 'pinia'
 import fileService from '@/api/file'
-import {ElMessage} from 'element-plus'
+import {ElMessage} from '@/composables/useToast'
 
 export const useFileStore = defineStore('file', () => {
 

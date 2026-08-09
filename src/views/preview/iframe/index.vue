@@ -1,45 +1,34 @@
-<template>
-    <div>
-        <pan-simple-header/>
-        <div class="iframe-content">
-            <iframe class="iframe" :src="showPath" frameborder="0"/>
-        </div>
-    </div>
-</template>
-
 <script setup>
-
-import PanSimpleHeader from '@/components/simple-header/index.vue'
-import panUtil from '@/utils/common'
+/**
+ * PreviewIframe —— 通用 iframe 预览（PDF/文本等）
+ */
+import {computed, onMounted, ref} from 'vue'
 import {useRoute} from 'vue-router'
-import {onMounted, ref} from 'vue'
+import {FileText, ExternalLink} from '@lucide/vue'
+import panUtil from '@/utils/common'
+import BaseButton from '@/components/base/BaseButton.vue'
 
-const showPath = ref('')
 const route = useRoute()
-
-const init = () => {
-    let fileId = route.params.fileId
-    showPath.value = panUtil.getPreviewUrl(fileId)
-}
+const src = ref('')
 
 onMounted(() => {
-    init()
+  src.value = panUtil.getPreviewUrl(route.params.fileId)
 })
-
 </script>
 
-<style scoped>
-
-.iframe-content {
-    width: 100%;
-    margin-top: 62px;
-    display: block;
-    text-align: center;
-}
-
-.iframe {
-    width: 100%;
-    height: 1200px;
-}
-
-</style>
+<template>
+  <div class="min-h-screen flex flex-col bg-[var(--color-bg)]">
+    <header class="h-14 px-6 flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface)]">
+      <div class="flex items-center gap-2">
+        <FileText :size="20" class="text-[var(--color-primary-600)]"/>
+        <h1 class="text-base font-medium">文档预览</h1>
+      </div>
+      <BaseButton variant="secondary" size="sm" @click="window.open(src, '_blank')">
+        <span class="inline-flex items-center gap-1.5"><ExternalLink :size="14"/>新窗口打开</span>
+      </BaseButton>
+    </header>
+    <div class="flex-1 p-4">
+      <iframe :src="src" class="w-full h-full min-h-[calc(100vh-7rem)] rounded-xl border border-[var(--color-border)] bg-white"/>
+    </div>
+  </div>
+</template>

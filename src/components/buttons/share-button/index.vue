@@ -84,7 +84,7 @@ const props = defineProps({
 })
 
 import {reactive, ref} from 'vue'
-import {ElMessage} from 'element-plus'
+import {ElMessage} from '@/composables/useToast'
 import {useFileStore} from '@/stores/file'
 import {storeToRefs} from 'pinia'
 import shareService from '@/api/share'

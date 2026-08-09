@@ -1,838 +1,451 @@
-<template>
-    <div v-loading="pageLoading" element-loading-text="加载中..." class="pan-share-content">
-        <div class="pan-share-header-content">
-            <div class="pan-share-header-content-wrapper">
-                <div class="pan-share-header-title-font-content">
-                    <span class="pan-share-header-title-font" @click="goHome">R Pan</span>
-                </div>
-                <div v-if="loginFlag" class="pan-share-header-user-info-content">
-                    <el-link :underline=false type="success" class="pan-share-username">
-                        欢迎您,{{ username }}
-                    </el-link>
-                    <el-link :underline=false type="success" class="pan-share-exit-button" @click="exit">
-                        退出
-                    </el-link>
-                </div>
-                <div v-if="!loginFlag" class="pan-share-header-button-content">
-                    <el-link :underline=false type="primary" class="pan-share-login-button" @click="login">
-                        登录
-                    </el-link>
-                    <el-link :underline=false type="primary" class="pan-share-register-button" href="/register"
-                             target="_blank">
-                        注册
-                    </el-link>
-                </div>
-            </div>
-        </div>
-        <div class="pan-share-list-content">
-            <div class="pan-share-list-wrapper">
-                <el-card shadow="always" class="pan-share-list-card">
-                    <div v-if="!shareCancelFlag" slot="header" class="pan-share-list-card-header">
-                        <div class="pan-share-list-card-header-share-info-content">
-                            <span class="pan-share-list-card-header-share-info">{{ shareCodeHeader }}</span>
-                            <div class="pan-share-list-card-header-time">
-                                <span class="pan-share-list-card-header-create-date">
-                                    <el-icon><Clock/></el-icon>分享时间：{{ shareDate }}
-                                </span>
-                                <span class="pan-share-list-card-header-expire-date">
-                                     <el-icon><Clock/></el-icon>失效时间：{{ shareExpireDate }}</span>
-                            </div>
-                        </div>
-                        <div class="pan-share-list-card-button-group">
-                            <el-button type="success" size="default" round @click="saveFiles(undefined)">保存到我的R盘
-                                <el-icon
-                                    class="el-icon--right">
-                                    <DocumentCopy/>
-                                </el-icon>
-                            </el-button>
-                            <el-button type="info" size="default" round @click="downloadFile">下载
-                                <el-icon
-                                    class="el-icon--right">
-                                    <Download/>
-                                </el-icon>
-                            </el-button>
-                        </div>
-                        <el-divider/>
-                    </div>
-                    <div v-if="shareCancelFlag" class="pan-share-list-card-error-message">
-                        <span>Sorry,您来晚啦~ 该分享已到期或已失效~</span>
-                    </div>
-                    <div v-if="!shareCancelFlag" class="pan-share-list-card-operate-content">
-                        <div class="pan-share-list-card-operate-bread-crumb">
-                            <el-breadcrumb separator-class="el-icon-arrow-right">
-                                <el-breadcrumb-item v-for="(item, index) in breadCrumbs" :key="index">
-                                    <a class="breadcrumb-item-a" @click="goToThis(item.id)" href="#">{{ item.name }}</a>
-                                </el-breadcrumb-item>
-                            </el-breadcrumb>
-                        </div>
-                    </div>
-                    <div v-if="!shareCancelFlag" class="pan-share-list">
-                        <el-table
-                            ref="fileTableRef"
-                            :data="tableData"
-                            :height="tableHeight"
-                            tooltip-effect="dark"
-                            style="width: 100%"
-                            @selection-change="handleSelectionChange"
-                            @cell-mouse-enter="showOperation"
-                            @cell-mouse-leave="hiddenOperation"
-                        >
-                            <el-table-column
-                                type="selection"
-                                width="55">
-                            </el-table-column>
-                            <el-table-column
-                                label="文件名"
-                                prop="filename"
-                                sortable
-                                show-overflow-tooltip
-                                min-width="750">
-                                <template #default="scope">
-                                    <div @click="clickFilename(scope.row)" class="file-name-content">
-                                        <el-icon :size="20" style="margin-right: 15px; cursor: pointer;">
-                                            <component :is="getFileFontElement(scope.row.fileType)"/>
-                                        </el-icon>
-                                        <span style="cursor:pointer;">{{ scope.row.filename }}</span>
-                                    </div>
-                                    <div class="file-operation-content">
-                                        <el-tooltip class="item" effect="light" content="保存到我的R盘" placement="top">
-                                            <el-button type="success" icon="DocumentCopy" size="small" circle
-                                                       @click="saveFiles(scope.row)"/>
-                                        </el-tooltip>
-                                        <el-tooltip class="item" effect="light" content="下载" placement="top">
-                                            <el-button type="info" icon="Download" size="small" circle
-                                                       @click="doDownload(scope.row)"/>
-                                        </el-tooltip>
-                                    </div>
-                                </template>
-                            </el-table-column>
-                            <el-table-column
-                                prop="fileSizeDesc"
-                                sortable
-                                label="大小"
-                                min-width="120"
-                                align="center">
-                            </el-table-column>
-                            <el-table-column
-                                prop="updateTime"
-                                sortable
-                                align="center"
-                                label="修改日期"
-                                min-width="240">
-                            </el-table-column>
-                        </el-table>
-                    </div>
-                </el-card>
-            </div>
-        </div>
-        <el-dialog
-            title="欢迎登录"
-            v-model="loginDialogVisible"
-            @opened="focusLoginInput"
-            @closed="resetLoginForm"
-            width="30%"
-            append-to-body
-            :modal-append-to-body="false"
-            center>
-            <div>
-                <el-form label-width="100px" :rules="loginRules" ref="loginFormRef"
-                         :model="loginForm"
-                         status-icon
-                         @submit.native.prevent>
-                    <el-form-item label="用户名" prop="username">
-                        <el-input type="text"
-                                  ref="usernameEl"
-                                  @keyup.enter.native="doLogin"
-                                  v-model="loginForm.username" autocomplete="off"/>
-                    </el-form-item>
-                    <el-form-item label="密码" prop="password">
-                        <el-input type="password"
-                                  show-password
-                                  @keyup.enter.native="doLogin"
-                                  v-model="loginForm.password" autocomplete="off"/>
-                    </el-form-item>
-                </el-form>
-            </div>
-            <template #footer>
-                <span class="dialog-footer">
-                    <el-button @click="loginDialogVisible = false">取 消</el-button>
-                    <el-button type="primary" @click="doLogin" :loading="loading">确 定</el-button>
-                </span>
-            </template>
-        </el-dialog>
-        <el-dialog
-            v-model="shareCodeDialogVisible"
-            @opened="focusShareCodeInput"
-            @closed="resetShareCodeForm"
-            width="30%"
-            fullscreen
-            append-to-body
-            :modal-append-to-body="false"
-            :close-on-click-modal="false"
-            :close-on-press-escape="false"
-            :show-close="false"
-        >
-            <div class="pan-share-code-content">
-                <div class="pan-share-code-wrapper">
-                    <el-card :header="shareCodeHeader" shadow="always" class="pan-share-code-card">
-                        <el-form
-                            class="pan-share-code-form"
-                            inline
-                            :rules="shareCodeFormRules"
-                            ref="shareCodeFormRef"
-                            :model="shareCodeForm"
-                            @submit.native.prevent>
-                            <el-form-item label="提取码" prop="shareCode">
-                                <el-input type="text"
-                                          ref="shareCodeEl"
-                                          @keyup.enter.native="doCheckShareCode"
-                                          v-model="shareCodeForm.shareCode" autocomplete="off"/>
-                            </el-form-item>
-                            <el-form-item>
-                                <el-button type="primary" :loading="loading" @click="doCheckShareCode">确 定</el-button>
-                            </el-form-item>
-                        </el-form>
-                    </el-card>
-                </div>
-            </div>
-        </el-dialog>
-        <el-dialog
-            title="保存到我的R盘"
-            v-model="treeDialogVisible"
-            @open="loadTreeData"
-            @closed="resetTreeData"
-            width="30%"
-            append-to-body
-            :modal-append-to-body="false"
-            center>
-            <div class="tree-content">
-                <el-tree
-                    :data="treeData"
-                    class="tree"
-                    empty-text="暂无文件夹数据"
-                    default-expand-all
-                    highlight-current
-                    check-on-click-node
-                    :expand-on-click-node="false"
-                    ref="treeRef">
-                    <template #default="{ node, data }">
-                        <span class="custom-tree-node">
-                            <el-icon :size="20" style="margin-right: 15px; cursor: pointer;"><Folder/></el-icon>
-                            <span>{{ node.label }}</span>
-                        </span>
-                    </template>
-                </el-tree>
-            </div>
-            <template #footer>
-                <span class="dialog-footer">
-                    <el-button @click="treeDialogVisible = false">取 消</el-button>
-                    <el-button type="primary" @click="doChoseTreeNodeCallBack" :loading="loading">确 定</el-button>
-                </span>
-            </template>
-        </el-dialog>
-    </div>
-</template>
-
 <script setup>
-
+/**
+ * ShareView —— 他人分享查看页
+ * 保留所有交互逻辑（保持兼容），外观使用 Tailwind + Base 组件
+ */
 import panUtil from '@/utils/common'
 import userService from '@/api/user'
 import fileService from '@/api/file'
 import {clearShareToken, clearToken, getShareToken, getToken, setShareToken, setToken} from '@/utils/cookie'
 import shareService from '@/api/share'
 import {onMounted, reactive, ref} from 'vue'
-import {ElMessage, ElMessageBox} from 'element-plus'
+import {ElMessage, ElMessageBox} from '@/composables/useToast'
 import {useRoute} from 'vue-router'
 
+import BaseButton from '@/components/base/BaseButton.vue'
+import BaseField from '@/components/base/BaseField.vue'
+import BaseInput from '@/components/base/BaseInput.vue'
+import BaseModal from '@/components/base/BaseModal.vue'
+import BaseTable from '@/components/base/BaseTable.vue'
+import BaseTree from '@/components/base/BaseTree.vue'
+import BaseBadge from '@/components/base/BaseBadge.vue'
+import BaseDivider from '@/components/base/BaseDivider.vue'
+import {Cloud, Copy, Download, Folder, Clock, LogIn, LogOut, Save} from '@lucide/vue'
+
 const route = useRoute()
-const loginFormRef = ref(null)
 const treeRef = ref(null)
-const shareCodeFormRef = ref(null)
-const fileTableRef = ref(null)
-const usernameEl = ref(null)
 const shareCodeEl = ref(null)
+const usernameEl = ref(null)
 
-const focusLoginInput = () => {
-    usernameEl.value.focus()
-}
-
-const resetLoginForm = () => {
-    loginFormRef.value.resetFields()
-}
-
-const focusShareCodeInput = () => {
-    shareCodeEl.value.focus()
-}
-
-const resetShareCodeForm = () => {
-    shareCodeFormRef.value.resetFields()
-}
-
-const checkUsername = (rule, value, callback) => {
-        if (!panUtil.checkUsername(value)) {
-            callback('请输入6-16位只包含数字和字母的用户名')
-            return
-        }
-        callback()
-    },
-    checkPassword = (rule, value, callback) => {
-        if (!panUtil.checkPassword(value)) {
-            callback('请输入8-16位的密码')
-            return
-        }
-        callback()
-    }
-
-const loginRules = reactive({
-    username: [
-        {validator: checkUsername, trigger: 'blur'}
-    ],
-    password: [
-        {validator: checkPassword, trigger: 'blur'}
-    ]
-})
-
-const shareCodeFormRules = reactive({
-    shareCode: [
-        {required: true, message: '请输入提取码', trigger: 'blur'}
-    ]
-})
-
-const loginForm = reactive({
-    username: '',
-    password: ''
-})
+const loginForm = reactive({username: '', password: ''})
+const shareCodeForm = reactive({shareCode: ''})
 
 const loading = ref(false)
 const username = ref('')
 const loginDialogVisible = ref(false)
 const loginFlag = ref(false)
 const shareCodeDialogVisible = ref(false)
-const shareCodeForm = reactive({
-    shareCode: ''
-})
-
 const shareCodeHeader = ref('')
 const shareCancelFlag = ref(false)
 const tableData = ref([])
-const tableHeight = ref(window.innerHeight - 300)
 const multipleSelection = ref([])
 const pageLoading = ref(true)
 const shareDate = ref('')
 const shareExpireDate = ref('')
-const breadCrumbs = ref([{
-    id: '-1',
-    name: '全部文件'
-}])
+const breadCrumbs = ref([{id: '-1', name: '全部文件'}])
 const treeData = ref([])
 const treeDialogVisible = ref(false)
 const item = ref(undefined)
+const treeCheckedNode = ref(null)
 
-const refreshShareInfo = (data) => {
-    let username = data.shareUserInfoVO.username,
-        shareName = data.shareName
-    shareCodeHeader.value = username + '的分享：' + shareName
-    shareDate.value = data.createTime
-    if (data.shareDay === 0) {
-        shareExpireDate.value = '永久有效'
-    } else {
-        shareExpireDate.value = data.shareEndTime
-    }
-    tableData.value = data.rPanUserFileVOList
+const selected = ref([])
+
+// 列定义
+const columns = [
+  {key: 'filename', title: '文件名', width: 'auto'},
+  {key: 'fileSizeDesc', title: '大小', width: 120, align: 'right'},
+  {key: 'updateTime', title: '修改日期', width: 200, align: 'center'},
+  {key: 'actions', title: '操作', width: 180, align: 'right'},
+]
+
+function refreshShareInfo(data) {
+  const u = data.shareUserInfoVO.username
+  shareCodeHeader.value = u + '的分享：' + data.shareName
+  shareDate.value = data.createTime
+  shareExpireDate.value = data.shareDay === 0 ? '永久有效' : data.shareEndTime
+  tableData.value = data.rPanUserFileVOList
 }
 
-const getShareId = () => {
-    return route.params.shareId
+const getShareId = () => route.params.shareId
+const openShareExpirePage = () => (shareCancelFlag.value = true)
+
+function openShareCodePage() {
+  shareService.getSimpleShareDetail(
+    {shareId: getShareId()},
+    (res) => {
+      if (res.code === 0) {
+        shareCodeDialogVisible.value = true
+        shareCodeHeader.value = res.data.shareUserInfoVO.username + '的分享：' + res.data.shareName
+      } else {
+        shareCodeDialogVisible.value = false
+        openShareExpirePage()
+      }
+    },
+  )
 }
 
-const openShareExpirePage = () => {
-    shareCancelFlag.value = true
+function loadShareInfo() {
+  shareService.getShareDetail(
+    (res) => {
+      if (res.code === 0) refreshShareInfo(res.data)
+      else if (res.code === 4) openShareCodePage()
+      else openShareExpirePage()
+    },
+  )
 }
 
-const openShareCodePage = () => {
-    shareService.getSimpleShareDetail({
-        shareId: getShareId()
-    }, res => {
-        if (res.code === 0) {
-            shareCodeDialogVisible.value = true
-            shareCodeHeader.value = res.data.shareUserInfoVO.username + '的分享：' + res.data.shareName
-        } else {
-            shareCodeDialogVisible.value = false
-            openShareExpirePage()
-        }
-    })
+function loadUserInfo() {
+  userService.infoWithoutPageJump(
+    (res) => {
+      if (res.code === 0) {
+        username.value = res.data.username
+        loginFlag.value = true
+      } else {
+        username.value = ''
+        loginFlag.value = false
+      }
+    },
+  )
 }
 
-const loadShareInfo = () => {
-    shareService.getShareDetail(res => {
-        if (res.code === 0) {
-            refreshShareInfo(res.data)
-        } else if (res.code === 4) {
-            openShareCodePage()
-        } else {
-            openShareExpirePage()
-        }
-    })
+function login() {
+  loginDialogVisible.value = true
 }
 
-const loadUserInfo = () => {
-    userService.infoWithoutPageJump(res => {
-        if (res.code === 0) {
-            username.value = res.data.username
-            loginFlag.value = true
-        } else {
-            username.value = ''
-            loginFlag.value = false
-        }
-    })
+function exit() {
+  if (!window.confirm('确定要退出登录吗？')) return
+  userService.exit(
+    () => {
+      clearToken()
+      loginFlag.value = false
+      username.value = ''
+    },
+    (res) => ElMessage.error(res.message),
+  )
 }
 
-const login = () => {
-    loginDialogVisible.value = true
+function doLogin() {
+  if (!panUtil.checkUsername(loginForm.username)) return ElMessage.error('请输入6-16位只包含数字和字母的用户名')
+  if (!panUtil.checkPassword(loginForm.password)) return ElMessage.error('请输入8-16位的密码')
+  loading.value = true
+  userService.login(
+    {username: loginForm.username, password: loginForm.password},
+    (res) => {
+      loading.value = false
+      setToken(res.data)
+      loginDialogVisible.value = false
+      loadUserInfo()
+    },
+    (res) => {
+      loading.value = false
+      ElMessage.error(res.message)
+    },
+  )
 }
 
-const exit = () => {
-    ElMessageBox.confirm('确定要退出登录吗?', '提示', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-    }).then(() => {
-        userService.exit(() => {
-            clearToken()
-            loginFlag.value = false
-            username.value = ''
-        }, res => {
-            ElMessage.error(res.message)
-        })
-    })
-}
-
-
-const doLogin = async () => {
-    await loginFormRef.value.validate((valid, fields) => {
-        if (valid) {
-            loading.value = true
-            userService.login({
-                username: loginForm.username,
-                password: loginForm.password
-            }, res => {
-                loading.value = false
-                setToken(res.data)
-                loginDialogVisible.value = false
-                loadUserInfo()
-            }, res => {
-                loading.value = false
-                ElMessage.error(res.message)
-            })
-        }
-    })
-}
-
-const goHome = () => {
-    window.location.href = '/'
-}
-
-const doCheckShareCode = async () => {
-    await shareCodeFormRef.value.validate((valid) => {
-        if (valid) {
-            loading.value = true
-            shareService.checkShareCode({
-                shareId: getShareId(),
-                shareCode: shareCodeForm.shareCode
-            }, res => {
-                if (res.code === 0) {
-                    loading.value = false
-                    setShareToken(res.data)
-                    shareCodeDialogVisible.value = false
-                    loadShareInfo()
-                } else {
-                    loading.value = false
-                    ElMessage.error(res.message)
-                }
-            })
-        }
-    })
-}
-
-const handleSelectionChange = (newMultipleSelection) => {
-    multipleSelection.value = newMultipleSelection
-}
-
-const showOperation = (row, column, cell, event) => {
-    panUtil.showOperation(cell)
-}
-
-const hiddenOperation = (row, column, cell, event) => {
-    panUtil.hiddenOperation(cell)
-}
-
-const clickFilename = (row) => {
-    if (row.folderFlag === 1) {
-        goInFolder(row)
-    }
-}
-
-const goInFolder = (row) => {
-    breadCrumbs.value.push({
-        id: row.fileId,
-        name: row.filename
-    })
-    reloadTableData(row.fileId)
-}
-
-const reloadTableData = (parentId) => {
-    shareService.getShareFiles({
-        parentId: parentId
-    }, res => {
-        if (res.code === 0) {
-            tableData.value = res.data
-        } else {
-            window.location.reload()
-        }
-    })
-}
-
-const goToThis = (id) => {
-    if (id === '-1') {
-        breadCrumbs.value = [{
-            id: '-1',
-            name: '全部文件'
-        }]
+function doCheckShareCode() {
+  if (!shareCodeForm.shareCode) return ElMessage.error('请输入提取码')
+  loading.value = true
+  shareService.checkShareCode(
+    {shareId: getShareId(), shareCode: shareCodeForm.shareCode},
+    (res) => {
+      if (res.code === 0) {
+        loading.value = false
+        setShareToken(res.data)
+        shareCodeDialogVisible.value = false
         loadShareInfo()
-    } else {
-        let newBreadCrumbs = new Array()
-        breadCrumbs.value.some(item => {
-            newBreadCrumbs.push(item)
-            if (item.id === id) {
-                return true
-            }
-        })
-        breadCrumbs.value = newBreadCrumbs
-        reloadTableData(id)
-    }
-}
-
-const downloadFile = () => {
-    if (!multipleSelection.value || multipleSelection.value.length === 0) {
-        ElMessage.error('请选择要下载的文件')
-        return
-    }
-    for (let i = 0, iLength = multipleSelection.value.length; i < iLength; i++) {
-        if (multipleSelection.value[i].folderFlag === 1) {
-            ElMessage.error('文件夹暂不支持下载')
-            return
-        }
-    }
-    doDownLoads(multipleSelection.value)
-}
-
-const doDownLoads = (items, i) => {
-    if (!i) {
-        i = 0
-    }
-    if (items.length === i) {
-        return
-    }
-    setTimeout(function () {
-        doDownload(items[i]);
-        i++
-        doDownLoads(items, i)
-    }, 500);
-}
-
-const doDownload = (item) => {
-    if (item.folderFlag === 1) {
-        ElMessage.error('文件夹暂不支持下载')
-        return
-    }
-    userService.infoWithoutPageJump(res => {
-        if (res.code === 0) {
-            shareService.getSimpleShareDetail({
-                shareId: getShareId()
-            }, res => {
-                if (res.code === 0) {
-                    let url = panUtil.getUrlPrefix() + '/share/file/download?fileId=' + item.fileId.replace(/\+/g, '%2B') + '&shareToken=' + getShareToken() + '&authorization=' + getToken(),
-                        filename = item.filename,
-                        link = document.createElement('a')
-                    link.style.display = 'none'
-                    link.href = url
-                    link.setAttribute('download', filename)
-                    document.body.appendChild(link)
-                    link.click()
-                    document.body.removeChild(link)
-                } else {
-                    window.location.reload()
-                }
-            })
-        } else {
-            loadUserInfo()
-            login()
-        }
-    })
-}
-
-const resetTreeData = () => {
-    treeData.value = new Array()
-    item.value = undefined
-}
-
-const loadTreeData = () => {
-    fileService.getFolderTree(res => {
-        treeData.value = res.data
-    }, res => {
+      } else {
+        loading.value = false
         ElMessage.error(res.message)
-    })
+      }
+    },
+  )
 }
 
-const doChoseTreeNodeCallBack = () => {
-    loading.value = true
-    let checkNode = treeRef.value.getCurrentNode()
-    if (!checkNode) {
-        ElMessage.error('请选择文件夹')
-        loading.value = false
-        return
+function handleSelectionChange(keys) {
+  const rows = tableData.value.filter((r, i) => keys.includes(r.fileId ?? i))
+  multipleSelection.value = rows
+}
+
+function clickFilename(row) {
+  if (row.folderFlag === 1) goInFolder(row)
+}
+
+function goInFolder(row) {
+  breadCrumbs.value.push({id: row.fileId, name: row.filename})
+  reloadTableData(row.fileId)
+}
+
+function reloadTableData(parentId) {
+  shareService.getShareFiles(
+    {parentId},
+    (res) => {
+      if (res.code === 0) tableData.value = res.data
+      else window.location.reload()
+    },
+  )
+}
+
+function goToThis(id) {
+  if (id === '-1') {
+    breadCrumbs.value = [{id: '-1', name: '全部文件'}]
+    loadShareInfo()
+  } else {
+    const next = []
+    for (const it of breadCrumbs.value) {
+      next.push(it)
+      if (it.id === id) break
     }
-    doSaveFiles(checkNode.id)
+    breadCrumbs.value = next
+    reloadTableData(id)
+  }
 }
 
-const saveFiles = (newItem) => {
-    if (newItem) {
-        item.value = newItem
-    } else if (!multipleSelection.value || multipleSelection.value.length === 0) {
-        ElMessage.error('请选择要保存的文件')
-        return
-    }
-    userService.infoWithoutPageJump(res => {
-        if (res.code === 0) {
-            treeDialogVisible.value = true
-        } else {
-            login()
-        }
-    })
+function downloadFile() {
+  if (!multipleSelection.value.length) return ElMessage.error('请选择要下载的文件')
+  for (const it of multipleSelection.value) if (it.folderFlag === 1) return ElMessage.error('文件夹暂不支持下载')
+  doDownLoads(multipleSelection.value)
 }
 
-const doSaveFiles = (targetParentId) => {
-    let fileIds = ''
-    if (item.value) {
-        fileIds = item.value.fileId
-    } else {
-        let fileIdArr = new Array()
-        multipleSelection.value.forEach(item => {
-            fileIdArr.push(item.fileId)
+function doDownLoads(items, i = 0) {
+  if (items.length === i) return
+  setTimeout(() => {
+    doDownload(items[i])
+    doDownLoads(items, i + 1)
+  }, 500)
+}
+
+function doDownload(item) {
+  if (item.folderFlag === 1) return ElMessage.error('文件夹暂不支持下载')
+  userService.infoWithoutPageJump(
+    (res) => {
+      if (res.code === 0) {
+        shareService.getSimpleShareDetail({shareId: getShareId()}, (res) => {
+          if (res.code === 0) {
+            const url = `${panUtil.getUrlPrefix()}/share/file/download?fileId=${item.fileId.replace(/\+/g, '%2B')}&shareToken=${getShareToken()}&authorization=${getToken()}`
+            const link = document.createElement('a')
+            link.style.display = 'none'
+            link.href = url
+            link.setAttribute('download', item.filename)
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+          } else window.location.reload()
         })
-        fileIds = fileIdArr.join('__,__')
-    }
-    shareService.saveShareFiles({
-        fileIds: fileIds,
-        targetParentId: targetParentId
-    }, res => {
-        if (res.code === 0) {
-            ElMessage.success('保存成功')
-            treeDialogVisible.value = false
-        } else if (res.code === 10) {
-            treeDialogVisible.value = false
-            loadUserInfo()
-            login()
-        } else {
-            ElMessage.error(res.message)
-        }
-        loading.value = false
-    })
+      } else {
+        loadUserInfo()
+        login()
+      }
+    },
+  )
 }
 
-const getFileFontElement = (type) => {
-    return panUtil.getFileFontElement(type)
+function loadTreeData() {
+  fileService.getFolderTree(
+    (res) => (treeData.value = res.data || []),
+    (res) => ElMessage.error(res.message),
+  )
+}
+
+function doChoseTreeNodeCallBack() {
+  if (!treeCheckedNode.value) return ElMessage.error('请选择文件夹')
+  loading.value = true
+  doSaveFiles(treeCheckedNode.value.id)
+}
+
+function saveFiles(newItem) {
+  if (newItem) item.value = newItem
+  else if (!multipleSelection.value.length) return ElMessage.error('请选择要保存的文件')
+  userService.infoWithoutPageJump(
+    (res) => {
+      if (res.code === 0) treeDialogVisible.value = true
+      else login()
+    },
+  )
+}
+
+function doSaveFiles(targetParentId) {
+  let fileIds = ''
+  if (item.value) fileIds = item.value.fileId
+  else fileIds = multipleSelection.value.map((it) => it.fileId).join('__,__')
+  shareService.saveShareFiles(
+    {fileIds, targetParentId},
+    (res) => {
+      if (res.code === 0) {
+        ElMessage.success('保存成功')
+        treeDialogVisible.value = false
+      } else if (res.code === 10) {
+        treeDialogVisible.value = false
+        loadUserInfo()
+        login()
+      } else ElMessage.error(res.message)
+      loading.value = false
+    },
+  )
 }
 
 onMounted(() => {
-    clearShareToken()
-    loadShareInfo()
-    loadUserInfo()
-    pageLoading.value = false
+  clearShareToken()
+  loadShareInfo()
+  loadUserInfo()
+  pageLoading.value = false
 })
-
 </script>
 
-<style>
+<template>
+  <div class="min-h-screen flex flex-col bg-[var(--color-bg)]">
+    <!-- Header -->
+    <header class="sticky top-0 z-40 h-16 bg-[var(--color-surface)]/80 backdrop-blur border-b border-[var(--color-border)] px-6 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="size-9 rounded-xl bg-gradient-to-br from-[var(--color-primary-500)] to-[var(--color-primary-700)] flex items-center justify-center">
+          <Cloud :size="18" class="text-white" :stroke-width="2.25"/>
+        </div>
+        <span class="text-lg font-semibold">R Pan · 分享</span>
+      </div>
+      <div v-if="loginFlag" class="flex items-center gap-3 text-sm">
+        <span class="text-[var(--color-text-muted)]">欢迎您，{{ username }}</span>
+        <BaseButton variant="ghost" size="sm" @click="exit">
+          <span class="inline-flex items-center gap-1.5"><LogOut :size="14"/>退出</span>
+        </BaseButton>
+      </div>
+      <div v-else class="flex items-center gap-2">
+        <BaseButton variant="ghost" size="sm" @click="login">
+          <span class="inline-flex items-center gap-1.5"><LogIn :size="14"/>登录</span>
+        </BaseButton>
+        <BaseButton variant="primary" size="sm" @click="window.location.href='/register'">注册</BaseButton>
+      </div>
+    </header>
 
-.pan-share-content {
-    overflow: hidden;
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    min-width: 1103px;
-    background: #f7f7f7;
-    transition: background 1s ease;
-    font: 12px/1.5 "Microsoft YaHei", arial, SimSun, "宋体";
-    width: 100%;
-    height: 100%;
-}
+    <!-- Main -->
+    <main class="flex-1 px-6 py-8 mx-auto w-full max-w-5xl">
+      <div v-if="shareCancelFlag" class="py-20 text-center">
+        <p class="text-xl text-[var(--color-danger)] font-medium">Sorry, 您来晚啦~ 该分享已到期或已失效~</p>
+      </div>
 
-.pan-share-content .pan-share-header-content {
-    top: 0;
-    left: 0;
-    width: 100%;
-    z-index: 41;
-    position: fixed;
-}
+      <div v-else class="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm overflow-hidden">
+        <!-- Header -->
+        <div class="px-6 py-5 border-b border-[var(--color-border)] flex items-start justify-between gap-4">
+          <div class="flex-1 min-w-0">
+            <h2 class="text-lg font-semibold text-[var(--color-success)] truncate">{{ shareCodeHeader }}</h2>
+            <div class="mt-2 flex items-center gap-4 text-xs text-[var(--color-text-muted)] flex-wrap">
+              <span class="inline-flex items-center gap-1"><Clock :size="12"/>分享时间：{{ shareDate }}</span>
+              <span class="inline-flex items-center gap-1" :class="shareExpireDate === '永久有效' ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]'">
+                <Clock :size="12"/>失效时间：{{ shareExpireDate }}
+              </span>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <BaseButton variant="primary" @click="saveFiles(undefined)">
+              <span class="inline-flex items-center gap-1.5"><Save :size="14"/>保存到我的 R 盘</span>
+            </BaseButton>
+            <BaseButton variant="secondary" @click="downloadFile">
+              <span class="inline-flex items-center gap-1.5"><Download :size="14"/>下载</span>
+            </BaseButton>
+          </div>
+        </div>
 
-.pan-share-content .pan-share-header-content .pan-share-header-content-wrapper {
-    height: 62px;
-    line-height: 62px;
-    position: relative;
-    background: #fff;
-    box-shadow: 0 2px 6px 0 rgba(0, 0, 0, .05);
-    -webkit-transition: background 1s ease;
-    -moz-transition: background 1s ease;
-    -o-transition: background 1s ease;
-    transition: background 1s ease;
-}
+        <!-- Breadcrumb -->
+        <div class="px-6 py-3 flex items-center gap-1.5 text-sm">
+          <button
+            v-for="(bc, i) in breadCrumbs"
+            :key="i"
+            type="button"
+            :class="['px-1.5 py-0.5 rounded transition-colors', i === breadCrumbs.length - 1 ? 'text-[var(--color-text)] font-medium cursor-default' : 'text-[var(--color-primary-600)] hover:underline hover:bg-[var(--color-primary-50)]']"
+            :disabled="i === breadCrumbs.length - 1"
+            @click="goToThis(bc.id)"
+          >
+            {{ bc.name }}
+          </button>
+        </div>
 
-.pan-share-content .pan-share-header-content .pan-share-header-content-wrapper .pan-share-header-title-font-content {
-    display: inline-block;
-    position: absolute;
-    left: 40px;
-}
+        <!-- Table -->
+        <div class="px-6 pb-6">
+          <BaseTable
+            :columns="columns"
+            :data="tableData"
+            :selected="selected"
+            selectable
+            row-key="fileId"
+            empty-text="该文件夹为空"
+            @update:selected="(v) => { selected = v; handleSelectionChange(v) }"
+          >
+            <template #cell-filename="{row}">
+              <button
+                type="button"
+                class="flex items-center gap-3 text-left w-full"
+                :class="row.folderFlag === 1 ? 'cursor-pointer' : 'cursor-default'"
+                @click="clickFilename(row)"
+              >
+                <component
+                  :is="row.folderFlag === 1 ? Folder : Save"
+                  :size="20"
+                  class="text-[var(--color-primary-500)] shrink-0"
+                />
+                <span class="truncate text-[var(--color-text)]">{{ row.filename }}</span>
+              </button>
+            </template>
+            <template #cell-actions="{row}">
+              <div class="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                <BaseButton variant="primary" size="sm" @click="saveFiles(row)" title="保存到我的R盘">
+                  <Copy :size="14"/>
+                </BaseButton>
+                <BaseButton variant="secondary" size="sm" @click="doDownload(row)" title="下载">
+                  <Download :size="14"/>
+                </BaseButton>
+              </div>
+            </template>
+          </BaseTable>
+        </div>
+      </div>
+    </main>
 
-.pan-share-content .pan-share-header-content .pan-share-header-content-wrapper .pan-share-header-title-font-content .pan-share-header-title-font {
-    font-size: 40px;
-    font-weight: bolder;
-    cursor: pointer;
-    color: #F56C6C;
-}
+    <!-- 登录弹窗 -->
+    <BaseModal v-model:open="loginDialogVisible" title="欢迎登录" size="md">
+      <div class="flex flex-col gap-4">
+        <BaseField label="用户名">
+          <BaseInput v-model="loginForm.username" placeholder="6-16 位字母数字" :prefix="LogIn" @enter="doLogin"/>
+        </BaseField>
+        <BaseField label="密码">
+          <BaseInput v-model="loginForm.password" type="password" show-password placeholder="8-16 位" @enter="doLogin"/>
+        </BaseField>
+      </div>
+      <template #footer>
+        <BaseButton variant="secondary" @click="loginDialogVisible = false">取消</BaseButton>
+        <BaseButton variant="primary" :loading="loading" @click="doLogin">确定</BaseButton>
+      </template>
+    </BaseModal>
 
-.pan-share-content .pan-share-header-content .pan-share-header-content-wrapper .pan-share-header-user-info-content {
-    display: inline-block;
-    position: absolute;
-    right: 100px;
-}
+    <!-- 提取码弹窗 -->
+    <BaseModal v-model:open="shareCodeDialogVisible" size="md" :hide-close="true">
+      <div class="text-center py-2">
+        <div class="size-12 mx-auto rounded-2xl bg-[var(--color-primary-50)] dark:bg-[var(--color-primary-900)]/30 flex items-center justify-center mb-4 text-[var(--color-primary-600)]">
+          <Folder :size="22"/>
+        </div>
+        <h3 class="text-base font-semibold m-0 mb-1">{{ shareCodeHeader }}</h3>
+        <p class="text-sm text-[var(--color-text-muted)] mb-6">请输入提取码以查看分享</p>
+        <BaseField label="提取码" class="text-left">
+          <BaseInput v-model="shareCodeForm.shareCode" placeholder="请输入提取码" @enter="doCheckShareCode"/>
+        </BaseField>
+      </div>
+      <template #footer>
+        <BaseButton variant="primary" :loading="loading" block @click="doCheckShareCode">确定</BaseButton>
+      </template>
+    </BaseModal>
 
-.pan-share-content .pan-share-header-content .pan-share-header-content-wrapper .pan-share-header-user-info-content .pan-share-username {
-    margin-right: 20px;
-}
-
-.pan-share-content .pan-share-header-content .pan-share-header-content-wrapper .pan-share-header-button-content {
-    display: inline-block;
-    position: absolute;
-    right: 100px;
-}
-
-.pan-share-content .pan-share-header-content .pan-share-header-content-wrapper .pan-share-header-button-content .pan-share-login-button {
-    margin-right: 20px;
-}
-
-.pan-share-code-content {
-    width: 100%;
-    height: 300px;
-}
-
-.pan-share-code-content .pan-share-code-wrapper {
-    height: 300px;
-    width: 450px;
-    margin: 0 auto;
-    position: relative;
-    top: 50%;
-}
-
-.pan-share-code-content .pan-share-code-wrapper .pan-share-code-card {
-    width: 100%;
-    height: 100%;
-    border-radius: 30px;
-}
-
-.pan-share-code-content .pan-share-code-wrapper .pan-share-code-card .pan-share-code-form {
-    position: absolute;
-    top: 40%;
-}
-
-.pan-share-content .pan-share-list-content {
-    width: 100%;
-    margin-top: 82px;
-}
-
-.pan-share-content .pan-share-list-content .pan-share-list-wrapper {
-    width: 80%;
-    margin: 0 auto;
-}
-
-.pan-share-content .pan-share-list-content .pan-share-list-wrapper .pan-share-list-card {
-    width: 100%;
-    border-radius: 30px;
-}
-
-.pan-share-content .pan-share-list-content .pan-share-list-wrapper .pan-share-list-card .pan-share-list-card-header {
-    padding: 10px 20px 0 0;
-}
-
-.pan-share-content .pan-share-list-content .pan-share-list-wrapper .pan-share-list-card .pan-share-list-card-header .pan-share-list-card-button-group {
-    display: inline-block;
-    float: right;
-    margin-right: 20px;
-}
-
-.pan-share-content .pan-share-list-content .pan-share-list-wrapper .pan-share-list-card .pan-share-list-card-header .pan-share-list-card-header-share-info-content {
-    display: inline-block;
-}
-
-.pan-share-content .pan-share-list-content .pan-share-list-wrapper .pan-share-list-card .pan-share-list-card-header .pan-share-list-card-header-share-info-content .pan-share-list-card-header-share-info {
-    color: #67C23A;
-    font-size: 18px;
-    margin-right: 10px;
-}
-
-.pan-share-content .pan-share-list-content .pan-share-list-wrapper .pan-share-list-card .pan-share-list-card-header .pan-share-list-card-header-share-info-content .pan-share-list-card-header-time {
-    margin-top: 10px;
-}
-
-.pan-share-content .pan-share-list-content .pan-share-list-wrapper .pan-share-list-card .pan-share-list-card-header .pan-share-list-card-header-share-info-content .pan-share-list-card-header-time .pan-share-list-card-header-create-date {
-    color: #909399;
-    margin-right: 15px;
-}
-
-.pan-share-content .pan-share-list-content .pan-share-list-wrapper .pan-share-list-card .pan-share-list-card-header .pan-share-list-card-header-share-info-content .pan-share-list-card-header-time .pan-share-list-card-header-expire-date {
-    color: #F56C6C;
-}
-
-.pan-share-content .pan-share-list-content .pan-share-list-wrapper .pan-share-list-card .pan-share-list-card-error-message {
-    width: 100%;
-    height: 300px;
-    padding-top: 50px;
-    text-align: center;
-    color: #F56C6C;
-    font-size: 30px;
-}
-
-.pan-share-content .pan-share-list-content .pan-share-list-wrapper .pan-share-list-card .pan-share-list-card-operate-content {
-    height: 30px;
-    line-height: 30px;
-    padding: 0 30px 0 0;
-}
-
-span {
-    font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", Arial, sans-serif;
-}
-
-.breadcrumb-item-a {
-    cursor: pointer !important;
-    color: #409EFF !important;
-}
-
-.tree-content {
-    height: 400px;
-}
-
-.tree-content .tree {
-    height: 100%;
-    overflow: auto;
-}
-
-.file-operation-content {
-    display: none;
-    position: absolute;
-    right: 100px;
-    top: 8px;
-}
-
-</style>
+    <!-- 文件夹选择 -->
+    <BaseModal v-model:open="treeDialogVisible" title="保存到我的 R 盘" size="md">
+      <div class="max-h-96 overflow-y-auto">
+        <BaseTree
+          v-if="treeData.length > 0"
+          :data="treeData"
+          @select="(n) => (treeCheckedNode = n)"
+        />
+        <p v-else class="text-center text-sm text-[var(--color-text-muted)] py-8">暂无文件夹数据</p>
+      </div>
+      <template #footer>
+        <BaseButton variant="secondary" @click="treeDialogVisible = false">取消</BaseButton>
+        <BaseButton variant="primary" :loading="loading" @click="doChoseTreeNodeCallBack">确定</BaseButton>
+      </template>
+    </BaseModal>
+  </div>
+</template>

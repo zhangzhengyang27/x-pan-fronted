@@ -1,33 +1,31 @@
-<template>
-    <div class="pan-content">
-        <pan-header/>
-        <pan-navbar/>
-        <pan-app-main/>
-        <pan-footer/>
-    </div>
-</template>
-
 <script setup>
-import PanHeader from '@/components/header/index.vue'
-import PanNavbar from '@/components/navbar/index.vue'
-import PanAppMain from '@/components/app-main/index.vue'
-import PanFooter from '@/components/footer/index.vue'</script>
+/**
+ * AppLayout —— 主布局
+ * Header + (Navbar + AppMain) + Footer
+ */
+import AppHeader from '@/components/header/index.vue'
+import AppNavbar from '@/components/navbar/index.vue'
+import AppFooter from '@/components/footer/index.vue'
+import AppMain from '@/components/app-main/index.vue'
+</script>
 
-<style scoped>
-.pan-content {
-    overflow: hidden;
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    min-width: 1103px;
-    background: #f7f7f7;
-    transition: background 1s ease;
-    font: 12px/1.5 "Microsoft YaHei", arial, SimSun, "宋体";
-}
-
-div {
-    display: block;
-}
-</style>
+<template>
+  <div class="h-full w-full flex flex-col bg-[var(--color-bg)] text-[var(--color-text)]">
+    <AppHeader/>
+    <div class="flex-1 flex min-h-0">
+      <AppNavbar/>
+      <main class="flex-1 min-w-0 flex flex-col">
+        <div class="flex-1 min-h-0 overflow-y-auto">
+          <div class="px-6 pb-6 pt-2 mx-auto w-full max-w-[1600px]">
+            <RouterView v-slot="{Component, route}">
+              <Transition name="route-fade" mode="out-in">
+                <component :is="Component" :key="route.path"/>
+              </Transition>
+            </RouterView>
+          </div>
+        </div>
+        <AppFooter/>
+      </main>
+    </div>
+  </div>
+</template>

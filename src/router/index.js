@@ -5,7 +5,7 @@ import {getToken} from '@/utils/cookie'
 import userService from '@/api/user'
 import {useUserStore} from '@/stores/user'
 import {useFileStore} from '@/stores/file'
-import {ElMessage} from 'element-plus'
+import {ElMessage} from '@/composables/useToast'
 
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),

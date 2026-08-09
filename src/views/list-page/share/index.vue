@@ -1,221 +1,134 @@
-<template>
-    <div>
-        <div class="share-button-content">
-            <div class="cancel-button-content">
-                <el-button type="danger" size="default" round @click="cancelShares">
-                    取消分享
-                    <el-icon class="el-icon--right">
-                        <SwitchButton/>
-                    </el-icon>
-                </el-button>
-            </div>
-        </div>
-        <div class="share-list-content">
-            <el-table
-                ref="shareTable"
-                v-loading="tableLoading"
-                :data="tableData"
-                :height="tableHeight"
-                tooltip-effect="dark"
-                style="width: 100%"
-                @selection-change="handleSelectionChange"
-                @cell-mouse-enter="showOperation"
-                @cell-mouse-leave="hiddenOperation"
-            >
-                <el-table-column
-                    type="selection"
-                    width="55">
-                </el-table-column>
-                <el-table-column
-                    label="分享名称"
-                    prop="shareName"
-                    sortable
-                    show-overflow-tooltip
-                    min-width="750">
-                    <template #default="scope">
-                        <div class="share-name-content">
-                            <el-icon :size="20" style="margin-right: 15px; cursor: pointer;">
-                                <Share/>
-                            </el-icon>
-                            <span style="cursor:pointer;">{{ scope.row.shareName }}</span>
-                        </div>
-                        <div class="share-operation-content">
-                            <el-tooltip class="item" effect="light" content="复制链接" placement="top">
-                                <el-button type="success" size="small" circle @click="copy(scope.row)" icon="Link">
-                                </el-button>
-                            </el-tooltip>
-                            <el-tooltip class="item" effect="light" content="取消分享" placement="top">
-                                <el-button type="danger" size="small" circle @click="cancelShare(scope.row)"
-                                           icon="SwitchButton">
-                                </el-button>
-                            </el-tooltip>
-                        </div>
-                    </template>
-                </el-table-column>
-                <el-table-column
-                    prop="shareUrl"
-                    sortable
-                    align="center"
-                    label="分享链接"
-                    min-width="300">
-                    <template #default="scope">
-                        <el-link type="primary" :href="scope.row.shareUrl" target="_blank">
-                            {{ scope.row.shareUrl.substring(0, 30) + '...' }}
-                        </el-link>
-                    </template>
-                </el-table-column>
-                <el-table-column
-                    prop="shareCode"
-                    sortable
-                    align="center"
-                    label="提取码"
-                    min-width="140">
-                </el-table-column>
-                <el-table-column
-                    prop="createTime"
-                    sortable
-                    align="center"
-                    label="分享时间"
-                    min-width="240">
-                </el-table-column>
-                <el-table-column
-                    prop="shareStatus"
-                    sortable
-                    label="分享状态"
-                    min-width="240"
-                    align="center"
-                    :formatter="formatShareStatus">
-                </el-table-column>
-            </el-table>
-        </div>
-    </div>
-</template>
-
 <script setup>
-
-import shareService from '@/api/share'
-import panUtil from '@/utils/common'
+/**
+ * ShareListPage —— 我的分享列表
+ */
 import {onMounted, ref} from 'vue'
-import {useFileStore} from '@/stores/file'
-import {ElMessage, ElMessageBox} from 'element-plus'
-
-const toClipboard = async (text) => {
-    await navigator.clipboard.writeText(text)
-}
-
-const fileStore = useFileStore()
+import {Share2, Link as LinkIcon, X} from '@lucide/vue'
+import shareService from '@/api/share'
+import {ElMessage, ElMessageBox} from '@/composables/useToast'
+import BaseTable from '@/components/base/BaseTable.vue'
+import BaseButton from '@/components/base/BaseButton.vue'
+import BaseBadge from '@/components/base/BaseBadge.vue'
+import BaseTooltip from '@/components/base/BaseTooltip.vue'
 
 const tableData = ref([])
-const tableHeight = ref(window.innerHeight - 200)
-const multipleSelection = ref([])
+const selected = ref([])
 const tableLoading = ref(true)
 
-const loadTableData = () => {
-    tableLoading.value = true
-    shareService.getShares(res => {
-        tableLoading.value = false
-        tableData.value = res.data
-    }, res => {
-        tableLoading.value = false
-        ElMessage.error(res.message)
-    })
+const columns = [
+  {key: 'shareName', title: '分享名称', width: 'auto'},
+  {key: 'shareUrl', title: '分享链接', width: 320, align: 'center'},
+  {key: 'shareCode', title: '提取码', width: 120, align: 'center'},
+  {key: 'createTime', title: '分享时间', width: 180, align: 'center'},
+  {key: 'shareStatusText', title: '状态', width: 160, align: 'center'},
+  {key: 'actions', title: '操作', width: 120, align: 'right'},
+]
+
+function loadTableData() {
+  tableLoading.value = true
+  shareService.getShares(
+    (res) => {
+      tableLoading.value = false
+      tableData.value = (res.data || []).map((row) => ({
+        ...row,
+        shareStatusText: formatStatus(row),
+      }))
+    },
+    (res) => {
+      tableLoading.value = false
+      ElMessage.error(res.message)
+    },
+  )
 }
 
-onMounted(() => {
-    fileStore.setSearchFlag(false)
-    loadTableData()
-})
-
-const doCancelShares = (shareIds) => {
-    ElMessageBox.confirm('分享取消后将不可恢复，您确定这样做吗？', '取消分享', {
-        confirmButtonText: '确认',
-        cancelButtonText: '取消',
-        type: 'warning'
-    }).then(() => {
-        shareService.cancelShare({
-            shareIds: shareIds
-        }, () => {
-            ElMessage.success('取消分享成功')
-            loadTableData()
-        }, res => {
-            ElMessage.error(res.message)
-        })
-    })
+function formatStatus(row) {
+  if (row.shareStatus === 1) return {label: '有分享文件被删除', variant: 'warning'}
+  if (row.shareDayType === 0) return {label: '永久有效', variant: 'success'}
+  return {label: `${row.shareEndTime} 到期`, variant: 'neutral'}
 }
 
-const cancelShares = () => {
-    if (multipleSelection.value && multipleSelection.value.length > 0) {
-        let shareIdArr = new Array()
-        multipleSelection.value.forEach(item => {
-            shareIdArr.push(item.shareId)
-        })
-        doCancelShares(shareIdArr.join('__,__'))
-        return
-    }
-    ElMessage.error('请选择要取消的分享')
+function copyShare(row) {
+  const text = `链接：${row.shareUrl}\n提取码：${row.shareCode}\n赶快分享给小伙伴吧！`
+  navigator.clipboard.writeText(text)
+    .then(() => ElMessage.success('已复制'))
+    .catch(() => ElMessage.error('复制失败'))
 }
 
-
-const cancelShare = (row) => {
-    doCancelShares(row.shareId)
+function doCancelShares(shareIds) {
+  if (!window.confirm('分享取消后将不可恢复，您确定这样做吗？')) return
+  shareService.cancelShare(
+    {shareIds},
+    () => {
+      ElMessage.success('取消分享成功')
+      loadTableData()
+    },
+    (res) => ElMessage.error(res.message),
+  )
 }
 
-const handleSelectionChange = (newMultipleSelection) => {
-    multipleSelection.value = newMultipleSelection
+function cancelShares() {
+  if (selected.value.length === 0) return ElMessage.error('请选择要取消的分享')
+  const ids = selected.value.map((i) => tableData.value[i]?.shareId).filter(Boolean).join('__,__')
+  doCancelShares(ids)
 }
 
-const showOperation = (row, column, cell, event) => {
-    panUtil.showOperation(cell)
+function cancelShare(row) {
+  doCancelShares(row.shareId)
 }
 
-const hiddenOperation = (row, column, cell, event) => {
-    panUtil.hiddenOperation(cell)
-}
-
-const formatShareStatus = (row, column, cellValue, index) => {
-    if (row.shareStatus === 1) {
-        return '有分享文件被删除'
-    } else if (row.shareDayType === 0) {
-        return '永久有效'
-    } else {
-        return row.shareEndTime + '到期'
-    }
-}
-
-const copy = async (row) => {
-    try {
-        let shareMessage = '链接：' + row.shareUrl + '\n提取码：' + row.shareCode + '\n赶快分享给小伙伴吧！'
-        await toClipboard(shareMessage)
-        ElMessage.success('复制成功')
-    } catch (e) {
-        console.error(e)
-        ElMessage.error('复制失败')
-    }
-}
-
+onMounted(loadTableData)
 </script>
 
-<style scoped>
+<template>
+  <div class="flex flex-col gap-1">
+    <div class="flex items-center justify-between py-3">
+      <BaseButton variant="danger" @click="cancelShares">
+        <template #default>
+          <span class="flex items-center gap-2">
+            <X :size="16"/> 取消分享
+          </span>
+        </template>
+      </BaseButton>
+    </div>
 
-.share-button-content {
-    display: inline-block;
-}
-
-.share-button-content .cancel-button-content {
-    margin: 20px 0 0 30px;
-}
-
-.share-list-content {
-    width: 100%;
-    height: 100%;
-    margin-top: 20px;
-}
-
-.share-operation-content {
-    display: none;
-    position: absolute;
-    right: 200px;
-    top: 8px;
-}
-
-</style>
+    <BaseTable
+      :columns="columns"
+      :data="tableData"
+      :loading="tableLoading"
+      :selected="selected"
+      selectable
+      row-key="shareId"
+      empty-text="还没有分享记录"
+      @update:selected="(v) => (selected = v)"
+    >
+      <template #cell-shareName="{row}">
+        <div class="flex items-center gap-3">
+          <Share2 :size="18" class="text-[var(--color-primary-500)] shrink-0"/>
+          <span class="truncate">{{ row.shareName }}</span>
+        </div>
+      </template>
+      <template #cell-shareUrl="{row}">
+        <a :href="row.shareUrl" target="_blank" class="text-[var(--color-primary-600)] hover:underline truncate inline-block max-w-[280px] align-middle">
+          {{ row.shareUrl.length > 30 ? row.shareUrl.slice(0, 30) + '…' : row.shareUrl }}
+        </a>
+      </template>
+      <template #cell-shareStatusText="{row}">
+        <BaseBadge :variant="row.shareStatusText.variant">{{ row.shareStatusText.label }}</BaseBadge>
+      </template>
+      <template #cell-actions="{row}">
+        <div class="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+          <BaseTooltip text="复制链接" position="top">
+            <BaseButton variant="ghost" size="sm" @click="copyShare(row)">
+              <LinkIcon :size="14"/>
+            </BaseButton>
+          </BaseTooltip>
+          <BaseTooltip text="取消分享" position="top">
+            <BaseButton variant="danger" size="sm" @click="cancelShare(row)">
+              <X :size="14"/>
+            </BaseButton>
+          </BaseTooltip>
+        </div>
+      </template>
+    </BaseTable>
+  </div>
+</template>

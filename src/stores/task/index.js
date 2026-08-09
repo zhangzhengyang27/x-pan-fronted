@@ -1,7 +1,7 @@
 import {computed, ref} from 'vue'
 import {defineStore} from 'pinia'
 import panUtil from '@/utils/common'
-import {ElMessage} from 'element-plus'
+import {ElMessage} from '@/composables/useToast'
 
 export const useTaskStore = defineStore('task', () => {
 

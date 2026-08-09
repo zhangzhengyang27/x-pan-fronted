@@ -3,13 +3,23 @@
 <head>
     <meta charset="UTF-8"/>
     <link rel="icon" href="/favicon.ico"/>
-    <link type="text/css" rel="stylesheet" href="/static/layui/css/layui.css"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>R Pan</title>
+    <meta name="theme-color" content="#2563eb"/>
+    <title>R Pan · 个人分布式存储</title>
+    <script>
+      // 防闪烁：在首屏渲染前预置主题类
+      (function () {
+        try {
+          var t = localStorage.getItem('r-pan-theme');
+          var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var dark = t ? t === 'dark' : prefersDark;
+          if (dark) document.documentElement.classList.add('dark');
+        } catch (e) {}
+      })();
+    </script>
 </head>
-<body>
+<body class="bg-[--color-bg] text-[--color-text] antialiased">
 <div id="app"></div>
 <script type="module" src="/src/main.js"></script>
-<script type="text/javascript" src="/static/layui/layui.js"></script>
 </body>
 </html>

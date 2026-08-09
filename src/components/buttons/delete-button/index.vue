@@ -21,7 +21,7 @@ const props = defineProps({
 import fileService from '@/api/file'
 import {useFileStore} from '@/stores/file'
 import {storeToRefs} from 'pinia'
-import {ElMessage, ElMessageBox} from 'element-plus'
+import {ElMessage, ElMessageBox} from '@/composables/useToast'
 
 const fileStore = useFileStore()
 const {multipleSelection} = storeToRefs(fileStore)

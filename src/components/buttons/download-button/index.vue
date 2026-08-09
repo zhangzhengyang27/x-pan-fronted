@@ -20,7 +20,7 @@ const props = defineProps({
 })
 
 import {ref} from 'vue'
-import {ElMessage} from 'element-plus'
+import {ElMessage} from '@/composables/useToast'
 import {useFileStore} from '@/stores/file'
 import {storeToRefs} from 'pinia'
 import panUtil from '@/utils/common'
