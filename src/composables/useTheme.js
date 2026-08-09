@@ -1,12 +1,12 @@
 /**
  * useTheme —— 主题切换 composable
- * - 持久化到 localStorage('r-pan-theme')
+ * - 持久化到 localStorage('X-pan-theme')
  * - 系统偏好 fallback
  * - 与 index.html 内联脚本协同（防 FOUC）
  */
 import {ref, watch} from 'vue'
 
-const STORAGE_KEY = 'r-pan-theme'
+const STORAGE_KEY = 'X-pan-theme'
 const DARK_CLASS = 'dark'
 
 const isDark = ref(false)
