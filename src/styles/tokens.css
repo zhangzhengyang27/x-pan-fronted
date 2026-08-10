@@ -170,8 +170,13 @@ body {
   color: var(--color-primary-100);
 }
 
-/* 焦点环（键盘用户） */
-:focus-visible {
+/* 焦点环（键盘用户）
+ * 只作用于「非表单控件」，避免与组件自身的 focus-within/焦点样式重叠。
+ * 原生表单控件（input/select/textarea 等）的焦点反馈由各自组件负责。 */
+a:focus-visible,
+button:focus-visible,
+[tabindex]:focus-visible,
+.rp-tooltip:focus-visible {
   outline: 2px solid var(--color-ring);
   outline-offset: 2px;
   border-radius: var(--radius-sm);

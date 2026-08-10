@@ -1,131 +1,128 @@
 <template>
   <div class="create-folder-button-content">
-    <el-button
+    <BaseButton
       v-if="roundFlag"
-      type="success"
-      :size="size"
-      round
+      variant="secondary"
+      :size="btnSize"
+      class="rounded-full !bg-[var(--color-success)] !text-white !border-transparent hover:!opacity-90"
       @click="createFolderDialogVisible = true"
     >
-      新建文件夹
-      <el-icon class="el-icon--right">
-        <FolderAdd />
-      </el-icon>
-    </el-button>
-    <el-button
+      <span class="inline-flex items-center gap-1.5">
+        新建文件夹
+        <FolderPlus :size="14" />
+      </span>
+    </BaseButton>
+    <BaseButton
       v-if="circleFlag"
-      icon="FolderAdd"
-      type="success"
-      :size="size"
-      circle
+      variant="secondary"
+      :size="btnSize"
+      class="rounded-full !px-0 !w-8 !h-8 justify-center !bg-[var(--color-success)] !text-white !border-transparent hover:!opacity-90"
       @click="createFolderDialogVisible = true"
-    ></el-button>
-    <el-dialog
-      title="新建文件夹"
-      v-model="createFolderDialogVisible"
-      width="30%"
-      @opened="focusInput"
-      @closed="resetForm"
-      :append-to-body="true"
-      :modal-append-to-body="false"
-      :center="true"
     >
-      <div>
-        <el-form
-          label-width="100px"
-          :rules="createFolderRules"
-          ref="createFolderFormRef"
-          :model="createFolderForm"
-          status-icon
-          @submit.native.prevent
-        >
-          <el-form-item label="文件夹名称" prop="folderName">
-            <el-input
-              type="text"
-              ref="folderNameEl"
-              @keyup.enter.native="doCreateFolder"
-              v-model="createFolderForm.folderName"
-              autocomplete="off"
-            />
-          </el-form-item>
-        </el-form>
-      </div>
+      <FolderPlus :size="14" />
+    </BaseButton>
+
+    <BaseModal v-model:open="createFolderDialogVisible" title="新建文件夹" @close="resetForm">
+      <BaseField label="文件夹名称" :required="true" :error="folderNameError">
+        <BaseInput
+          id="createFolderName"
+          v-model="createFolderForm.folderName"
+          placeholder="请输入文件夹名称"
+          @enter="doCreateFolder"
+        />
+      </BaseField>
       <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="createFolderDialogVisible = false">取 消</el-button>
-          <el-button type="primary" @click="doCreateFolder" :loading="loading">确 定</el-button>
+        <span class="dialog-footer flex items-center justify-end gap-2">
+          <BaseButton variant="secondary" size="sm" @click="createFolderDialogVisible = false">
+            取 消
+          </BaseButton>
+          <BaseButton variant="primary" size="sm" :loading="loading" @click="doCreateFolder">
+            确 定
+          </BaseButton>
         </span>
       </template>
-    </el-dialog>
+    </BaseModal>
   </div>
 </template>
 
 <script setup>
-defineProps({
+const props = defineProps({
   roundFlag: Boolean,
   circleFlag: Boolean,
   size: String
 })
 
+import { computed, reactive, ref, watch, nextTick } from 'vue'
+import { FolderPlus } from '@lucide/vue'
+import BaseButton from '@/components/base/BaseButton.vue'
+import BaseModal from '@/components/base/BaseModal.vue'
+import BaseInput from '@/components/base/BaseInput.vue'
+import BaseField from '@/components/base/BaseField.vue'
 import fileService from '@/api/file'
-import { reactive, ref } from 'vue'
 import { useFileStore } from '@/stores/file'
 import { storeToRefs } from 'pinia'
 import { ElMessage } from '@/composables/useToast'
+
+const btnSize = computed(() => (props.size === 'small' ? 'sm' : 'md'))
 
 const fileStore = useFileStore()
 const { paramParentId } = storeToRefs(fileStore)
 
 const createFolderDialogVisible = ref(false)
 const loading = ref(false)
-
-const folderNameEl = ref(null)
-const createFolderFormRef = ref(null)
+const folderNameError = ref('')
 
 const createFolderForm = reactive({
   folderName: ''
 })
 
 const resetForm = () => {
-  createFolderFormRef.value.resetFields()
+  createFolderForm.folderName = ''
+  folderNameError.value = ''
 }
 
-const focusInput = () => {
-  folderNameEl.value.focus()
-}
+// BaseModal 打开后聚焦输入框
+watch(
+  () => createFolderDialogVisible.value,
+  (v) => {
+    if (v) {
+      nextTick(() => document.getElementById('createFolderName')?.focus())
+    }
+  }
+)
 
 const doCreateFolder = async () => {
-  await createFolderFormRef.value.validate((valid) => {
-    if (valid) {
-      loading.value = true
-      fileService.createFolder(
-        {
-          parentId: paramParentId.value,
-          folderName: createFolderForm.folderName
-        },
-        () => {
-          loading.value = false
-          createFolderDialogVisible.value = false
-          ElMessage.success('新建成功')
-          fileStore.loadFileList()
-        },
-        (res) => {
-          ElMessage.error(res.message)
-          loading.value = false
-        }
-      )
+  if (!createFolderForm.folderName.trim()) {
+    folderNameError.value = '请输入文件夹名称'
+    return
+  }
+  folderNameError.value = ''
+  loading.value = true
+  fileService.createFolder(
+    {
+      parentId: paramParentId.value,
+      folderName: createFolderForm.folderName
+    },
+    () => {
+      loading.value = false
+      createFolderDialogVisible.value = false
+      ElMessage.success('新建成功')
+      fileStore.loadFileList()
+    },
+    (res) => {
+      ElMessage.error(res.message)
+      loading.value = false
     }
-  })
+  )
 }
-
-const createFolderRules = reactive({
-  folderName: [{ required: true, message: '请输入文件夹名称', trigger: 'blur' }]
-})
 </script>
 
-<style>
+<style scoped>
 .create-folder-button-content {
   display: inline-block;
   margin-right: 10px;
+}
+.dialog-footer {
+  width: 100%;
 }
 </style>

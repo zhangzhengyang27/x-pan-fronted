@@ -8,6 +8,9 @@ export const useNavbarStore = defineStore('navbar', () => {
   // 视图切换：list 列表 / grid 网格 / gallery 画廊
   const mode = ref<NavbarMode>('grid')
 
+  // 当前激活的导航项 key（Files / Imgs / Docs / Videos / Musics / Shares / Recycles / Offline）
+  const active = ref('')
+
   // 搜索关键字
   const searchKey = ref('')
 
@@ -24,6 +27,10 @@ export const useNavbarStore = defineStore('navbar', () => {
     mode.value = m
   }
 
+  const change = (key: string) => {
+    active.value = key
+  }
+
   const setSearchKey = (key: string) => {
     searchKey.value = key
   }
@@ -34,6 +41,7 @@ export const useNavbarStore = defineStore('navbar', () => {
 
   const clear = () => {
     mode.value = 'grid'
+    active.value = ''
     searchKey.value = ''
     settings.value = {
       showHidden: false,
@@ -44,5 +52,5 @@ export const useNavbarStore = defineStore('navbar', () => {
     }
   }
 
-  return { mode, searchKey, settings, setMode, setSearchKey, updateSettings, clear }
+  return { mode, active, searchKey, settings, setMode, change, setSearchKey, updateSettings, clear }
 })

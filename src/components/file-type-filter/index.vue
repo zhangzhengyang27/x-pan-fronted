@@ -5,7 +5,7 @@
  * 当前与后端一致：单选 -1 / 3 / 4 / 5 等单值
  */
 import { ref, computed, onMounted } from 'vue'
-import { Image as ImageIcon, FileType2 as FileText, Video, Music2, Folder } from '@lucide/vue'
+import { Image as ImageIcon, FileType as FileText, Video, Music, Folder } from '@lucide/vue'
 import { useFileStore } from '@/stores/file'
 import { useRoute } from 'vue-router'
 
@@ -17,7 +17,7 @@ const types = [
   { value: '7', label: '图片', icon: ImageIcon },
   { value: '3', label: '文档', icon: FileText },
   { value: '9', label: '视频', icon: Video },
-  { value: '8', label: '音乐', icon: Music2 }
+  { value: '8', label: '音乐', icon: Music }
 ]
 
 const current = ref(fileStore.fileTypes || '-1')

@@ -1,163 +1,151 @@
 <template>
-  <div>
-    <el-popover
-      title="上传任务列表"
-      placement="bottom-end"
-      width="600"
-      trigger="click"
-      v-model:visible="viewFlag"
-    >
-      <div class="pan-upload-task-items-content">
-        <el-table empty-text="暂无传输任务" :data="taskList" height="300px" style="width: 100%">
-          <el-table-column
-            align="center"
-            header-align="center"
-            label="文件名称"
-            prop="filename"
-            width="120"
-            :show-overflow-tooltip="true"
-          >
-          </el-table-column>
-          <el-table-column align="center" header-align="center" label="文件状态" width="120">
-            <template #default="scope">
-              <el-popover trigger="hover" placement="top">
-                <p>状态: {{ scope.row.statusText }}</p>
-                <template #reference>
-                  <div class="name-wrapper">
-                    <el-button
-                      v-if="scope.row.status === fileStatus.WAITING.code"
-                      size="small"
-                      icon="Clock"
-                      circle
-                    ></el-button>
-                    <el-button
-                      v-if="scope.row.status === fileStatus.PAUSE.code"
-                      size="small"
-                      icon="VideoPlay"
-                      circle
-                    ></el-button>
-                    <el-button
-                      v-if="scope.row.status === fileStatus.UPLOADING.code"
-                      size="small"
-                      icon="Upload"
-                      circle
-                    ></el-button>
-                    <el-button
-                      v-if="scope.row.status === fileStatus.FAIL.code"
-                      size="small"
-                      type="danger"
-                      icon="Warning"
-                      circle
-                    ></el-button>
-                    <el-button
-                      v-if="scope.row.status === fileStatus.PARSING.code"
-                      size="small"
-                      icon="Loading"
-                      circle
-                      loading
-                    ></el-button>
-                    <el-button
-                      v-if="scope.row.status === fileStatus.MERGE.code"
-                      size="small"
-                      icon="Coin"
-                      circle
-                    ></el-button>
-                  </div>
-                </template>
-              </el-popover>
-            </template>
-          </el-table-column>
-          <el-table-column align="center" header-align="center" label="上传进度" width="180">
-            <template #default="scope">
-              <el-popover trigger="hover" placement="top" width="300">
-                <p>上传速度: {{ scope.row.speed }}</p>
-                <p>上传大小: {{ scope.row.uploadedSize }}/{{ scope.row.fileSize }}</p>
-                <p>剩余时间: {{ scope.row.timeRemaining }}</p>
-                <template #reference>
-                  <div class="name-wrapper">
-                    <el-progress
-                      :stroke-width="8"
-                      :color="colors"
-                      :percentage="scope.row.percentage"
-                    ></el-progress>
-                  </div>
-                </template>
-              </el-popover>
-            </template>
-          </el-table-column>
-          <el-table-column align="center" header-align="center" label="操作" width="180">
-            <template #default="scope">
-              <el-space :size="3">
-                <el-tooltip class="item" effect="light" content="暂停上传" placement="top">
-                  <span>
-                    <el-button
-                      v-show="scope.row.status === fileStatus.UPLOADING.code"
-                      @click="pause(scope.row.filename)"
-                      size="small"
-                      type="primary"
-                      icon="VideoPause"
-                      circle
-                    ></el-button>
-                  </span>
-                </el-tooltip>
-                <el-tooltip class="item" effect="light" content="继续上传" placement="top">
-                  <span>
-                    <el-button
-                      v-show="scope.row.status === fileStatus.PAUSE.code"
-                      @click="resume(scope.row.filename)"
-                      size="small"
-                      type="success"
-                      icon="VideoPlay"
-                      circle
-                    ></el-button>
-                  </span>
-                </el-tooltip>
-                <el-tooltip class="item" effect="light" content="取消上传" placement="top">
-                  <span>
-                    <el-button
-                      v-show="
-                        scope.row.status === fileStatus.UPLOADING.code ||
-                        scope.row.status === fileStatus.WAITING.code ||
-                        scope.row.status === fileStatus.PAUSE.code ||
-                        scope.row.status === fileStatus.FAIL.code
-                      "
-                      @click="cancel(scope.row.filename)"
-                      size="small"
-                      type="danger"
-                      icon="SwitchButton"
-                      circle
-                    ></el-button>
-                  </span>
-                </el-tooltip>
-                <el-tooltip class="item" effect="light" content="重新上传" placement="top">
-                  <span>
-                    <el-button
-                      v-show="scope.row.status === fileStatus.FAIL.code"
-                      @click="retry(scope.row.filename)"
-                      size="small"
-                      type="warning"
-                      icon="RefreshRight"
-                      circle
-                    ></el-button>
-                  </span>
-                </el-tooltip>
-              </el-space>
-            </template>
-          </el-table-column>
-        </el-table>
-      </div>
-      <template #reference>
-        <el-badge
-          :max="99"
-          :value="uploadTaskNum"
-          :hidden="uploadTaskFlag"
-          class="item"
-          type="danger"
+  <div class="task-list-content">
+    <BasePopover v-model="viewFlag" position="bottom-end" class="task-popover">
+      <template #trigger>
+        <button
+          type="button"
+          class="relative inline-flex items-center justify-center"
+          aria-label="上传任务列表"
         >
-          <el-button size="small" icon="Sort"></el-button>
-        </el-badge>
+          <ListOrdered :size="18" />
+          <span
+            v-if="!uploadTaskFlag"
+            class="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-[var(--color-danger)] text-white text-[10px] leading-4 text-center"
+          >
+            {{ uploadTaskNum > 99 ? '99+' : uploadTaskNum }}
+          </span>
+        </button>
       </template>
-    </el-popover>
+
+      <div class="w-[min(90vw,600px)]">
+        <div class="px-4 py-2.5 border-b border-[var(--color-border)] font-medium text-sm">
+          上传任务列表
+        </div>
+        <BaseTable
+          :columns="tableColumns"
+          :data="taskList"
+          row-key="filename"
+          empty-text="暂无传输任务"
+          :skeleton="false"
+        >
+          <template #cell-filename="{ row }">
+            <span class="block truncate max-w-[120px]" :title="row.filename">{{
+              row.filename
+            }}</span>
+          </template>
+
+          <template #cell-status="{ row }">
+            <span class="rp-tooltip" data-pos="top">
+              <span class="inline-flex items-center gap-1">
+                <Clock
+                  v-if="row.status === fileStatus.WAITING.code"
+                  :size="16"
+                  class="text-[var(--color-text-muted)]"
+                />
+                <Play
+                  v-else-if="row.status === fileStatus.PAUSE.code"
+                  :size="16"
+                  class="text-[var(--color-warning)]"
+                />
+                <Upload
+                  v-else-if="row.status === fileStatus.UPLOADING.code"
+                  :size="16"
+                  class="text-[var(--color-primary-600)]"
+                />
+                <TriangleAlert
+                  v-else-if="row.status === fileStatus.FAIL.code"
+                  :size="16"
+                  class="text-[var(--color-danger)]"
+                />
+                <LoaderCircle
+                  v-else-if="row.status === fileStatus.PARSING.code"
+                  :size="16"
+                  class="text-[var(--color-primary-600)] animate-spin"
+                />
+                <Coins
+                  v-else-if="row.status === fileStatus.MERGE.code"
+                  :size="16"
+                  class="text-[var(--color-warning)]"
+                />
+              </span>
+              <span class="rp-tooltip__bubble" role="tooltip">{{ row.statusText }}</span>
+            </span>
+          </template>
+
+          <template #cell-progress="{ row }">
+            <span class="rp-tooltip block w-full" data-pos="top">
+              <BaseProgress :value="row.percentage" size="sm" />
+              <span class="rp-tooltip__bubble" role="tooltip">
+                上传速度: {{ row.speed }}<br />上传大小: {{ row.uploadedSize }}/{{ row.fileSize
+                }}<br />剩余时间:
+                {{ row.timeRemaining }}
+              </span>
+            </span>
+          </template>
+
+          <template #cell-action="{ row }">
+            <span class="flex items-center gap-1">
+              <span class="rp-tooltip" data-pos="top">
+                <BaseButton
+                  v-show="row.status === fileStatus.UPLOADING.code"
+                  variant="secondary"
+                  size="sm"
+                  class="rounded-full !px-1.5 !w-7 !h-7"
+                  @click="pause(row.filename)"
+                >
+                  <Pause :size="13" />
+                </BaseButton>
+                <span class="rp-tooltip__bubble" role="tooltip">暂停上传</span>
+              </span>
+
+              <span class="rp-tooltip" data-pos="top">
+                <BaseButton
+                  v-show="row.status === fileStatus.PAUSE.code"
+                  variant="secondary"
+                  size="sm"
+                  class="rounded-full !px-1.5 !w-7 !h-7"
+                  @click="resume(row.filename)"
+                >
+                  <Play :size="13" />
+                </BaseButton>
+                <span class="rp-tooltip__bubble" role="tooltip">继续上传</span>
+              </span>
+
+              <span class="rp-tooltip" data-pos="top">
+                <BaseButton
+                  v-show="
+                    row.status === fileStatus.UPLOADING.code ||
+                    row.status === fileStatus.WAITING.code ||
+                    row.status === fileStatus.PAUSE.code ||
+                    row.status === fileStatus.FAIL.code
+                  "
+                  variant="danger"
+                  size="sm"
+                  class="rounded-full !px-1.5 !w-7 !h-7"
+                  @click="cancel(row.filename)"
+                >
+                  <CircleX :size="13" />
+                </BaseButton>
+                <span class="rp-tooltip__bubble" role="tooltip">取消上传</span>
+              </span>
+
+              <span class="rp-tooltip" data-pos="top">
+                <BaseButton
+                  v-show="row.status === fileStatus.FAIL.code"
+                  variant="secondary"
+                  size="sm"
+                  class="rounded-full !px-1.5 !w-7 !h-7"
+                  @click="retry(row.filename)"
+                >
+                  <RefreshCw :size="13" />
+                </BaseButton>
+                <span class="rp-tooltip__bubble" role="tooltip">重新上传</span>
+              </span>
+            </span>
+          </template>
+        </BaseTable>
+      </div>
+    </BasePopover>
   </div>
 </template>
 
@@ -165,33 +153,71 @@
 import { useTaskStore } from '@/stores/task'
 import { storeToRefs } from 'pinia'
 import panUtil from '@/utils/common'
+import BasePopover from '@/components/base/BasePopover.vue'
+import BaseTable from '@/components/base/BaseTable.vue'
+import BaseButton from '@/components/base/BaseButton.vue'
+import BaseProgress from '@/components/base/BaseProgress.vue'
+import {
+  ListOrdered,
+  Clock,
+  Play,
+  Upload,
+  TriangleAlert,
+  LoaderCircle,
+  Coins,
+  Pause,
+  CircleX,
+  RefreshCw
+} from '@lucide/vue'
 
 const taskStore = useTaskStore()
 
 const { uploadTaskNum, uploadTaskFlag, viewFlag, taskList } = storeToRefs(taskStore)
 const { pause, resume, cancel, retry } = taskStore
 
-const colors = [
-  { color: '#909399', percentage: 30 },
-  { color: '#e6a23c', percentage: 70 },
-  { color: '#67c23a', percentage: 100 }
-]
-
 const fileStatus = panUtil.fileStatus
+
+const tableColumns = [
+  { key: 'filename', title: '文件名称', width: 120, align: 'left' },
+  { key: 'status', title: '文件状态', width: 120, align: 'center' },
+  { key: 'progress', title: '上传进度', width: 180, align: 'center' },
+  { key: 'action', title: '操作', width: 180, align: 'center' }
+]
 </script>
 
 <style scoped>
-.pan-upload-task-items-content {
-  height: 300px;
+.task-list-content {
+  display: inline-block;
 }
-
-.pan-upload-task-items-content .infinite-list {
-  height: 100%;
-  overflow: auto;
+.task-popover {
+  position: relative;
 }
-
-.item {
-  height: 24px;
-  line-height: 24px;
+/* 复用全局 rp-tooltip 气泡样式（BaseTooltip 的 scoped 样式不在此组件作用域，此处补全） */
+.rp-tooltip {
+  position: relative;
+  display: inline-flex;
+}
+.rp-tooltip .rp-tooltip__bubble {
+  position: absolute;
+  white-space: nowrap;
+  background: var(--color-neutral-900);
+  color: var(--color-neutral-0);
+  font-size: var(--text-xs);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateX(-50%) scale(0.96);
+  transition:
+    opacity var(--dur-fast) var(--ease),
+    transform var(--dur-fast) var(--ease);
+  z-index: var(--z-tooltip);
+  bottom: calc(100% + 6px);
+  left: 50%;
+}
+.rp-tooltip:hover .rp-tooltip__bubble,
+.rp-tooltip:focus-within .rp-tooltip__bubble {
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
 }
 </style>

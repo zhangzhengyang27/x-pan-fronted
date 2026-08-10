@@ -155,7 +155,8 @@ const panUtil: PanUtil = {
 
   getPreviewUrl(fileId: string): string {
     return (
-      'http://127.0.0.1:8080/file/preview?fileId=' +
+      this.getUrlPrefix() +
+      '/file/preview?fileId=' +
       this.handleId(fileId) +
       '&authorization=' +
       getToken()
@@ -163,7 +164,7 @@ const panUtil: PanUtil = {
   },
 
   getUrlPrefix(): string {
-    return 'http://127.0.0.1:8080'
+    return 'http://127.0.0.1:8081'
   },
 
   getChunkSize(): number {

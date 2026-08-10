@@ -91,6 +91,7 @@ export function useUploader() {
         taskStore.add({
           target: f,
           filename: f.name,
+          uniqueIdentifier: f.uniqueIdentifier,
           fileSize: panUtil.translateFileSize(f.size),
           uploadedSize: panUtil.translateFileSize(0),
           status: EFileStatus.PARSING.code,
@@ -278,6 +279,7 @@ export function useUploader() {
       uploadedSize: panUtil.translateFileSize(0),
       timeRemaining: panUtil.translateTime(Number.POSITIVE_INFINITY)
     })
+    ElMessage.error(`文件「${file.name}」上传失败，请重试`)
   }
 
   /**

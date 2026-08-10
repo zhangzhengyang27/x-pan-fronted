@@ -7,3 +7,4 @@ dist
 .idea
 *.log
 package-lock.ep.json
+.playwright-mcp/

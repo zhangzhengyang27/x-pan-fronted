@@ -10,6 +10,9 @@ import { useUserStore } from '@/stores/user'
 import { getToken } from '@/utils/cookie'
 
 const app = createApp(App)
+app.config.errorHandler = (err, instance, info) => {
+  console.error('[APP-ERROR]', info, err)
+}
 app.use(createPinia())
 app.use(router)
 

@@ -10,6 +10,7 @@
  */
 
 import { ref, onUnmounted, type Ref } from 'vue'
+import panUtil from '@/utils/common'
 
 export type WsMessageType =
   | 'CONNECTED'
@@ -49,9 +50,8 @@ let _singleton: UseWebSocketReturn | null = null
 function buildWsUrl(token: string): string {
   const host = typeof window !== 'undefined' ? window.location.hostname : '127.0.0.1'
   const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-  // 从 panUtil 拿到后端端口（默认 8080）
-  const port =
-    (window as unknown as { __XPAN_BACKEND_PORT__?: number }).__XPAN_BACKEND_PORT__ || 8080
+  // 从 panUtil.getUrlPrefix() 解析后端端口，避免多端口硬编码
+  const port = panUtil.getUrlPrefix().match(/:(\d+)/)?.[1] || '8081'
   return `${proto}//${host}:${port}/ws/notification?token=${encodeURIComponent(token)}`
 }
 
@@ -67,7 +67,7 @@ export function useWebSocket(): UseWebSocketReturn {
   let ws: WebSocket | null = null
   let reconnectTimer: number | null = null
   let heartbeatTimer: number | null = null
-  let pingTimer: number | null = null
+  let pongCheckTimer: number | null = null
   const handlers = new Map<WsMessageType, Set<Handler>>()
 
   function clearTimers() {
@@ -79,19 +79,32 @@ export function useWebSocket(): UseWebSocketReturn {
       clearInterval(heartbeatTimer)
       heartbeatTimer = null
     }
-    if (pingTimer !== null) {
-      clearTimeout(pingTimer)
-      pingTimer = null
+    if (pongCheckTimer !== null) {
+      clearTimeout(pongCheckTimer)
+      pongCheckTimer = null
     }
   }
 
+  // 周期性发送 PING（服务端回 PONG = msg.type 'PONG'）
   function startHeartbeat() {
     heartbeatTimer = window.setInterval(() => {
-      if (ws && ws.readyState === WebSocket.OPEN) {
+      if (!ws || ws.readyState !== WebSocket.OPEN) return
+      try {
+        ws.send(JSON.stringify({ type: 'PING', ts: Date.now() }))
+      } catch {
+        // 忽略发送失败
+      }
+    }, HEARTBEAT_INTERVAL * 1000)
+
+    // 超时未收到任何服务端消息（含 PONG）则判定静默断线，主动断开触发重连
+    pongCheckTimer = window.setInterval(() => {
+      const gap = Date.now() - lastMessageAt.value
+      if (ws && ws.readyState === WebSocket.OPEN && gap > HEARTBEAT_INTERVAL * 1000 * 2) {
+        console.warn('[WS] 心跳超时，未收到服务端消息，主动断开')
         try {
-          ws.send(JSON.stringify({ type: 'PONG', ts: Date.now() }))
+          ws.close(4000, 'heartbeat timeout')
         } catch {
-          // 忽略发送失败
+          // 忽略
         }
       }
     }, HEARTBEAT_INTERVAL * 1000)
@@ -218,13 +231,30 @@ export function useWebSocket(): UseWebSocketReturn {
   return _singleton
 }
 
-/** 自动在组件卸载时断开（适合局部使用） */
-export function useWebSocketAuto(token: () => string | null): UseWebSocketReturn {
+/**
+ * 自动连接 + 在组件卸载时解绑所有通过本函数注册的事件（适合局部使用）。
+ * 因为是单例连接，卸载时不会断开 WS，只会移除本次注册的事件处理器，避免 handler 泄漏。
+ *
+ * 用法：
+ *   const ws = useWebSocketAuto(() => getToken(), (w) => {
+ *     const off = w.on('OFFLINE_TASK_UPDATE', (p) => { ... })
+ *     return () => off() // 可选：返回额外的清理函数
+ *   })
+ */
+export function useWebSocketAuto(
+  token: () => string | null,
+  setup?: (ws: UseWebSocketReturn) => (() => void) | void
+): UseWebSocketReturn {
   const ws = useWebSocket()
+  const extraCleanups: Array<() => void> = []
+  if (setup) {
+    const result = setup(ws)
+    if (typeof result === 'function') extraCleanups.push(result)
+  }
   onUnmounted(() => {
-    // 不要在这里 disconnect，因为是单例；只解绑事件
+    // 单例连接不关闭，仅解绑本次注册的事件，防止 handler 累积泄漏
+    extraCleanups.forEach((fn) => fn())
   })
-  // 首次调用时尝试连接
   const t = token()
   if (t && !ws.isConnected.value) ws.connect(t)
   return ws

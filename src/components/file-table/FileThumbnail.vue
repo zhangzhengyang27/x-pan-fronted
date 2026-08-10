@@ -20,7 +20,7 @@ import {
   FileCode,
   FileBarChart2,
   File,
-  Loader2,
+  LoaderCircle,
   Eye
 } from '@lucide/vue'
 import { cn } from '@/utils/classnames'
@@ -133,7 +133,7 @@ function onImageError() {
         @error="onImageError"
       />
       <!-- 加载中骨架 -->
-      <Loader2
+      <LoaderCircle
         v-if="!imageLoaded"
         :size="iconSize * 0.6"
         class="absolute inset-0 m-auto animate-spin text-pink-400"

@@ -12,9 +12,9 @@ import { storeToRefs } from 'pinia'
 import {
   Files,
   Image as ImageIcon,
-  FileType2 as FileText,
+  FileType as FileText,
   Video,
-  Music2,
+  Music,
   Share2,
   Trash2,
   PanelLeftClose,
@@ -37,7 +37,7 @@ const { active } = storeToRefs(store)
 const { usedSpace, totalSpace, usedPercent } = toRefs(userStore)
 const { change } = store
 const collapsed = ref(false)
-const isMobile = useMediaQuery('mobile')
+const isMobile = useMediaQuery('(max-width: 768px)')
 const mobileOpen = ref(false)
 
 function navigate(item) {
@@ -70,7 +70,7 @@ const groups = computed(() => [
       { key: 'Imgs', label: '图片', icon: ImageIcon },
       { key: 'Docs', label: '文档', icon: FileText },
       { key: 'Videos', label: '视频', icon: Video },
-      { key: 'Musics', label: '音乐', icon: Music2 }
+      { key: 'Musics', label: '音乐', icon: Music }
     ]
   },
   {

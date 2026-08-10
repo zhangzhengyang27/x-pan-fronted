@@ -9,7 +9,7 @@
  * - 加载状态 / 错误状态 / 空状态
  */
 import { computed, ref, watch } from 'vue'
-import { Home, Loader2, AlertCircle } from '@lucide/vue'
+import { Home, LoaderCircle, AlertCircle } from '@lucide/vue'
 import BaseTree from '@/components/base/BaseTree.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import fileService from '@/api/file'
@@ -154,7 +154,7 @@ const hasTree = computed(() => treeData.value.length > 0)
           v-if="loading"
           class="flex h-full items-center justify-center gap-2 text-sm text-[var(--color-text-muted)]"
         >
-          <Loader2 :size="16" class="animate-spin" />
+          <LoaderCircle :size="16" class="animate-spin" />
           加载中...
         </div>
         <div

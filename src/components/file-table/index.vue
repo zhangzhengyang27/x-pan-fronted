@@ -37,7 +37,7 @@ import { useDrivePreview } from '@/composables/useDrivePreview'
 import { useMediaQuery } from '@/composables/useMediaQuery'
 import { getDownloadUrl } from '@/utils/preview'
 import {
-  Loader2,
+  LoaderCircle,
   Download,
   Edit3,
   Copy,
@@ -696,7 +696,7 @@ async function promptRename(row) {
       ref="loadMoreSentinel"
       class="col-span-full py-6 flex items-center justify-center text-xs text-[var(--color-text-muted)]"
     >
-      <Loader2 v-if="isLoadingMore" :size="14" class="animate-spin mr-2" />
+      <LoaderCircle v-if="isLoadingMore" :size="14" class="animate-spin mr-2" />
       {{ isLoadingMore ? '加载中...' : '滚动加载更多' }}
     </div>
     <div

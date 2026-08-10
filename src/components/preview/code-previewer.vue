@@ -30,15 +30,17 @@ const truncated = ref(false)
 
 const MAX_CHARS = 200_000
 
-let highlighterPromise = null
+// 按语言缓存 highlighter 实例，避免切换语言时复用首个语言的实例导致高亮错误，
+// 也避免重复 createHighlighter 造成的内存与 CPU 浪费。
+const highlighterCache = new Map()
 async function getHighlighter(lang) {
-  if (!highlighterPromise) {
-    highlighterPromise = createHighlighter({
-      themes: ['github-light', 'github-dark'],
-      langs: [lang]
-    })
-  }
-  return highlighterPromise
+  if (highlighterCache.has(lang)) return highlighterCache.get(lang)
+  const h = await createHighlighter({
+    themes: ['github-light', 'github-dark'],
+    langs: [lang]
+  })
+  highlighterCache.set(lang, h)
+  return h
 }
 
 const lang = computed(() => resolveShikiLanguage(getFileExtension(props.filename)))

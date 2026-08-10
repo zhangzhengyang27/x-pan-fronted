@@ -1,27 +1,28 @@
 <template>
   <div class="download-button-content">
-    <el-button
+    <BaseButton
       v-if="roundFlag"
-      type="info"
-      :size="size"
-      round
-      @click="downloadFile"
+      variant="secondary"
+      :size="btnSize"
+      class="rounded-full"
       :loading="loading"
+      @click="downloadFile"
     >
-      下载
-      <el-icon class="el-icon--right">
-        <Download />
-      </el-icon>
-    </el-button>
-    <el-button
+      <span class="inline-flex items-center gap-1.5">
+        下载
+        <Download :size="14" />
+      </span>
+    </BaseButton>
+    <BaseButton
       v-if="circleFlag"
-      icon="Download"
-      type="info"
-      :size="size"
-      circle
-      @click="downloadFile"
+      variant="secondary"
+      :size="btnSize"
+      class="rounded-full !px-0 !w-8 !h-8 justify-center"
       :loading="loading"
-    ></el-button>
+      @click="downloadFile"
+    >
+      <Download :size="14" />
+    </BaseButton>
   </div>
 </template>
 
@@ -33,12 +34,17 @@ const props = defineProps({
   item: Object
 })
 
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import { Download } from '@lucide/vue'
+import BaseButton from '@/components/base/BaseButton.vue'
 import { ElMessage } from '@/composables/useToast'
 import { useFileStore } from '@/stores/file'
 import { storeToRefs } from 'pinia'
 import panUtil from '@/utils/common'
 import { getToken } from '@/utils/cookie'
+
+// BaseButton 尺寸：small → sm，default → md
+const btnSize = computed(() => (props.size === 'small' ? 'sm' : 'md'))
 
 const fileStore = useFileStore()
 const { multipleSelection } = storeToRefs(fileStore)
@@ -100,7 +106,7 @@ const downloadFile = () => {
 }
 </script>
 
-<style>
+<style scoped>
 .download-button-content {
   display: inline-block;
   margin-right: 10px;

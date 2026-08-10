@@ -8,7 +8,7 @@
  * 无图表库依赖，纯 SVG
  */
 import { computed, ref, watch, onMounted } from 'vue'
-import { TrendingUp, BarChart3, Trash2 } from '@lucide/vue'
+import { TrendingUp, ChartBar, Trash2 } from '@lucide/vue'
 import { cn } from '@/utils/classnames'
 
 const props = defineProps({
@@ -194,7 +194,7 @@ onMounted(() => recordToday(props.files))
     <div class="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
       <div class="flex items-center justify-between mb-3">
         <h3 class="text-sm font-semibold text-[var(--color-text)] flex items-center gap-1.5">
-          <BarChart3 :size="14" />
+          <ChartBar :size="14" />
           分类分布
         </h3>
         <span class="text-xs text-[var(--color-text-muted)] tabular-nums"

@@ -1,43 +1,11 @@
 {
-  "compilerOptions": {
-    "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "jsx": "preserve",
-    "strict": true,
-    "noImplicitAny": true,
-    "strictNullChecks": true,
-    "strictFunctionTypes": true,
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "useDefineForClassFields": true,
-    "allowImportingTsExtensions": false,
-    "noEmit": true,
-    "allowJs": false,
-    "checkJs": false,
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["src/*"],
-      "@luohc92/vue3-image-viewer": ["./src/types/third-party-stubs.d.ts"]
+  "files": [],
+  "references": [
+    {
+      "path": "./tsconfig.app.json"
     },
-    "typeRoots": [
-      "./node_modules/@types",
-      "./src/types"
-    ]
-  },
-  "include": [
-    "src/**/*.ts",
-    "src/**/*.d.ts",
-    "src/**/*.tsx",
-    "src/**/*.vue",
-    "vite.config.mjs"
-  ],
-  "exclude": ["node_modules", "dist"]
+    {
+      "path": "./tsconfig.node.json"
+    }
+  ]
 }

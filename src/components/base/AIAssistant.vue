@@ -15,7 +15,7 @@ import {
   Sparkles,
   Send,
   User as UserIcon,
-  Loader2,
+  LoaderCircle,
   FileText,
   Image as ImageIcon
 } from '@lucide/vue'
@@ -134,7 +134,7 @@ function close() {
             <Sparkles :size="14" />
           </div>
           <div class="px-3 py-2 rounded-2xl bg-[var(--color-surface-2)] text-sm">
-            <Loader2 :size="14" class="animate-spin" />
+            <LoaderCircle :size="14" class="animate-spin" />
           </div>
         </div>
       </div>

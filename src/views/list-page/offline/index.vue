@@ -15,9 +15,9 @@ import {
   Trash2,
   X,
   RefreshCw,
-  CheckCircle2,
+  CircleCheck,
   AlertCircle,
-  Loader2
+  LoaderCircle
 } from '@lucide/vue'
 import offlineService from '@/api/offline'
 import { ElMessage, ElMessageBox } from '@/composables/useToast'
@@ -115,12 +115,12 @@ function doDelete(task: IOfflineTaskVO): void {
 function statusMeta(s: number | null | undefined) {
   return (
     {
-      0: { label: '待开始', icon: Loader2, variant: 'neutral', spin: false },
-      1: { label: '下载中', icon: Loader2, variant: 'primary', spin: true },
-      2: { label: '已完成', icon: CheckCircle2, variant: 'success', spin: false },
+      0: { label: '待开始', icon: LoaderCircle, variant: 'neutral', spin: false },
+      1: { label: '下载中', icon: LoaderCircle, variant: 'primary', spin: true },
+      2: { label: '已完成', icon: CircleCheck, variant: 'success', spin: false },
       3: { label: '失败', icon: AlertCircle, variant: 'danger', spin: false },
       4: { label: '已取消', icon: X, variant: 'warning', spin: false }
-    }[s as TaskStatus] || { label: '未知', icon: Loader2, variant: 'neutral', spin: false }
+    }[s as TaskStatus] || { label: '未知', icon: LoaderCircle, variant: 'neutral', spin: false }
   )
 }
 

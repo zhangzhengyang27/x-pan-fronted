@@ -138,7 +138,10 @@ router.beforeEach((to, from, next) => {
       NProgress.done()
     } else {
       const redirect = from.query.redirect as string | undefined
-      if (!redirect || to.path === redirect) {
+      // 过滤脏 redirect：必须是以 / 开头的合法路径，且不能携带 #（hash 路由下会产生 /%23/xx 的脏值）
+      const validRedirect =
+        redirect && redirect.startsWith('/') && !redirect.includes('#') ? redirect : ''
+      if (!validRedirect || to.path === validRedirect) {
         // 防止有 token 直接跳转首页的情况下没有初始化用户信息的情况
         if (!userStore.username) {
           userService.info(
@@ -151,7 +154,12 @@ router.beforeEach((to, from, next) => {
               NProgress.done()
             },
             (res) => {
-              ElMessage.error(res.message)
+              // 区分「用户取消登录」与「真实错误」：取消时停留在当前页，不强制跳转
+              if (res && (res.code === 10 || res.code === 401)) {
+                next({ name: 'Login', query: { redirect: to.fullPath } })
+              } else {
+                ElMessage.error(res?.message || '获取用户信息失败')
+              }
               NProgress.done()
             }
           )
@@ -160,7 +168,7 @@ router.beforeEach((to, from, next) => {
           NProgress.done()
         }
       } else {
-        next({ path: redirect })
+        next({ path: validRedirect })
         NProgress.done()
       }
     }

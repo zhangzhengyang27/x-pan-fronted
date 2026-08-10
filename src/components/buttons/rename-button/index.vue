@@ -1,56 +1,47 @@
 <template>
   <div class="rename-button-content">
-    <el-button v-if="roundFlag" type="warning" :size="size" round @click="renameFile">
-      重命名
-      <el-icon class="el-icon--right">
-        <EditPen />
-      </el-icon>
-    </el-button>
-    <el-button
-      v-if="circleFlag"
-      icon="EditPen"
-      type="warning"
-      :size="size"
-      circle
+    <BaseButton
+      v-if="roundFlag"
+      variant="secondary"
+      :size="btnSize"
+      class="rounded-full !bg-[var(--color-warning)] !text-white !border-transparent hover:!opacity-90"
       @click="renameFile"
-    ></el-button>
-    <el-dialog
-      title="文件重命名"
-      v-model="renameDialogVisible"
-      width="30%"
-      @opened="focusInput"
-      @closed="resetForm"
-      :append-to-body="true"
-      :modal-append-to-body="false"
-      :center="true"
     >
-      <div>
-        <el-form
-          label-width="100px"
-          :rules="renameRules"
-          ref="renameFormRef"
-          :model="renameForm"
-          status-icon
-          @submit.native.prevent
-        >
-          <el-form-item label="文件名称" prop="filename">
-            <el-input
-              type="text"
-              ref="filenameEl"
-              @keyup.enter.native="doRenameFile"
-              v-model="renameForm.filename"
-              autocomplete="off"
-            />
-          </el-form-item>
-        </el-form>
-      </div>
+      <span class="inline-flex items-center gap-1.5">
+        重命名
+        <SquarePen :size="14" />
+      </span>
+    </BaseButton>
+    <BaseButton
+      v-if="circleFlag"
+      variant="secondary"
+      :size="btnSize"
+      class="rounded-full !px-0 !w-8 !h-8 justify-center !bg-[var(--color-warning)] !text-white !border-transparent hover:!opacity-90"
+      @click="renameFile"
+    >
+      <SquarePen :size="14" />
+    </BaseButton>
+
+    <BaseModal v-model:open="renameDialogVisible" title="文件重命名" @close="resetForm">
+      <BaseField label="文件名称" :required="true" :error="filenameError">
+        <BaseInput
+          id="renameFilename"
+          v-model="renameForm.filename"
+          placeholder="请输入新文件名称"
+          @enter="doRenameFile"
+        />
+      </BaseField>
       <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="renameDialogVisible = false">取 消</el-button>
-          <el-button type="primary" @click="doRenameFile" :loading="loading">确 定</el-button>
+        <span class="dialog-footer flex items-center justify-end gap-2">
+          <BaseButton variant="secondary" size="sm" @click="renameDialogVisible = false">
+            取 消
+          </BaseButton>
+          <BaseButton variant="primary" size="sm" :loading="loading" @click="doRenameFile">
+            确 定
+          </BaseButton>
         </span>
       </template>
-    </el-dialog>
+    </BaseModal>
   </div>
 </template>
 
@@ -62,16 +53,22 @@ const props = defineProps({
   item: Object
 })
 
+import { computed, reactive, ref, watch, nextTick } from 'vue'
+import { SquarePen } from '@lucide/vue'
+import BaseButton from '@/components/base/BaseButton.vue'
+import BaseModal from '@/components/base/BaseModal.vue'
+import BaseInput from '@/components/base/BaseInput.vue'
+import BaseField from '@/components/base/BaseField.vue'
 import fileService from '@/api/file'
-import { reactive, ref } from 'vue'
 import { useFileStore } from '@/stores/file'
 import { storeToRefs } from 'pinia'
 import { ElMessage } from '@/composables/useToast'
 
+const btnSize = computed(() => (props.size === 'small' ? 'sm' : 'md'))
+
 const renameDialogVisible = ref(false)
 const loading = ref(false)
-const renameFormRef = ref(null)
-const filenameEl = ref(null)
+const filenameError = ref('')
 
 const fileStore = useFileStore()
 const { multipleSelection } = storeToRefs(fileStore)
@@ -82,16 +79,18 @@ const renameForm = reactive({
 })
 
 const resetForm = () => {
-  renameFormRef.value.resetFields()
+  renameForm.filename = ''
+  filenameError.value = ''
 }
 
-const focusInput = () => {
-  filenameEl.value.focus()
-}
-
-const renameRules = reactive({
-  filename: [{ required: true, message: '请输入新文件名称', trigger: 'blur' }]
-})
+watch(
+  () => renameDialogVisible.value,
+  (v) => {
+    if (v) {
+      nextTick(() => document.getElementById('renameFilename')?.focus())
+    }
+  }
+)
 
 const renameFile = () => {
   if (props.item) {
@@ -115,33 +114,37 @@ const renameFile = () => {
 }
 
 const doRenameFile = async () => {
-  await renameFormRef.value.validate((valid) => {
-    if (valid) {
-      loading.value = true
-      fileService.update(
-        {
-          fileId: renameForm.fileId,
-          newFilename: renameForm.filename
-        },
-        () => {
-          loading.value = false
-          renameDialogVisible.value = false
-          ElMessage.success('重命名成功')
-          fileStore.loadFileList()
-        },
-        (res) => {
-          ElMessage.error(res.message)
-          loading.value = false
-        }
-      )
+  if (!renameForm.filename.trim()) {
+    filenameError.value = '请输入新文件名称'
+    return
+  }
+  filenameError.value = ''
+  loading.value = true
+  fileService.update(
+    {
+      fileId: renameForm.fileId,
+      newFilename: renameForm.filename
+    },
+    () => {
+      loading.value = false
+      renameDialogVisible.value = false
+      ElMessage.success('重命名成功')
+      fileStore.loadFileList()
+    },
+    (res) => {
+      ElMessage.error(res.message)
+      loading.value = false
     }
-  })
+  )
 }
 </script>
 
-<style>
+<style scoped>
 .rename-button-content {
   display: inline-block;
   margin-right: 10px;
+}
+.dialog-footer {
+  width: 100%;
 }
 </style>

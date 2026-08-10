@@ -16,6 +16,7 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "useDefineForClassFields": true,
+    "composite": true,
     "noEmit": true,
     "allowJs": false,
     "checkJs": false,

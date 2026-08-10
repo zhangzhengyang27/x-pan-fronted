@@ -2,7 +2,7 @@
 /**
  * BaseResult —— 结果页（成功/失败/信息/警告）
  */
-import { CheckCircle2, XCircle, Info, AlertTriangle } from '@lucide/vue'
+import { CircleCheck, CircleX, Info, AlertTriangle } from '@lucide/vue'
 
 defineProps({
   status: { type: String, default: 'info' }, // success | error | info | warning
@@ -10,7 +10,7 @@ defineProps({
   description: { type: String, default: '' }
 })
 
-const iconMap = { success: CheckCircle2, error: XCircle, info: Info, warning: AlertTriangle }
+const iconMap = { success: CircleCheck, error: CircleX, info: Info, warning: AlertTriangle }
 const colorMap = {
   success: 'text-[var(--color-success)]',
   error: 'text-[var(--color-danger)]',
