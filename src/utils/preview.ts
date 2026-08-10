@@ -89,7 +89,7 @@ export function resolvePreviewUrl(fileId: string | number | undefined): Promise<
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: ''
+      Authorization: getToken()
     },
     body: JSON.stringify({ fileId })
   })

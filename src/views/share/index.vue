@@ -337,12 +337,14 @@ function doDownLoads(items, i = 0) {
 }
 
 function doDownload(item) {
+  if (!item || !item.fileId) return ElMessage.warning('文件信息缺失，无法下载')
   if (item.folderFlag === 1) return ElMessage.error('文件夹暂不支持下载')
   userService.infoWithoutPageJump((res) => {
     if (res.code === 0) {
       shareService.getSimpleShareDetail({ shareId: getShareId() }, (res) => {
         if (res.code === 0) {
-          const url = `${panUtil.getUrlPrefix()}/share/file/download?fileId=${item.fileId.replace(/\+/g, '%2B')}&shareToken=${getShareToken()}&authorization=${getToken()}`
+          const fileId = String(item.fileId).replace(/\+/g, '%2B')
+          const url = `${panUtil.getUrlPrefix()}/share/file/download?fileId=${fileId}&shareToken=${getShareToken()}&authorization=${getToken()}`
           const link = document.createElement('a')
           link.style.display = 'none'
           link.href = url

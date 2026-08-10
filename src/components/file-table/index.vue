@@ -30,7 +30,6 @@ import DrivePreviewModal from '@/components/preview/drive-preview-modal.vue'
 import FileTableToolbar from './FileTableToolbar.vue'
 import FileThumbnail from './FileThumbnail.vue'
 import FileHistoryPanel from './FileHistoryPanel.vue'
-import { useTableSort } from '@/composables/useTableSort'
 import { useFavorites } from '@/composables/useFavorites'
 import { useRecent } from '@/composables/useRecent'
 import { useDrivePreview } from '@/composables/useDrivePreview'
@@ -56,7 +55,7 @@ const { fileList, tableLoading, searchFlag, hasMore, isLoadingMore, total } = st
 
 const selected = ref([]) // 多选 fileId
 const view = ref('list') // 'list' | 'grid'
-const isMobile = useMediaQuery('mobile')
+const isMobile = useMediaQuery('(max-width: 768px)')
 
 // ─── 移动/复制对话框（占位 → 真实 FolderPickerDialog） ─────────────────
 const moveDialog = ref({ open: false, mode: 'move', row: null })
@@ -72,7 +71,7 @@ function onMoveComplete() {
 }
 
 // ─── 排序 / 筛选 ────────────────────────────────────────────────────────────
-const { sortItems } = useTableSort('name', 'asc')
+// 排序状态提升到 fileStore，与 FileTableToolbar 共享
 const filter = ref({ extensions: [], sizeMin: '', sizeMax: '', dateFrom: '', dateTo: '' })
 
 const filterActive = computed(() => {
@@ -138,7 +137,7 @@ const filteredList = computed(() => {
     const to = new Date(filter.value.dateTo).getTime() + 86400000
     items = items.filter((r) => new Date(r.updateTime || r.updatedAt || 0).getTime() <= to)
   }
-  return sortItems(items)
+  return fileStore.sortItems(items)
 })
 
 const selectedRows = computed(() =>

@@ -137,12 +137,55 @@ export function getConfirmQueue(): ConfirmItem[] {
   return _confirmQueue
 }
 
+// ─── Prompt（输入框）队列 ──────────────────────────────────────────────────
+export interface PromptResult {
+  value: string | null
+  action: 'confirm' | 'cancel' | 'close'
+}
+
+export interface PromptItem extends ConfirmItem {
+  inputValue?: string
+  inputPattern?: RegExp | string
+  inputErrorMessage?: string
+  inputValidator?: (val: string) => true | string
+}
+
+const _promptQueue: PromptItem[] = []
+const _promptResolvers: ((v: PromptResult) => void)[] = []
+
+function drainPrompt(): void {
+  window.dispatchEvent(new CustomEvent('x-pan:prompt-push'))
+}
+
+export function pushPrompt(item: PromptItem): Promise<PromptResult> {
+  return new Promise<PromptResult>((resolve) => {
+    _promptQueue.push(item)
+    _promptResolvers.push(resolve)
+    drainPrompt()
+  })
+}
+
+export function answerPrompt(action: 'confirm' | 'cancel' | 'close', value?: string | null): void {
+  if (_promptResolvers.length === 0) return
+  const resolve = _promptResolvers.shift()
+  _promptQueue.shift()
+  if (resolve) resolve({ value: action === 'confirm' ? (value ?? '') : null, action })
+}
+
+export function getPromptQueue(): PromptItem[] {
+  return _promptQueue
+}
+
 export interface ConfirmOptions {
   confirmButtonText?: string
   cancelButtonText?: string
   type?: 'warning' | 'danger' | 'info'
   danger?: boolean
   hideClose?: boolean
+  inputValue?: string
+  inputPattern?: RegExp | string
+  inputErrorMessage?: string
+  inputValidator?: (val: string) => true | string
 }
 
 export const ElMessageBox = {
@@ -164,10 +207,25 @@ export const ElMessageBox = {
   alert: (msg: string | { message?: string }, title = '提示') => {
     window.alert(`${title}\n${typeof msg === 'string' ? msg : (msg?.message ?? '')}`)
   },
-  prompt: async (): Promise<{ value: string | null; action: 'confirm' | 'cancel' }> => ({
-    value: null,
-    action: 'cancel'
-  })
+  prompt: (
+    msg: string | { message?: string },
+    title = '请输入',
+    opts: ConfirmOptions = {}
+  ): Promise<PromptResult> => {
+    const message = typeof msg === 'string' ? msg : (msg?.message ?? '')
+    return pushPrompt({
+      title,
+      message,
+      danger: opts.type === 'danger' || opts.danger === true,
+      confirmText: opts.confirmButtonText || '确定',
+      cancelText: opts.cancelButtonText || '取消',
+      hideClose: opts.hideClose === true,
+      inputValue: opts.inputValue ?? '',
+      inputPattern: opts.inputPattern,
+      inputErrorMessage: opts.inputErrorMessage,
+      inputValidator: opts.inputValidator
+    })
+  }
 }
 
 export const ElLoading = {

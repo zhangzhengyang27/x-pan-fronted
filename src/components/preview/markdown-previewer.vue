@@ -23,16 +23,24 @@ let vditor = null
 
 const MAX_CHARS = 200_000
 
+let loadSeq = 0
+let abortCtrl: AbortController | null = null
+
 async function load() {
+  const seq = ++loadSeq
+  // 取消上一次未完成的请求，避免切文件时旧响应覆盖新内容
+  abortCtrl?.abort()
+  abortCtrl = new AbortController()
   loading.value = true
   error.value = ''
   try {
-    const res = await fetch(getPreviewUrl(props.fileId))
+    const res = await fetch(getPreviewUrl(props.fileId), { signal: abortCtrl.signal })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     let text = await res.text()
     if (text.length > MAX_CHARS) {
       text = text.slice(0, MAX_CHARS) + `\n\n> 文件过大，仅展示前 ${MAX_CHARS / 1000}K 字符。`
     }
+    if (seq !== loadSeq) return
     await nextTick()
     if (!containerRef.value) return
     if (vditor) {
@@ -49,9 +57,11 @@ async function load() {
       })
     }
   } catch (e) {
+    if (e?.name === 'AbortError') return
+    if (seq !== loadSeq) return
     error.value = e?.message || 'Markdown 加载失败'
   } finally {
-    loading.value = false
+    if (seq === loadSeq) loading.value = false
   }
 }
 
@@ -66,6 +76,8 @@ watch(
 )
 
 onBeforeUnmount(() => {
+  abortCtrl?.abort()
+  abortCtrl = null
   if (vditor) {
     try {
       vditor.destroy()

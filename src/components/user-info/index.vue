@@ -86,10 +86,9 @@ function doChangePassword() {
     () => {
       loading.value = false
       changePasswordDialogVisible.value = false
-      ElNotification({
+      ElNotification.success({
         title: '成功',
-        message: '密码修改成功，即将跳转至登录页',
-        status: 'success'
+        message: '密码修改成功，即将跳转至登录页'
       })
       setTimeout(clearAll, 1200)
     },

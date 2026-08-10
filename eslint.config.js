@@ -38,6 +38,8 @@ const globals = {
   MutationObserver: 'readonly',
   MessageChannel: 'readonly',
   queueMicrotask: 'readonly',
+  AbortController: 'readonly',
+  AbortSignal: 'readonly',
   defineProps: 'readonly',
   defineEmits: 'readonly',
   defineExpose: 'readonly',

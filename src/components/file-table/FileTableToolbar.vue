@@ -6,13 +6,15 @@
  * - 批量：选中 N 个 → 转移/复制/删除/下载
  */
 import { computed, ref } from 'vue'
+import { storeToRefs } from 'pinia'
 import { ArrowUp, ArrowDown, ArrowUpDown, Filter, Download, Trash2 } from '@lucide/vue'
 import BasePopover from '@/components/base/BasePopover.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import TransferButton from '@/components/buttons/transfer-button/index.vue'
 import CopyButton from '@/components/buttons/copy-button/index.vue'
 import { ElMessage } from '@/composables/useToast'
-import { SORT_FIELDS, useTableSort } from '@/composables/useTableSort'
+import { useFileStore } from '@/stores/file'
+import { SORT_FIELDS } from '@/composables/useTableSort'
 
 const props = defineProps({
   selectedRows: { type: Array, default: () => [] },
@@ -22,7 +24,9 @@ const props = defineProps({
 
 const emit = defineEmits(['sort-change', 'filter-change', 'batch-download', 'batch-delete'])
 
-const { sortField, sortOrder, toggleSort } = useTableSort('name', 'asc')
+const fileStore = useFileStore()
+const { sortProp: sortField, sortOrder } = storeToRefs(fileStore)
+const { toggleSort } = fileStore
 
 const filterOpen = ref(false)
 const filter = ref({
@@ -69,7 +73,7 @@ function toggleExt(ext) {
 
 function getSortIcon(field) {
   if (sortField.value !== field) return ArrowUpDown
-  return sortOrder.value === 'asc' ? ArrowUp : ArrowDown
+  return sortOrder.value === 'ascending' ? ArrowUp : ArrowDown
 }
 
 function onSort(field) {

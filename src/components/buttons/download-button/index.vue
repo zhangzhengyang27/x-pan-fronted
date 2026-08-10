@@ -34,7 +34,7 @@ const props = defineProps({
   item: Object
 })
 
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, ref } from 'vue'
 import { Download } from '@lucide/vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import { ElMessage } from '@/composables/useToast'
@@ -52,21 +52,24 @@ const { multipleSelection } = storeToRefs(fileStore)
 const loading = ref(false)
 
 const doDownload = (item) => {
+  if (!item || !item.fileId) {
+    ElMessage.warning('文件信息缺失，无法下载')
+    return
+  }
+  const fileId = String(item.fileId).replace(/\+/g, '%2B')
+  const filename = item.filename
   let url =
-      panUtil.getUrlPrefix() +
-      '/file/download?fileId=' +
-      item.fileId.replace(/\+/g, '%2B') +
-      '&authorization=' +
-      getToken(),
-    filename = item.filename,
+      panUtil.getUrlPrefix() + '/file/download?fileId=' + fileId + '&authorization=' + getToken(),
     link = document.createElement('a')
   link.style.display = 'none'
   link.href = url
-  link.setAttribute('download', filename)
+  link.setAttribute('download', filename || 'download')
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)
 }
+
+let downloadTimer: ReturnType<typeof setTimeout> | null = null
 
 const doDownLoads = (items, i) => {
   if (!i) {
@@ -75,12 +78,19 @@ const doDownLoads = (items, i) => {
   if (items.length === i) {
     return
   }
-  setTimeout(function () {
+  downloadTimer = setTimeout(function () {
     doDownload(items[i])
     i++
     doDownLoads(items, i)
   }, 500)
 }
+
+onBeforeUnmount(() => {
+  if (downloadTimer) {
+    clearTimeout(downloadTimer)
+    downloadTimer = null
+  }
+})
 
 const downloadFile = () => {
   if (!props.item && (!multipleSelection.value || multipleSelection.value.length === 0)) {

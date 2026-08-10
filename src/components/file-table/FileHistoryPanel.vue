@@ -120,13 +120,15 @@ function shortHash(hash) {
 
 async function doRollback(v) {
   try {
-    await ElMessageBox({
-      title: '回滚版本',
-      message: `确定回滚到 v${v.versionNo}？此操作会创建一个新的版本。`,
-      confirmText: '回滚',
-      cancelText: '取消',
-      type: 'warning'
-    })
+    await ElMessageBox.confirm(
+      `确定回滚到 v${v.versionNo}？此操作会创建一个新的版本。`,
+      '回滚版本',
+      {
+        confirmButtonText: '回滚',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
   } catch {
     return
   }
@@ -146,11 +148,9 @@ async function doRollback(v) {
 async function doDelete(v) {
   if (v.current) return ElMessage.warning('不能删除当前正在使用的版本')
   try {
-    await ElMessageBox({
-      title: '删除版本',
-      message: `确定删除 v${v.versionNo}？此操作不可恢复。`,
-      confirmText: '删除',
-      cancelText: '取消',
+    await ElMessageBox.confirm(`确定删除 v${v.versionNo}？此操作不可恢复。`, '删除版本', {
+      confirmButtonText: '删除',
+      cancelButtonText: '取消',
       type: 'danger'
     })
   } catch {

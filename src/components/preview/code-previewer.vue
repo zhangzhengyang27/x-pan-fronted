@@ -7,7 +7,7 @@
  * - 行号跳转（Ctrl+G / 输入行号）
  * - 200K 字符截断
  */
-import { onMounted, ref, watch, computed } from 'vue'
+import { onMounted, onBeforeUnmount, ref, watch, computed } from 'vue'
 import { getPreviewUrl, resolveShikiLanguage, getFileExtension } from '@/utils/preview'
 import { useTheme } from '@/composables/useTheme'
 import { createHighlighter } from 'shiki'
@@ -27,6 +27,7 @@ const rawText = ref('')
 const loading = ref(true)
 const error = ref('')
 const truncated = ref(false)
+const scrollContainerRef = ref(null)
 
 const MAX_CHARS = 200_000
 
@@ -45,30 +46,47 @@ async function getHighlighter(lang) {
 
 const lang = computed(() => resolveShikiLanguage(getFileExtension(props.filename)))
 
+let loadSeq = 0
+let abortCtrl: AbortController | null = null
+
 async function load() {
+  const seq = ++loadSeq
+  // 取消上一次未完成的请求，避免切文件/切主题时旧响应覆盖新内容
+  abortCtrl?.abort()
+  abortCtrl = new AbortController()
   loading.value = true
   error.value = ''
   truncated.value = false
   try {
-    const res = await fetch(getPreviewUrl(props.fileId))
+    const res = await fetch(getPreviewUrl(props.fileId), { signal: abortCtrl.signal })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     let text = await res.text()
     if (text.length > MAX_CHARS) {
       text = text.slice(0, MAX_CHARS)
       truncated.value = true
     }
-    rawText.value = text
     const h = await getHighlighter(lang.value)
+    // 仅在本次请求仍是最新时更新 UI，避免竞态
+    if (seq !== loadSeq) return
+    rawText.value = text
     html.value = h.codeToHtml(text, {
       lang: lang.value,
       theme: isDark.value ? 'github-dark' : 'github-light'
     })
   } catch (e) {
+    // 主动取消（abort）不视为错误，忽略即可
+    if (e?.name === 'AbortError') return
+    if (seq !== loadSeq) return
     error.value = e?.message || '加载失败'
   } finally {
-    loading.value = false
+    if (seq === loadSeq) loading.value = false
   }
 }
+
+onBeforeUnmount(() => {
+  abortCtrl?.abort()
+  abortCtrl = null
+})
 
 // ─── 搜索 ──────────────────────────────────────────────────────────────────
 const searchOpen = ref(false)
@@ -126,7 +144,7 @@ function doGotoLine() {
 
 function scrollToLine(line) {
   // shiki 渲染的 pre 中没原生行号；用 scrollTop 估算（每行约 21.45px = 1.65 line-height × 13px font）
-  const container = document.querySelector('.code-scroll-container')
+  const container = scrollContainerRef.value
   if (!container) return
   const lineHeight = 21.45
   container.scrollTo({ top: (line - 1) * lineHeight - 100, behavior: 'smooth' })
@@ -230,7 +248,7 @@ watch(() => [props.fileId, isDark.value], load)
       {{ error }}
     </div>
     <template v-else>
-      <div class="flex-1 overflow-auto code-scroll-container">
+      <div ref="scrollContainerRef" class="flex-1 overflow-auto code-scroll-container">
         <div class="shiki-host text-sm" v-html="html" />
       </div>
       <div

@@ -2,6 +2,7 @@ import { computed, ref, type Ref, type ComputedRef } from 'vue'
 import { defineStore } from 'pinia'
 import fileService from '@/api/file'
 import { ElMessage } from '@/composables/useToast'
+import type { SortOrder } from '@/composables/useTableSort'
 import type { IFileVO, PageVO } from '@/types'
 
 export interface SearchFilter {
@@ -32,6 +33,10 @@ export interface FileStore {
 
   paramParentId: ComputedRef<string>
 
+  // 排序状态（与 FileTableToolbar / file-table 共享）
+  sortProp: Ref<string>
+  sortOrder: Ref<SortOrder>
+
   setParentId: (id: string) => void
   refreshParentId: () => void
   setDefaultParentId: (id: string) => void
@@ -49,6 +54,8 @@ export interface FileStore {
   loadMore: () => void
   loadAllForFilter: () => void
   searchWithFilter: (filter: SearchFilter) => void
+  toggleSort: (prop: string) => void
+  sortItems: <T extends Record<string, unknown>>(list: T[]) => T[]
 }
 
 /**
@@ -95,6 +102,41 @@ export const useFileStore = defineStore('file', (): FileStore => {
   const paramParentId = computed<string>(() =>
     parentId.value === '-1' ? defaultParentId.value : parentId.value
   )
+
+  // ─── 排序状态（默认按名称升序，与工具栏一致） ───────────────────────────────
+  const sortProp = ref<string>('name')
+  const sortOrder = ref<SortOrder>('ascending')
+
+  function valueOf(item: Record<string, unknown>, prop: string): number | string {
+    if (prop === 'name') {
+      const n = item.filename ?? item.name
+      return typeof n === 'string' ? n : ''
+    }
+    const v = item[prop]
+    return typeof v === 'number' || typeof v === 'string' ? v : ''
+  }
+
+  function toggleSort(prop: string): void {
+    if (sortProp.value !== prop) {
+      sortProp.value = prop
+      sortOrder.value = 'ascending'
+      return
+    }
+    if (sortOrder.value === 'ascending') sortOrder.value = 'descending'
+    else if (sortOrder.value === 'descending') sortOrder.value = null
+    else sortOrder.value = 'ascending'
+  }
+
+  function sortItems<T extends Record<string, unknown>>(list: T[]): T[] {
+    if (!sortOrder.value || !sortProp.value) return list
+    const dir = sortOrder.value === 'ascending' ? 1 : -1
+    return [...list].sort((a, b) => {
+      const va = valueOf(a, sortProp.value)
+      const vb = valueOf(b, sortProp.value)
+      if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir
+      return String(va).localeCompare(String(vb), 'zh-CN') * dir
+    })
+  }
 
   function setParentId(newParentId: string): void {
     parentId.value = newParentId
@@ -160,6 +202,8 @@ export const useFileStore = defineStore('file', (): FileStore => {
     pageNum.value = 1
     hasMore.value = false
     total.value = 0
+    sortProp.value = 'name'
+    sortOrder.value = 'ascending'
   }
 
   function applyPageResponse(
@@ -328,6 +372,8 @@ export const useFileStore = defineStore('file', (): FileStore => {
     hasMore,
     isLoadingMore,
     paramParentId,
+    sortProp,
+    sortOrder,
     setParentId,
     refreshParentId,
     setDefaultParentId,
@@ -344,6 +390,8 @@ export const useFileStore = defineStore('file', (): FileStore => {
     loadFileList,
     loadMore,
     loadAllForFilter,
-    searchWithFilter
+    searchWithFilter,
+    toggleSort,
+    sortItems
   }
 })

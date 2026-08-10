@@ -16,7 +16,7 @@ import { useMediaQuery } from '@/composables/useMediaQuery'
 
 const route = useRoute()
 const { isDark, toggleTheme } = useTheme()
-const isMobile = useMediaQuery('mobile')
+const isMobile = useMediaQuery('(max-width: 768px)')
 
 const showSearch = computed(() => {
   // 登录/注册/忘记页不显示搜索

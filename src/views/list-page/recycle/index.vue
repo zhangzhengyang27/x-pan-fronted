@@ -88,13 +88,15 @@ function expireInfo(row) {
 
 function cleanRecycle() {
   if (tableData.value.length === 0) return ElMessage.warning('回收站已经是空的')
-  ElMessageBox({
-    title: '清空回收站',
-    message: `将永久删除 ${tableData.value.length} 个文件/文件夹（${summary.value.totalSize}），此操作不可恢复！`,
-    confirmText: '确认清空',
-    cancelText: '取消',
-    type: 'danger'
-  })
+  ElMessageBox.confirm(
+    `将永久删除 ${tableData.value.length} 个文件/文件夹（${summary.value.totalSize}），此操作不可恢复！`,
+    '清空回收站',
+    {
+      confirmButtonText: '确认清空',
+      cancelButtonText: '取消',
+      type: 'danger'
+    }
+  )
     .then(() => {
       doDelete(tableData.value.map((f) => f.fileId).join('__,__'))
     })
@@ -104,13 +106,15 @@ function cleanRecycle() {
 function cleanExpired() {
   const expired = tableData.value.filter((r) => expireInfo(r).expired)
   if (expired.length === 0) return ElMessage.warning('没有过期文件可清理')
-  ElMessageBox({
-    title: '清理过期文件',
-    message: `将删除 ${expired.length} 个已过期文件，释放 ${summary.value.expiredSize} 空间`,
-    confirmText: '确认清理',
-    cancelText: '取消',
-    type: 'warning'
-  })
+  ElMessageBox.confirm(
+    `将删除 ${expired.length} 个已过期文件，释放 ${summary.value.expiredSize} 空间`,
+    '清理过期文件',
+    {
+      confirmButtonText: '确认清理',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  )
     .then(() => {
       doDelete(expired.map((f) => f.fileId).join('__,__'))
     })

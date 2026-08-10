@@ -82,11 +82,9 @@ function fallbackCopy(text) {
 }
 
 function doCancelShares(shareIds) {
-  ElMessageBox({
-    title: '取消分享',
-    message: '分享取消后将不可恢复，您确定这样做吗？',
-    confirmText: '确认取消',
-    cancelText: '取消',
+  ElMessageBox.confirm('分享取消后将不可恢复，您确定这样做吗？', '取消分享', {
+    confirmButtonText: '确认取消',
+    cancelButtonText: '取消',
     type: 'warning'
   })
     .then(() => {
@@ -104,10 +102,8 @@ function doCancelShares(shareIds) {
 
 function cancelShares() {
   if (selected.value.length === 0) return ElMessage.error('请选择要取消的分享')
-  const ids = selected.value
-    .map((i) => tableData.value[i]?.shareId)
-    .filter(Boolean)
-    .join('__,__')
+  // selected 基于 row-key="shareId"，存的是 shareId 值而非数组下标，直接取用即可
+  const ids = selected.value.filter(Boolean).join('__,__')
   doCancelShares(ids)
 }
 
