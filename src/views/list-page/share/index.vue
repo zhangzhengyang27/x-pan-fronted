@@ -3,7 +3,7 @@
  * ShareListPage —— 我的分享列表
  */
 import { computed, onMounted, ref } from 'vue'
-import { Share2, Link as LinkIcon, X, Download, Hash } from '@lucide/vue'
+import { Share2, Link as LinkIcon, X, Download } from '@lucide/vue'
 import shareService from '@/api/share'
 import { ElMessage, ElMessageBox } from '@/composables/useToast'
 import BaseTable from '@/components/base/BaseTable.vue'

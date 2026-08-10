@@ -7,7 +7,7 @@
  * - 行号跳转（Ctrl+G / 输入行号）
  * - 200K 字符截断
  */
-import { onMounted, ref, watch, computed, nextTick } from 'vue'
+import { onMounted, ref, watch, computed } from 'vue'
 import { getPreviewUrl, resolveShikiLanguage, getFileExtension } from '@/utils/preview'
 import { useTheme } from '@/composables/useTheme'
 import { createHighlighter } from 'shiki'

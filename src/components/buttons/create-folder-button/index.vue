@@ -61,7 +61,7 @@
 </template>
 
 <script setup>
-const props = defineProps({
+defineProps({
   roundFlag: Boolean,
   circleFlag: Boolean,
   size: String
@@ -95,7 +95,7 @@ const focusInput = () => {
 }
 
 const doCreateFolder = async () => {
-  await createFolderFormRef.value.validate((valid, fields) => {
+  await createFolderFormRef.value.validate((valid) => {
     if (valid) {
       loading.value = true
       fileService.createFolder(
@@ -103,7 +103,7 @@ const doCreateFolder = async () => {
           parentId: paramParentId.value,
           folderName: createFolderForm.folderName
         },
-        (res) => {
+        () => {
           loading.value = false
           createFolderDialogVisible.value = false
           ElMessage.success('新建成功')

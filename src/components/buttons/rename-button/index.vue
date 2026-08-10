@@ -115,7 +115,7 @@ const renameFile = () => {
 }
 
 const doRenameFile = async () => {
-  await renameFormRef.value.validate((valid, fields) => {
+  await renameFormRef.value.validate((valid) => {
     if (valid) {
       loading.value = true
       fileService.update(
@@ -123,7 +123,7 @@ const doRenameFile = async () => {
           fileId: renameForm.fileId,
           newFilename: renameForm.filename
         },
-        (res) => {
+        () => {
           loading.value = false
           renameDialogVisible.value = false
           ElMessage.success('重命名成功')

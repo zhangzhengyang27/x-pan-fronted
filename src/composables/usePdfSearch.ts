@@ -8,7 +8,6 @@ import { ref, shallowRef, type ShallowRef } from 'vue'
 import type { PDFDocumentProxy } from 'pdfjs-dist/build/pdf.mjs'
 
 const textCache = new WeakMap<PDFDocumentProxy, Map<number, string>>()
-const MAX_PAGES = 200
 
 export interface PdfSearchResult {
   page: number

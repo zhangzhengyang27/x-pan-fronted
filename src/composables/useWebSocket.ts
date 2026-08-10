@@ -90,7 +90,9 @@ export function useWebSocket(): UseWebSocketReturn {
       if (ws && ws.readyState === WebSocket.OPEN) {
         try {
           ws.send(JSON.stringify({ type: 'PONG', ts: Date.now() }))
-        } catch {}
+        } catch {
+          // 忽略发送失败
+        }
       }
     }, HEARTBEAT_INTERVAL * 1000)
   }
@@ -167,7 +169,9 @@ export function useWebSocket(): UseWebSocketReturn {
     if (ws) {
       try {
         ws.close(1000, 'client disconnect')
-      } catch {}
+      } catch {
+        // 忽略关闭失败
+      }
       ws = null
     }
     isConnected.value = false

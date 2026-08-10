@@ -2,8 +2,7 @@
 /**
  * Error404 —— 404 错误页（带插画）
  */
-import { Home, Compass } from '@lucide/vue'
-import BaseResult from '@/components/base/BaseResult.vue'
+import { Home } from '@lucide/vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 
 const goHome = () => (window.location.href = '/')

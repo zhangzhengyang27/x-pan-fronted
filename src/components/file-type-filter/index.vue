@@ -5,13 +5,11 @@
  * 当前与后端一致：单选 -1 / 3 / 4 / 5 等单值
  */
 import { ref, computed, onMounted } from 'vue'
-import { Image as ImageIcon, FileType2 as FileText, Video, Music2, Folder, File } from '@lucide/vue'
+import { Image as ImageIcon, FileType2 as FileText, Video, Music2, Folder } from '@lucide/vue'
 import { useFileStore } from '@/stores/file'
-import { useNavbarStore } from '@/stores/navbar'
 import { useRoute } from 'vue-router'
 
 const fileStore = useFileStore()
-const navbarStore = useNavbarStore()
 const route = useRoute()
 
 const types = [

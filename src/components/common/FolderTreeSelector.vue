@@ -9,7 +9,7 @@
  * - 加载状态 / 错误状态 / 空状态
  */
 import { computed, ref, watch } from 'vue'
-import { Home, Loader2, AlertCircle, FolderOpen } from '@lucide/vue'
+import { Home, Loader2, AlertCircle } from '@lucide/vue'
 import BaseTree from '@/components/base/BaseTree.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import fileService from '@/api/file'

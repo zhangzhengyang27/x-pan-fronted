@@ -4,7 +4,7 @@
  */
 import { ChevronDown } from '@lucide/vue'
 
-const props = defineProps({
+defineProps({
   modelValue: { type: [String, Number, null], default: '' },
   options: { type: Array, default: () => [] }, // [{label, value}] 或 [string]
   placeholder: { type: String, default: '请选择' },

@@ -10,7 +10,6 @@
 import { computed } from 'vue'
 import {
   Star,
-  Clock,
   FileImage,
   FileVideo,
   FileText,
@@ -19,14 +18,11 @@ import {
   FileCode,
   Folder,
   HardDrive,
-  ChevronRight,
   FileBarChart2
 } from '@lucide/vue'
 import { useFavorites } from '@/composables/useFavorites'
 import { useRecent } from '@/composables/useRecent'
 import { useRouter } from 'vue-router'
-import BaseButton from '@/components/base/BaseButton.vue'
-import FileThumbnail from '@/components/file-table/FileThumbnail.vue'
 import { cn } from '@/utils/classnames'
 
 const props = defineProps({
@@ -34,10 +30,10 @@ const props = defineProps({
   files: { type: Array, default: () => [] }
 })
 
-const emit = defineEmits(['select-favorite'])
+defineEmits(['select-favorite'])
 
-const { favorites, count: favoriteCount, toggle: toggleFav, remove: removeFav } = useFavorites()
-const { recent, visit } = useRecent()
+const { favorites, count: favoriteCount, remove: removeFav } = useFavorites()
+const { visit } = useRecent()
 const router = useRouter()
 
 function fileIcon(type) {

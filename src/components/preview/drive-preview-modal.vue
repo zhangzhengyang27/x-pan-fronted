@@ -7,8 +7,8 @@
  * - 动态加载所有重型渲染器
  */
 import { computed, defineAsyncComponent, ref, watch } from 'vue'
-import { X, Download, ExternalLink, AlertCircle } from '@lucide/vue'
-import { resolvePreviewUrl, getDownloadUrl, isOffice } from '@/utils/preview'
+import { Download, ExternalLink, AlertCircle } from '@lucide/vue'
+import { resolvePreviewUrl, isOffice } from '@/utils/preview'
 import ImageGalleryPreviewer from './image-gallery-previewer.vue'
 import BaseModal from '@/components/base/BaseModal.vue'
 import BaseButton from '@/components/base/BaseButton.vue'

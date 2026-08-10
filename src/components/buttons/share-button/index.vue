@@ -9,9 +9,9 @@
  * - 下载次数限制
  * - 第二步显示 QR 码 + 下载统计信息
  */
-import { reactive, ref, nextTick, computed } from 'vue'
-import { Share2, Copy, Check, QrCode, Lock, Hash } from '@lucide/vue'
-import { ElMessage, ElMessageBox } from '@/composables/useToast'
+import { reactive, ref, nextTick } from 'vue'
+import { Share2, Copy, Check, QrCode, Lock } from '@lucide/vue'
+import { ElMessage } from '@/composables/useToast'
 import { useFileStore } from '@/stores/file'
 import { storeToRefs } from 'pinia'
 import shareService from '@/api/share'
@@ -19,8 +19,6 @@ import BaseButton from '@/components/base/BaseButton.vue'
 import BaseModal from '@/components/base/BaseModal.vue'
 import BaseInput from '@/components/base/BaseInput.vue'
 import BaseSelect from '@/components/base/BaseSelect.vue'
-import BaseField from '@/components/base/BaseField.vue'
-import { cn } from '@/utils/classnames'
 
 const props = defineProps({
   size: { type: String, default: 'md' },

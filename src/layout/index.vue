@@ -7,7 +7,6 @@ import { onMounted, onUnmounted, ref } from 'vue'
 import AppHeader from '@/components/header/index.vue'
 import AppNavbar from '@/components/navbar/index.vue'
 import AppFooter from '@/components/footer/index.vue'
-import AppMain from '@/components/app-main/index.vue'
 
 /** P1.15：移动端汉堡 → 打开 Navbar 抽屉 */
 const navbarRef = ref(null)

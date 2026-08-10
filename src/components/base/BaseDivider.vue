@@ -2,7 +2,6 @@
 /**
  * BaseDivider —— 分割线（横向 / 纵向 / 居中文案）
  */
-import { cn } from '@/utils/classnames'
 
 defineProps({
   direction: { type: String, default: 'horizontal' } // horizontal | vertical

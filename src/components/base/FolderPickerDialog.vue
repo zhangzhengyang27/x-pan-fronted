@@ -15,15 +15,13 @@
  *  - update:open
  *  - complete (targetParentId)
  */
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import {
   Folder,
   FolderOpen,
   ChevronRight,
   ChevronDown,
   Check,
-  X,
-  FolderPlus,
   ArrowRight,
   Copy as CopyIcon
 } from '@lucide/vue'

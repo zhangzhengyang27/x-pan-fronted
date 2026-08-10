@@ -58,7 +58,9 @@ function recordToday(files) {
   }
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(history.value))
-  } catch {}
+  } catch {
+    // 忽略持久化失败
+  }
 }
 
 watch(

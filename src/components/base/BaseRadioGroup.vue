@@ -3,7 +3,6 @@
  * BaseRadioGroup —— 单选组
  * 方向：horizontal | vertical
  */
-import { computed } from 'vue'
 import { cn } from '@/utils/classnames'
 
 const props = defineProps({

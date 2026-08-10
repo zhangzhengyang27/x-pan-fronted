@@ -4,7 +4,6 @@
  * 使用 BaseInput + BaseAutocomplete
  */
 import { ref } from 'vue'
-import userService from '@/api/user'
 import fileService from '@/api/file'
 import { ElMessage } from '@/composables/useToast'
 import { useFileStore } from '@/stores/file'
@@ -22,13 +21,6 @@ const { defaultParentId, defaultParentFilename } = storeToRefs(fileStore)
 
 const searchKey = ref('')
 
-function querySearchHistory(cb) {
-  userService.searchHistories(
-    (res) => cb(res.data || []),
-    (res) => ElMessage.error(res.message)
-  )
-}
-
 function doSearch() {
   if (!searchKey.value.trim()) return
   fileStore.setFileTypes('-1')
@@ -45,11 +37,6 @@ function doSearch() {
     },
     (res) => ElMessage.error(res.message)
   )
-}
-
-function handleSelect(item) {
-  searchKey.value = item.value
-  doSearch()
 }
 </script>
 

@@ -31,7 +31,6 @@ function log(level: ToastLevel, args: unknown[]): void {
   else console.log(tag, ...args)
 }
 
-let _toastId = 0
 let _container: HTMLElement | null = null
 
 function ensureContainer(): HTMLElement {
@@ -47,7 +46,6 @@ function ensureContainer(): HTMLElement {
 
 function showToast(level: ToastLevel, msg: string): void {
   const container = ensureContainer()
-  const id = ++_toastId
   const c = COLORS[level]
   const el = document.createElement('div')
   el.style.cssText = `pointer-events:auto;display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;background:${c.bg};color:#fff;font-size:13px;box-shadow:0 6px 20px rgba(0,0,0,.12);opacity:0;transform:translateY(-8px);transition:opacity .18s,transform .18s;max-width:420px;`

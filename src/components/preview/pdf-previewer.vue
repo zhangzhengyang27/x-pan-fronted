@@ -5,7 +5,7 @@
  * P1.10：缩放比例持久化
  * P1.11：PDF 文本搜索（pdfjs-dist）
  */
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import VueOfficePdf from '@vue-office/pdf'
 import { getPreviewUrl } from '@/utils/preview'
 import BaseButton from '@/components/base/BaseButton.vue'
@@ -32,7 +32,9 @@ const zoom = ref(Number(localStorage.getItem(ZOOM_KEY) || DEFAULT_ZOOM))
 watch(zoom, (v) => {
   try {
     localStorage.setItem(ZOOM_KEY, String(v))
-  } catch {}
+  } catch {
+    // 忽略持久化失败
+  }
 })
 
 function zoomIn() {
@@ -56,7 +58,7 @@ const searchOpen = ref(false)
 const searchKeyword = ref('')
 const searchResults = ref([])
 const searchIdx = ref(0)
-const { load: loadPdfDoc, search: pdfSearch, loading: pdfLoading } = usePdfSearch()
+const { load: loadPdfDoc, search: pdfSearch } = usePdfSearch()
 
 async function doSearch() {
   if (!searchKeyword.value.trim()) {

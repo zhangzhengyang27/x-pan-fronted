@@ -32,4 +32,5 @@ export function classNames(...args: ClassValue[]): string {
   return classes.join(' ')
 }
 
+export const cn = classNames
 export default classNames

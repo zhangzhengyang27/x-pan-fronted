@@ -12,28 +12,13 @@ import {
   Keyboard,
   X,
   Search,
-  Folder,
   FileText,
-  Copy,
-  Scissors,
-  Clipboard,
-  Trash2,
-  Edit3,
-  RotateCcw,
-  Download,
-  Upload,
-  Search as SearchIcon,
-  Grid3x3,
-  List as ListIcon,
-  ArrowUp,
-  ArrowDown,
-  ArrowLeft,
-  ArrowRight,
   CheckSquare,
-  Square,
-  Eye
+  Edit3,
+  Grid3x3,
+  Download,
+  Search as SearchIcon
 } from '@lucide/vue'
-import BaseModal from './BaseModal.vue'
 import BaseInput from './BaseInput.vue'
 
 const open = ref(false)

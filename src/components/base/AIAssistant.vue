@@ -14,18 +14,16 @@ import { nextTick, ref, watch } from 'vue'
 import {
   Sparkles,
   Send,
-  Bot,
   User as UserIcon,
   Loader2,
   FileText,
-  Image as ImageIcon,
-  Search as SearchIcon
+  Image as ImageIcon
 } from '@lucide/vue'
 import BaseModal from './BaseModal.vue'
 import BaseButton from './BaseButton.vue'
 import BaseInput from './BaseInput.vue'
 
-const props = defineProps({
+defineProps({
   open: { type: Boolean, default: false }
 })
 

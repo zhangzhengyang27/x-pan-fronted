@@ -7,16 +7,7 @@
  * 3. 批量下载（多文件下载）
  * 4. 多选 + 快捷键（Ctrl+A / Delete / F2）
  */
-import {
-  ref,
-  computed,
-  onMounted,
-  onBeforeUnmount,
-  watch,
-  nextTick,
-  onActivated,
-  onDeactivated
-} from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import DownloadButton from '@/components/buttons/download-button/index.vue'
 import DeleteButton from '@/components/buttons/delete-button/index.vue'
 import RenameButton from '@/components/buttons/rename-button/index.vue'
@@ -30,8 +21,6 @@ import { useBreadcrumbStore } from '@/stores/breadcrumb'
 import { storeToRefs } from 'pinia'
 import { ElMessage, ElMessageBox } from '@/composables/useToast'
 import { useRouter } from 'vue-router'
-import ImageViewer from '@luohc92/vue3-image-viewer'
-import '@luohc92/vue3-image-viewer/dist/style.css'
 
 import BaseTable from '@/components/base/BaseTable.vue'
 import BaseTooltip from '@/components/base/BaseTooltip.vue'
@@ -48,28 +37,15 @@ import { useDrivePreview } from '@/composables/useDrivePreview'
 import { useMediaQuery } from '@/composables/useMediaQuery'
 import { getDownloadUrl } from '@/utils/preview'
 import {
-  Folder,
-  FileText,
-  FileArchive,
-  FileSpreadsheet,
-  FileImage,
-  FileAudio,
-  FileVideo,
-  FileCode,
-  FileBarChart2,
   Loader2,
   Download,
   Edit3,
   Copy,
-  Scissors,
   Trash2,
   Share2,
   FolderInput,
-  FolderPlus,
   Star,
   Eye,
-  FilePlus,
-  Clipboard,
   History
 } from '@lucide/vue'
 
@@ -81,22 +57,6 @@ const { fileList, tableLoading, searchFlag, hasMore, isLoadingMore, total } = st
 const selected = ref([]) // 多选 fileId
 const view = ref('list') // 'list' | 'grid'
 const isMobile = useMediaQuery('mobile')
-
-function fileIcon(type) {
-  return (
-    {
-      0: Folder,
-      2: FileArchive,
-      3: FileSpreadsheet,
-      4: FileText,
-      7: FileImage,
-      8: FileAudio,
-      9: FileVideo,
-      10: FileBarChart2,
-      11: FileCode
-    }[type] || FileText
-  )
-}
 
 // ─── 移动/复制对话框（占位 → 真实 FolderPickerDialog） ─────────────────
 const moveDialog = ref({ open: false, mode: 'move', row: null })
@@ -112,7 +72,7 @@ function onMoveComplete() {
 }
 
 // ─── 排序 / 筛选 ────────────────────────────────────────────────────────────
-const { sortField, sortOrder, toggleSort, sortItems } = useTableSort('name', 'asc')
+const { sortItems } = useTableSort('name', 'asc')
 const filter = ref({ extensions: [], sizeMin: '', sizeMax: '', dateFrom: '', dateTo: '' })
 
 const filterActive = computed(() => {
@@ -220,26 +180,6 @@ function goInFolder(fileId) {
 function openNewPage(path, name, params, query) {
   const { href } = router.resolve({ path, name, params, query })
   window.open(href, '_blank')
-}
-
-function showImg(row) {
-  const imgs = []
-  let idx = 0
-  fileList.value.forEach((f) => {
-    if (f.fileType === 7) {
-      imgs.push(panUtil.getPreviewUrl(f.fileId))
-      if (f.fileId === row.fileId) idx = imgs.length - 1
-    }
-  })
-  ImageViewer({
-    images: imgs,
-    curIndex: idx,
-    zIndex: 2000,
-    showDownload: false,
-    showThumbnail: true,
-    handlePosition: 'bottom',
-    maskBgColor: 'rgba(0,0,0,0.7)'
-  })
 }
 
 function clickFilename(row) {
@@ -625,7 +565,7 @@ async function promptRename(row) {
       },
       (err) => ElMessage.error(err.message)
     )
-  } catch (e) {
+  } catch {
     // 用户点取消
   }
 }

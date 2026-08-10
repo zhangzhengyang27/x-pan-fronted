@@ -4,7 +4,7 @@
  */
 import { cn } from '@/utils/classnames'
 
-const props = defineProps({
+defineProps({
   variant: { type: String, default: 'neutral' }, // neutral | primary | success | warning | danger
   size: { type: String, default: 'md' } // sm | md
 })

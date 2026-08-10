@@ -14,6 +14,11 @@ const emit = defineEmits(['select', 'toggle'])
 
 const expanded = ref(false)
 const selected = ref(false)
+
+function onToggle(node) {
+  expanded.value = !expanded.value
+  emit('toggle', node)
+}
 </script>
 
 <template>
@@ -35,10 +40,7 @@ const selected = ref(false)
         type="button"
         class="size-4 flex items-center justify-center text-[var(--color-text-muted)] transition-transform"
         :class="expanded && 'rotate-90'"
-        @click.stop="
-          expanded = !expanded
-          emit('toggle', node)
-        "
+        @click.stop="onToggle(node)"
       >
         <ChevronRight :size="14" :stroke-width="2.5" />
       </button>

@@ -3,6 +3,7 @@
  * 支持图片 / 视频 / 音频 / PDF / 文本 / Office / 其它
  */
 import panUtil from '@/utils/common'
+import { getToken } from '@/utils/cookie'
 
 export type PreviewKind =
   'image' | 'video' | 'audio' | 'pdf' | 'code' | 'office' | 'text' | 'unsupported'
@@ -107,3 +108,79 @@ export function resolvePreviewUrl(fileId: string | number | undefined): Promise<
 export function buildPreviewRoute(fileId: string | number): string {
   return `${panUtil.getUrlPrefix()}/preview/${fileId}`
 }
+
+/**
+ * 同步构造预览资源 URL（与 panUtil.getPreviewUrl 保持一致）
+ */
+export function getPreviewUrl(fileId: string | number): string {
+  return panUtil.getPreviewUrl(String(fileId))
+}
+
+/**
+ * 同步构造下载资源 URL
+ */
+export function getDownloadUrl(fileId: string | number): string {
+  return (
+    panUtil.getUrlPrefix() +
+    '/file/download?fileId=' +
+    panUtil.handleId(String(fileId)) +
+    '&authorization=' +
+    (getToken() || '')
+  )
+}
+
+/**
+ * 判断扩展名是否为 Office 文档
+ */
+export function isOffice(ext: string): boolean {
+  return resolvePreviewKind({ extension: ext }) === 'office'
+}
+
+/**
+ * 从文件名中提取小写扩展名（不含点）
+ */
+export function getFileExtension(filename = ''): string {
+  const i = filename.lastIndexOf('.')
+  return i >= 0 ? filename.slice(i + 1).toLowerCase() : ''
+}
+
+const SHIKI_LANG_MAP: Record<string, string> = {
+  js: 'javascript',
+  mjs: 'javascript',
+  cjs: 'javascript',
+  ts: 'typescript',
+  tsx: 'tsx',
+  jsx: 'jsx',
+  vue: 'vue',
+  html: 'html',
+  htm: 'html',
+  css: 'css',
+  scss: 'scss',
+  less: 'less',
+  json: 'json',
+  java: 'java',
+  py: 'python',
+  go: 'go',
+  c: 'c',
+  cpp: 'cpp',
+  h: 'c',
+  sh: 'bash',
+  yml: 'yaml',
+  yaml: 'yaml',
+  xml: 'xml',
+  md: 'markdown',
+  sql: 'sql',
+  txt: 'text',
+  log: 'text'
+}
+
+/**
+ * 将扩展名映射为 shiki 高亮语言 id（未知回退 text）
+ */
+export function resolveShikiLanguage(ext: string): string {
+  return SHIKI_LANG_MAP[ext.toLowerCase()] || 'text'
+}
+
+export const DOCX_EXTENSIONS = ['doc', 'docx']
+export const EXCEL_EXTENSIONS = ['xls', 'xlsx']
+export const PPTX_EXTENSIONS = ['ppt', 'pptx']

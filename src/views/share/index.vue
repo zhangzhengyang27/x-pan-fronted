@@ -5,7 +5,6 @@
  */
 import panUtil from '@/utils/common'
 import userService from '@/api/user'
-import fileService from '@/api/file'
 import {
   clearShareToken,
   clearToken,
@@ -16,7 +15,7 @@ import {
 } from '@/utils/cookie'
 import shareService from '@/api/share'
 import { onMounted, onUnmounted, reactive, ref, computed } from 'vue'
-import { ElMessage, ElMessageBox } from '@/composables/useToast'
+import { ElMessage } from '@/composables/useToast'
 import { useRoute } from 'vue-router'
 
 import BaseButton from '@/components/base/BaseButton.vue'
@@ -26,7 +25,6 @@ import BaseModal from '@/components/base/BaseModal.vue'
 import BaseTable from '@/components/base/BaseTable.vue'
 import BaseTree from '@/components/base/BaseTree.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
-import BaseDivider from '@/components/base/BaseDivider.vue'
 import {
   Cloud,
   Copy,
@@ -45,9 +43,6 @@ import {
 } from '@lucide/vue'
 
 const route = useRoute()
-const treeRef = ref(null)
-const shareCodeEl = ref(null)
-const usernameEl = ref(null)
 
 const loginForm = reactive({ username: '', password: '' })
 const shareCodeForm = reactive({ shareCode: '' })
@@ -362,13 +357,6 @@ function doDownload(item) {
       login()
     }
   })
-}
-
-function loadTreeData() {
-  fileService.getFolderTree(
-    (res) => (treeData.value = res.data || []),
-    (res) => ElMessage.error(res.message)
-  )
 }
 
 function doChoseTreeNodeCallBack() {

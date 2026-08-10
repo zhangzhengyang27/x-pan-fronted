@@ -29,7 +29,7 @@ export function useUploader() {
     if (_uploader) return _uploader
 
     const fileOptions = {
-      target: (file: UploaderFile) => {
+      target: () => {
         if (panUtil.getChunkUploadSwitch()) {
           return panUtil.getUrlPrefix() + '/file/chunk-upload'
         }

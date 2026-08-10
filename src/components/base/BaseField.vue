@@ -6,7 +6,7 @@
 import { computed } from 'vue'
 import { cn } from '@/utils/classnames'
 
-const props = defineProps({
+defineProps({
   label: { type: String, default: '' },
   required: { type: Boolean, default: false },
   error: { type: String, default: '' },

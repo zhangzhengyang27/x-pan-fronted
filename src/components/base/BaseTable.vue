@@ -55,7 +55,7 @@ function toggleRow(row, idx) {
   const next = isSelected(row) ? props.selected.filter((k) => k !== key) : [...props.selected, key]
   emit('update:selected', next)
 }
-function rowClass(row, idx) {
+function rowClass(row) {
   return cn(
     'transition-colors duration-150 cursor-pointer',
     'hover:bg-[var(--color-surface-2)]',

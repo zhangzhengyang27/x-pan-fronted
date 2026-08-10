@@ -2,7 +2,7 @@
 /**
  * Error500 —— 500 错误页
  */
-import { ServerCrash, Home, RotateCcw } from '@lucide/vue'
+import { Home, RotateCcw } from '@lucide/vue'
 import BaseResult from '@/components/base/BaseResult.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 

@@ -13,7 +13,6 @@ import fileService from '@/api/file'
 import panUtil from '@/utils/common'
 import { ElMessage } from '@/composables/useToast'
 import { getPreviewUrl, getDownloadUrl } from '@/utils/preview'
-import BaseButton from '@/components/base/BaseButton.vue'
 
 const route = useRoute()
 const items = ref([])

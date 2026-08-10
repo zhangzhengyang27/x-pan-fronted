@@ -11,7 +11,7 @@
  * 用法：
  * <ContextMenu :items="menuItems" @select="onSelect"/>
  */
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 
 const props = defineProps({
   visible: { type: Boolean, default: false },

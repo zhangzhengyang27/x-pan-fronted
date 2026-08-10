@@ -8,7 +8,7 @@
  * - 每张图片 URL 缓存（避免重复请求）
  * - 加载态占位
  */
-import { onMounted, ref, watch, onBeforeUnmount, computed, onActivated, onDeactivated } from 'vue'
+import { onMounted, ref, watch, onBeforeUnmount, computed } from 'vue'
 import {
   ChevronLeft,
   ChevronRight,
@@ -20,7 +20,7 @@ import {
   Play,
   Pause
 } from '@lucide/vue'
-import { resolvePreviewUrl, getDownloadUrl } from '@/utils/preview'
+import { resolvePreviewUrl } from '@/utils/preview'
 
 const props = defineProps({
   items: { type: Array, default: () => [] }, // [{fileId, name, ...}]
@@ -154,7 +154,7 @@ watch(
   (items) => loadUrls(items)
 )
 watch(() => props.activeIndex, resetView)
-watch(isPlaying, (v) => {
+watch(isPlaying, () => {
   // 播放时如果用户手动切换也保持
 })
 

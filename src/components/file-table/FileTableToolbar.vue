@@ -5,18 +5,8 @@
  * - 筛选：扩展名（多选）/ 大小区间 / 时间范围
  * - 批量：选中 N 个 → 转移/复制/删除/下载
  */
-import { computed, ref, watch } from 'vue'
-import {
-  ArrowUp,
-  ArrowDown,
-  ArrowUpDown,
-  Filter,
-  X,
-  Download,
-  Trash2,
-  FolderInput,
-  Copy
-} from '@lucide/vue'
+import { computed, ref } from 'vue'
+import { ArrowUp, ArrowDown, ArrowUpDown, Filter, Download, Trash2 } from '@lucide/vue'
 import BasePopover from '@/components/base/BasePopover.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import TransferButton from '@/components/buttons/transfer-button/index.vue'

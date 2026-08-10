@@ -13,7 +13,7 @@ import { useBreadcrumbStore } from '@/stores/breadcrumb'
 import { useFileStore } from '@/stores/file'
 import { useNavbarStore } from '@/stores/navbar'
 import { useTaskStore } from '@/stores/task'
-import { ElMessage, ElMessageBox, ElNotification } from '@/composables/useToast'
+import { ElMessage, ElNotification } from '@/composables/useToast'
 
 import BaseDropdown from '@/components/base/BaseDropdown.vue'
 import BaseModal from '@/components/base/BaseModal.vue'
