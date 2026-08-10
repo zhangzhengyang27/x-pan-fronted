@@ -164,6 +164,13 @@ const panUtil: PanUtil = {
   },
 
   getUrlPrefix(): string {
+    // 优先读取构建期注入的环境变量 VITE_API_BASE_URL（兼容 .env 配置）
+    // 支持两种形式：
+    //   1. 完整地址，如 http://localhost:8081
+    //   2. 相对路径（nginx 反代场景），如 /api
+    // 均缺失时回退到本地默认后端地址
+    const env = import.meta.env?.VITE_API_BASE_URL
+    if (env) return env
     return 'http://127.0.0.1:8081'
   },
 
