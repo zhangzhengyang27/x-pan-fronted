@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * DashboardCard —— 仪表盘卡片
  * P1.9 增强：

@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * BaseTree —— 树容器
  * 数据：[{ id, label, children?: [] }]

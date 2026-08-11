@@ -22,8 +22,9 @@ export const useTaskStore = defineStore('task', () => {
   const viewFlag = ref(false)
 
   // 唯一 key：优先用文件内容 hash，避免同名文件同时上传时串扰；filename 兜底
-  const keyOf = (task: Pick<UploadTask, 'uniqueIdentifier' | 'filename'>) =>
-    task.uniqueIdentifier || task.filename
+  // 查找/去重统一以文件名为基准（所有调用方传入的 key 均为文件名），
+  // 避免 uniqueIdentifier 在 MD5 计算前后变化导致的匹配失败。
+  const keyOf = (task: Pick<UploadTask, 'filename' | 'uniqueIdentifier'>) => task.filename
 
   const add = (task: UploadTask) => {
     const key = keyOf(task)

@@ -11,7 +11,7 @@ import { storeToRefs } from 'pinia'
 const breadcrumbStore = useBreadcrumbStore()
 const fileStore = useFileStore()
 
-const { breadCrumbs } = storeToRefs(breadcrumbStore)
+const { breadcrumbList: breadCrumbs } = storeToRefs(breadcrumbStore)
 
 function goBack() {
   fileStore.setSearchFlag(false)

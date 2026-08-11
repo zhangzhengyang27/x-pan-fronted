@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * BaseTable —— 通用表格（基础版）
  * - 粘性表头

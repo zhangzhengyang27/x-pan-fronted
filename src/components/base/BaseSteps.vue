@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * BaseSteps —— 步骤条
  * active: 当前激活的步骤索引（从 0 开始）

@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * ContextMenu —— 右键菜单（P1.12）
  *

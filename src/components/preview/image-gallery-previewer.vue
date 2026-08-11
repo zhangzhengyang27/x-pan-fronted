@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * ImageGalleryPreviewer —— 全屏图片画廊
  * 1:1 复现 html5-examples ImageGalleryPreviewer 行为：

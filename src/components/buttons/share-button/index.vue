@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * ShareButton —— 分享文件（两步式对话框）
  * Step 1: 配置分享名 + 有效期 + 提取码 + 下载次数限制

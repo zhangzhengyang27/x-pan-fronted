@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * MarkdownPreviewer —— 基于 Vditor 'ir' 模式（替换之前 markdown-it）
  * - 支持 GFM、数学公式、Mermaid、代码高亮

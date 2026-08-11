@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * FileTableToolbar —— 列表上方工具栏
  * - 排序：name / size / date asc/desc

@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * AppFileTable —— 主文件列表
  * P0 增强：
@@ -55,7 +55,7 @@ const { fileList, tableLoading, searchFlag, hasMore, isLoadingMore, total } = st
 
 const selected = ref([]) // 多选 fileId
 const view = ref('list') // 'list' | 'grid'
-const isMobile = useMediaQuery('(max-width: 768px)')
+const isMobile = useMediaQuery('(max-width: 768px)').matches
 
 // ─── 移动/复制对话框（占位 → 真实 FolderPickerDialog） ─────────────────
 const moveDialog = ref({ open: false, mode: 'move', row: null })
@@ -746,7 +746,7 @@ async function promptRename(row) {
 
   <!-- 预览弹窗（参考 html5-examples DrivePreviewModal） -->
   <DrivePreviewModal
-    :state="preview.state.value"
+    :state="preview.state"
     :resolve-url="preview.resolvePreviewUrl"
     @close="preview.closePreview"
     @download="previewDownload"

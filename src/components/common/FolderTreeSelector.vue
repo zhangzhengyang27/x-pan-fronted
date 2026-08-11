@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * FolderTreeSelector —— 文件夹树选择器
  * 1:1 复现 html5-examples DrivePreviewModal MoveDialog
@@ -29,6 +29,7 @@ const props = defineProps({
 const emit = defineEmits(['update:open', 'update:modelValue', 'confirm'])
 
 const treeData = ref([])
+const rawTreeData = ref([]) // 接口原始数据，供 excludeIds 变化时重新 normalize
 const loading = ref(false)
 const initialLoading = ref(true)
 const error = ref('')
@@ -52,6 +53,7 @@ async function loadTree() {
     const res = await new Promise((resolve, reject) => {
       fileService.getFolderTree(resolve, reject)
     })
+    rawTreeData.value = res.data
     treeData.value = normalizeTree(res.data)
   } catch (e) {
     error.value = e?.message || '文件夹加载失败'
@@ -73,6 +75,16 @@ watch(
     if (open) {
       selectedId.value = props.modelValue ?? null
       updateSelectedLabel()
+    }
+  }
+)
+
+// excludeIds 变化时，仅基于原始数据重算禁用态，不重复请求接口
+watch(
+  () => props.excludeIds,
+  () => {
+    if (rawTreeData.value.length > 0) {
+      treeData.value = normalizeTree(rawTreeData.value)
     }
   }
 )

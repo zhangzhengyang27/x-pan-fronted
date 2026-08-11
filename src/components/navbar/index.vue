@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * AppNavbar —— 左侧导航栏（可折叠 / 可拖拽调宽度 / 显示存储配额）
  * 顶部：全部文件 / 图片 / 文档 / 视频 / 音乐
@@ -37,7 +37,7 @@ const { active } = storeToRefs(store)
 const { usedSpace, totalSpace, usedPercent } = toRefs(userStore)
 const { change } = store
 const collapsed = ref(false)
-const isMobile = useMediaQuery('(max-width: 768px)')
+const isMobile = useMediaQuery('(max-width: 768px)').matches
 const mobileOpen = ref(false)
 
 function navigate(item) {

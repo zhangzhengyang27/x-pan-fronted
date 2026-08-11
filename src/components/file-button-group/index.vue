@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * AppFileButtonGroup —— 操作按钮组
  * 8 个 button × visibility 标志位；视觉统一使用 BaseButton 圆角胶囊

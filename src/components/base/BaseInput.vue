@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * BaseInput —— 受控输入框
  *   modelValue · type · size · placeholder · disabled · readonly · clearable

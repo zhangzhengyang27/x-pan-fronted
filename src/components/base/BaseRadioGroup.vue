@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * BaseRadioGroup —— 单选组
  * 方向：horizontal | vertical

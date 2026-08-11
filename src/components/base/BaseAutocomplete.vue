@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * BaseAutocomplete —— 自动补全输入
  * - input + 下拉面板

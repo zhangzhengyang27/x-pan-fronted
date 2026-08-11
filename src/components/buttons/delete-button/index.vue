@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * DeleteButton —— 删除文件（带危险确认）
  */

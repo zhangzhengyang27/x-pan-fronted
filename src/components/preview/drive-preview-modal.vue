@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * DrivePreviewModal —— 文件预览统一弹窗（参考 html5-examples DrivePreviewModal）
  * - 图片：全屏画廊（独立浮层）

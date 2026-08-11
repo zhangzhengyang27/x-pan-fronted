@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * FileTypeFilter —— 文件类型多选筛选
  * chip 形式，支持单选（-1 全部）或多选（todo: 与后端协议对齐）

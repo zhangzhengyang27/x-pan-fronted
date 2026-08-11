@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * DashboardCharts —— 仪表盘图表
  * P1.10 增强：
@@ -7,7 +7,7 @@
  *
  * 无图表库依赖，纯 SVG
  */
-import { computed, ref, watch, onMounted } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { TrendingUp, ChartBar, Trash2 } from '@lucide/vue'
 import { cn } from '@/utils/classnames'
 
@@ -138,8 +138,6 @@ function clearHistory() {
   history.value = []
   localStorage.removeItem(STORAGE_KEY)
 }
-
-onMounted(() => recordToday(props.files))
 </script>
 
 <template>

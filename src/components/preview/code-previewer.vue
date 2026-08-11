@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * CodePreviewer —— Shiki 代码高亮 + 搜索 + 行号跳转
  * 1:1 复现 html5-examples CodePreviewer

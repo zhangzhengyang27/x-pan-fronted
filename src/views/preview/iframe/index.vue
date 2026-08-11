@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * PreviewIframe —— 通用预览（Markdown / PDF 独立路由）
  * 1:1 复用独立 Previewer 组件

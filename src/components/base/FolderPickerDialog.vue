@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * FolderPickerDialog —— 文件夹选择对话框（P0）
  *

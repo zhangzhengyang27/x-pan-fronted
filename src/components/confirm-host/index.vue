@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * ConfirmHost —— 全局确认/输入对话框宿主
  * - 监听 useToast.ts 的模块级 confirm 队列与 prompt 队列

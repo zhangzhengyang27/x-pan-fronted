@@ -2,9 +2,8 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
 export interface BreadcrumbItem {
+  id: string
   name: string
-  fileId: string
-  disable: boolean
 }
 
 export const useBreadcrumbStore = defineStore('breadcrumb', () => {
@@ -14,9 +13,17 @@ export const useBreadcrumbStore = defineStore('breadcrumb', () => {
     breadcrumbList.value = list
   }
 
+  const reset = (list: BreadcrumbItem[]) => {
+    breadcrumbList.value = list
+  }
+
+  const addItem = (item: BreadcrumbItem) => {
+    breadcrumbList.value = [...breadcrumbList.value, item]
+  }
+
   const clear = () => {
     breadcrumbList.value = []
   }
 
-  return { breadcrumbList, set, clear }
+  return { breadcrumbList, set, reset, addItem, clear }
 })

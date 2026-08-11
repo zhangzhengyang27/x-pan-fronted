@@ -3,7 +3,7 @@ import { defineStore } from 'pinia'
 import fileService from '@/api/file'
 import { ElMessage } from '@/composables/useToast'
 import type { SortOrder } from '@/composables/useTableSort'
-import type { IFileVO, PageVO } from '@/types'
+import type { ApiResponse, IFileVO, PageVO } from '@/types'
 
 export interface SearchFilter {
   extensions?: string[]
@@ -240,14 +240,14 @@ export const useFileStore = defineStore('file', (): FileStore => {
         {
           keyword: searchKey.value,
           fileTypes: '-1'
-        } as any,
-        (res: any) => {
+        },
+        (res: ApiResponse<IFileVO[]>) => {
           setFileList(res.data || [])
           setTableLoading(false)
           hasMore.value = false
           total.value = res.data?.length || 0
         },
-        (res: any) => {
+        (res: ApiResponse<unknown>) => {
           setTableLoading(false)
           ElMessage.error(res.message)
         }
@@ -259,12 +259,12 @@ export const useFileStore = defineStore('file', (): FileStore => {
           fileTypes: fileTypes.value,
           pageNum: 1,
           pageSize: pageSize.value
-        } as any,
-        (res: any) => {
+        },
+        (res: ApiResponse<PageVO<IFileVO>>) => {
           setTableLoading(false)
           applyPageResponse(res.data, false)
         },
-        (res: any) => {
+        (res: ApiResponse<unknown>) => {
           setTableLoading(false)
           ElMessage.error(res.message)
         }
@@ -282,12 +282,12 @@ export const useFileStore = defineStore('file', (): FileStore => {
         fileTypes: fileTypes.value,
         pageNum: next,
         pageSize: pageSize.value
-      } as any,
-      (res: any) => {
+      },
+      (res: ApiResponse<PageVO<IFileVO>>) => {
         isLoadingMore.value = false
         applyPageResponse(res.data, true)
       },
-      (res: any) => {
+      (res: ApiResponse<unknown>) => {
         isLoadingMore.value = false
         ElMessage.error(res.message)
       }
@@ -303,12 +303,12 @@ export const useFileStore = defineStore('file', (): FileStore => {
         fileTypes: fileTypes.value,
         pageNum: 1,
         pageSize: 9999
-      } as any,
-      (res: any) => {
+      },
+      (res: ApiResponse<PageVO<IFileVO>>) => {
         setTableLoading(false)
         applyPageResponse(res.data, false)
       },
-      (res: any) => {
+      (res: ApiResponse<unknown>) => {
         setTableLoading(false)
         ElMessage.error(res.message)
       }
@@ -318,7 +318,13 @@ export const useFileStore = defineStore('file', (): FileStore => {
   function searchWithFilter(filter: SearchFilter): void {
     if (!searchFlag.value) setSearchFlag(true)
     setTableLoading(true)
-    const params: Record<string, unknown> = {
+    const params: {
+      keyword: string
+      fileTypes?: string
+      extensions?: string
+      dateFrom?: string
+      dateTo?: string
+    } = {
       keyword: searchKey.value,
       fileTypes: '-1'
     }
@@ -327,20 +333,20 @@ export const useFileStore = defineStore('file', (): FileStore => {
     if (filter?.dateTo) params.dateTo = filter.dateTo
 
     fileService.search(
-      params as any,
-      (res: any) => {
+      params,
+      (res: ApiResponse<IFileVO[]>) => {
         let list: IFileVO[] = res.data || []
         if (filter?.sizeMin !== '' && filter?.sizeMin != null) {
           const min = Number(filter.sizeMin) * 1024 * 1024
           list = list.filter((r) => {
-            const sz = Number(r.fileSize || parseFileSizeDesc((r as any).fileSizeDesc) || 0)
+            const sz = Number(r.fileSize || parseFileSizeDesc(r.fileSizeDesc) || 0)
             return sz >= min
           })
         }
         if (filter?.sizeMax !== '' && filter?.sizeMax != null) {
           const max = Number(filter.sizeMax) * 1024 * 1024
           list = list.filter((r) => {
-            const sz = Number(r.fileSize || parseFileSizeDesc((r as any).fileSizeDesc) || 0)
+            const sz = Number(r.fileSize || parseFileSizeDesc(r.fileSizeDesc) || 0)
             return sz <= max
           })
         }
@@ -349,7 +355,7 @@ export const useFileStore = defineStore('file', (): FileStore => {
         hasMore.value = false
         total.value = list.length
       },
-      (res: any) => {
+      (res: ApiResponse<unknown>) => {
         setTableLoading(false)
         ElMessage.error(res.message)
       }

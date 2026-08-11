@@ -11,7 +11,7 @@ import { useTaskStore } from '@/stores/task'
 import { computed } from 'vue'
 
 const taskStore = useTaskStore()
-const { taskList } = storeToRefs(taskStore)
+const { uploadTaskList: taskList } = storeToRefs(taskStore)
 
 const visible = computed(() => taskList.value.length > 0)
 

@@ -70,6 +70,8 @@ export interface IFileVO {
   updateTime: string
   realPath?: string
   identifier?: string
+  /** 后端返回的人类可读大小描述（如 "1.5 MB"），用于前端筛选 */
+  fileSizeDesc?: string
 }
 
 export interface IUploadChunkReq {
