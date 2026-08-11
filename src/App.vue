@@ -1,16 +1,10 @@
 <template>
-  <div id="app">
-    <router-view v-slot="{ Component, route }">
-      <Transition name="fade">
-        <component :is="Component" :key="route.path" />
-      </Transition>
-    </router-view>
-  </div>
+  <router-view />
   <ConfirmHost />
   <ShortcutsPanel />
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { RouterView } from 'vue-router'
 import ConfirmHost from '@/components/confirm-host/index.vue'
 import ShortcutsPanel from '@/components/base/ShortcutsPanel.vue'

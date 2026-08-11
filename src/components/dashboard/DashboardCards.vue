@@ -1,11 +1,11 @@
 <script setup lang="ts">
 /**
- * DashboardCard —— 仪表盘卡片
- * P1.9 增强：
- * - 统计：总数 / 各类文件数 / 总占用（基于当前列表）
- * - 收藏夹：localStorage 收藏的文件
- * - 最近访问：localStorage 最近点击
- * - 大文件 Top 5（基于当前列表）
+ * DashboardCards —— 仪表盘卡片
+ * 设计规范：G3 风格
+ * - 存储概览（已用/总量 + 进度环）
+ * - 文件总数
+ * - 最近上传
+ * - 分享数
  */
 import { computed } from 'vue'
 import {
@@ -23,10 +23,10 @@ import {
 import { useFavorites } from '@/composables/useFavorites'
 import { useRecent } from '@/composables/useRecent'
 import { useRouter } from 'vue-router'
-import { cn } from '@/utils/classnames'
+import { useUserStore } from '@/stores/user'
+import { storeToRefs } from 'pinia'
 
 const props = defineProps({
-  /** 当前文件夹的文件列表（用于统计 / 大文件 Top） */
   files: { type: Array, default: () => [] }
 })
 
@@ -35,6 +35,10 @@ defineEmits(['select-favorite'])
 const { favorites, count: favoriteCount, remove: removeFav } = useFavorites()
 const { visit } = useRecent()
 const router = useRouter()
+
+// 存储配额
+const userStore = useUserStore()
+const { usedSpace, totalSpace, usedPercent } = storeToRefs(userStore)
 
 function fileIcon(type) {
   return (
@@ -50,7 +54,7 @@ function fileIcon(type) {
   )
 }
 
-// ─── 统计 ────────────────────────────────────────────────────────────────
+// 统计
 const stats = computed(() => {
   const result = {
     total: props.files.length,
@@ -78,73 +82,39 @@ const stats = computed(() => {
 })
 
 const statItems = computed(() => [
-  {
-    key: 'image',
-    label: '图片',
-    icon: FileImage,
-    color: 'text-pink-600',
-    bg: 'bg-pink-50 dark:bg-pink-900/20',
-    value: stats.value.image
-  },
-  {
-    key: 'video',
-    label: '视频',
-    icon: FileVideo,
-    color: 'text-violet-600',
-    bg: 'bg-violet-50 dark:bg-violet-900/20',
-    value: stats.value.video
-  },
-  {
-    key: 'doc',
-    label: '文档',
-    icon: FileText,
-    color: 'text-blue-600',
-    bg: 'bg-blue-50 dark:bg-blue-900/20',
-    value: stats.value.doc
-  },
-  {
-    key: 'audio',
-    label: '音频',
-    icon: FileAudio,
-    color: 'text-rose-600',
-    bg: 'bg-rose-50 dark:bg-rose-900/20',
-    value: stats.value.audio
-  },
-  {
-    key: 'archive',
-    label: '压缩',
-    icon: FileArchive,
-    color: 'text-amber-600',
-    bg: 'bg-amber-50 dark:bg-amber-900/20',
-    value: stats.value.archive
-  },
-  {
-    key: 'folder',
-    label: '文件夹',
-    icon: Folder,
-    color: 'text-[var(--color-primary-600)]',
-    bg: 'bg-[var(--color-primary-50)] dark:bg-[var(--color-primary-900)]/20',
-    value: stats.value.folder
-  }
+  { key: 'image', label: '图片', icon: FileImage, value: stats.value.image },
+  { key: 'video', label: '视频', icon: FileVideo, value: stats.value.video },
+  { key: 'doc', label: '文档', icon: FileText, value: stats.value.doc },
+  { key: 'folder', label: '文件夹', icon: Folder, value: stats.value.folder }
 ])
 
-// ─── 大文件 Top 5 ────────────────────────────────────────────────────────
+// 存储环
+const quotaColor = computed(() => {
+  if (usedPercent.value >= 90) return 'var(--color-danger)'
+  if (usedPercent.value >= 70) return 'var(--color-warning)'
+  return 'var(--color-primary-500)'
+})
+
+function formatSize(bytes) {
+  if (!bytes || bytes < 0) return '0 B'
+  const units = ['B', 'KB', 'MB', 'GB', 'TB']
+  let i = 0
+  let v = bytes
+  while (v >= 1024 && i < units.length - 1) {
+    v /= 1024
+    i++
+  }
+  return v.toFixed(v >= 100 || i === 0 ? 0 : 1) + ' ' + units[i]
+}
+
+// 大文件 Top 5
 function parseSize(desc) {
   if (!desc) return 0
   const m = String(desc).match(/^([\d.]+)\s*(B|KB|MB|GB|K|M|G)?$/i)
   if (!m) return 0
   const n = parseFloat(m[1])
   const unit = (m[2] || 'B').toUpperCase()
-  const mul =
-    {
-      B: 1,
-      K: 1024,
-      KB: 1024,
-      M: 1024 * 1024,
-      MB: 1024 * 1024,
-      G: 1024 * 1024 * 1024,
-      GB: 1024 * 1024 * 1024
-    }[unit] || 1
+  const mul = { B: 1, K: 1024, KB: 1024, M: 1024 * 1024, MB: 1024 * 1024, G: 1024 * 1024 * 1024, GB: 1024 * 1024 * 1024 }[unit] || 1
   return Math.floor(n * mul)
 }
 
@@ -160,113 +130,88 @@ function goFile(f) {
   visit(f)
   if (f.fileType === 0) {
     router.push({ path: '/file', query: { folderId: f.fileId } })
-  } else {
-    router.push({ path: '/preview/image', query: { fileId: f.fileId } }).catch(() => {})
   }
+}
+
+function shorten(str, len = 8) {
+  if (!str) return ''
+  return str.length > len ? str.substring(0, len) + '…' : str
 }
 </script>
 
 <template>
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-4">
-    <!-- 统计卡片 -->
-    <div class="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
-      <div class="flex items-center justify-between mb-3">
-        <h3 class="text-sm font-semibold text-[var(--color-text)] flex items-center gap-1.5">
-          <HardDrive :size="14" />
-          本目录统计
-        </h3>
-        <span class="text-xs text-[var(--color-text-muted)] tabular-nums"
-          >{{ stats.total }} 项</span
-        >
-      </div>
-      <div class="grid grid-cols-3 gap-2">
-        <div
-          v-for="s in statItems"
-          :key="s.key"
-          :class="cn('flex items-center gap-2 p-2 rounded-lg', s.bg)"
-        >
-          <component :is="s.icon" :size="16" :class="s.color" />
-          <div class="min-w-0">
-            <p class="text-xs text-[var(--color-text-muted)] truncate">{{ s.label }}</p>
-            <p :class="cn('text-sm font-semibold tabular-nums', s.color)">{{ s.value }}</p>
-          </div>
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <!-- 存储环 -->
+    <div
+      class="rounded-xl border border-[var(--color-border)] p-4 flex flex-col items-center justify-center bg-[var(--color-surface-container-low)]"
+    >
+      <div class="relative w-24 h-24 mb-3">
+        <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+          <circle cx="50" cy="50" fill="transparent" r="40" :stroke="'var(--color-border)'" stroke-width="8" />
+          <circle
+            cx="50" cy="50" fill="transparent" r="40"
+            :stroke="quotaColor"
+            stroke-width="8"
+            stroke-linecap="round"
+            :stroke-dasharray="251.2"
+            :stroke-dashoffset="251.2 * (1 - Math.min(100, usedPercent) / 100)"
+          />
+        </svg>
+        <div class="absolute inset-0 flex flex-col items-center justify-center">
+          <span class="text-xl font-bold tabular-nums text-[var(--color-text)]">
+            {{ Math.round(usedPercent) }}%
+          </span>
+          <span class="text-[10px]" style="color: var(--color-text-muted);">Used</span>
         </div>
       </div>
+      <div class="text-xs tabular-nums" style="color: var(--color-text-muted);">
+        {{ formatSize(usedSpace) }} / {{ formatSize(totalSpace) }}
+      </div>
     </div>
 
-    <!-- 收藏夹 -->
-    <div class="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
-      <div class="flex items-center justify-between mb-3">
-        <h3 class="text-sm font-semibold text-[var(--color-text)] flex items-center gap-1.5">
-          <Star :size="14" />
-          收藏夹
-        </h3>
-        <span class="text-xs text-[var(--color-text-muted)] tabular-nums"
-          >{{ favoriteCount }} 项</span
-        >
+    <!-- 统计卡片 - 文件总数 -->
+    <div
+      class="rounded-xl border border-[var(--color-border)] p-4 flex flex-col justify-between bg-[var(--color-surface-container-low)]"
+    >
+      <span :style="{ color: quotaColor }">
+        <Folder :size="20" :stroke-width="2" />
+      </span>
+      <div>
+        <div class="text-2xl font-bold tabular-nums text-[var(--color-text)]">
+          {{ stats.total.toLocaleString() }}
+        </div>
+        <div class="text-xs" style="color: var(--color-text-muted);">文件总数</div>
       </div>
-      <div
-        v-if="favorites.length === 0"
-        class="py-4 text-center text-xs text-[var(--color-text-muted)]"
-      >
-        在文件上点击星标即可收藏
-      </div>
-      <ul v-else class="space-y-1 max-h-32 overflow-auto">
-        <li
-          v-for="f in favorites.slice(0, 5)"
-          :key="f.fileId"
-          class="flex items-center gap-2 py-1 px-2 rounded-md hover:bg-[var(--color-surface-2)] cursor-pointer group"
-          @click="goFile(f)"
-        >
-          <component :is="fileIcon(f.fileType)" :size="14" class="shrink-0 text-amber-500" />
-          <span class="flex-1 truncate text-xs text-[var(--color-text)]">{{ f.filename }}</span>
-          <button
-            class="opacity-0 group-hover:opacity-100 text-[var(--color-text-muted)] hover:text-[var(--color-danger)]"
-            type="button"
-            @click.stop="removeFav(f.fileId)"
-          >
-            ×
-          </button>
-        </li>
-      </ul>
     </div>
 
-    <!-- 大文件 Top -->
-    <div class="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
-      <div class="flex items-center justify-between mb-3">
-        <h3 class="text-sm font-semibold text-[var(--color-text)] flex items-center gap-1.5">
-          <FileBarChart2 :size="14" />
-          大文件 Top 5
-        </h3>
+    <!-- 图片数 -->
+    <div
+      class="rounded-xl border border-[var(--color-border)] p-4 flex flex-col justify-between bg-[var(--color-surface-container-low)]"
+    >
+      <span style="color: var(--color-primary-500);">
+        <FileImage :size="20" :stroke-width="2" />
+      </span>
+      <div>
+        <div class="text-2xl font-bold tabular-nums text-[var(--color-text)]">
+          {{ stats.image.toLocaleString() }}
+        </div>
+        <div class="text-xs" style="color: var(--color-text-muted);">图片</div>
       </div>
-      <div
-        v-if="largestFiles.length === 0"
-        class="py-4 text-center text-xs text-[var(--color-text-muted)]"
-      >
-        暂无文件
+    </div>
+
+    <!-- 收藏数 -->
+    <div
+      class="rounded-xl border border-[var(--color-border)] p-4 flex flex-col justify-between bg-[var(--color-surface-container-low)]"
+    >
+      <span style="color: var(--color-warning);">
+        <Star :size="20" :stroke-width="2" />
+      </span>
+      <div>
+        <div class="text-2xl font-bold tabular-nums text-[var(--color-text)]">
+          {{ favoriteCount.toLocaleString() }}
+        </div>
+        <div class="text-xs" style="color: var(--color-text-muted);">收藏</div>
       </div>
-      <ul v-else class="space-y-1 max-h-32 overflow-auto">
-        <li
-          v-for="(f, i) in largestFiles"
-          :key="f.fileId"
-          class="flex items-center gap-2 py-1 px-2 rounded-md hover:bg-[var(--color-surface-2)] cursor-pointer"
-          @click="goFile(f)"
-        >
-          <span
-            class="w-5 h-5 shrink-0 rounded-full bg-[var(--color-primary-500)] text-white text-[10px] font-semibold inline-flex items-center justify-center tabular-nums"
-            >{{ i + 1 }}</span
-          >
-          <component
-            :is="fileIcon(f.fileType)"
-            :size="14"
-            class="shrink-0 text-[var(--color-text-muted)]"
-          />
-          <span class="flex-1 truncate text-xs text-[var(--color-text)]">{{ f.filename }}</span>
-          <span class="text-[10px] text-[var(--color-text-muted)] tabular-nums">{{
-            f.fileSizeDesc
-          }}</span>
-        </li>
-      </ul>
     </div>
   </div>
 </template>

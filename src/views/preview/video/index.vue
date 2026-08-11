@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * PreviewVideo —— 视频预览（ArtPlayer）
  */

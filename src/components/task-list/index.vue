@@ -149,7 +149,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { useTaskStore } from '@/stores/task'
 import { storeToRefs } from 'pinia'
 import panUtil from '@/utils/common'

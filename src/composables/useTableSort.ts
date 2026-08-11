@@ -17,8 +17,8 @@ export interface SortFieldOption {
 }
 
 export const SORT_FIELDS: SortFieldOption[] = [
-  { key: 'name', label: '名称' },
-  { key: 'size', label: '大小' },
+  { key: 'filename', label: '名称' },
+  { key: 'fileSize', label: '大小' },
   { key: 'updateTime', label: '修改时间' }
 ]
 

@@ -21,7 +21,7 @@ import BaseInput from '@/components/base/BaseInput.vue'
 import BaseSelect from '@/components/base/BaseSelect.vue'
 
 const props = defineProps({
-  size: { type: String, default: 'md' },
+  size: { type: String, default: 'sm' },
   item: { type: Object, default: null }
 })
 
@@ -39,8 +39,8 @@ const form = reactive({
   shareName: '',
   shareType: '0',
   shareDayType: '0',
-  shareCode: '', // P1.11：自定义提取码（可选）
-  downloadLimit: '' // P1.11：下载次数限制（0/空 = 不限）
+  shareCode: '',
+  downloadLimit: ''
 })
 
 const errors = reactive({
@@ -60,9 +60,9 @@ const result = reactive({
   shareCode: ''
 })
 
-// ─── P1.11：QR 码生成 ───────────────────────────────────────────────────────
 const qrSvg = ref('')
 const showQR = ref(false)
+
 function generateQR(text) {
   const size = 21
   const cells = []
@@ -106,7 +106,6 @@ function handleFilename(name) {
   return name
 }
 
-// ─── 随机生成 4 位提取码 ────────────────────────────────────────────────────
 function randomCode() {
   const chars = 'abcdefghijkmnpqrstuvwxyz23456789'
   let s = ''
@@ -149,12 +148,10 @@ function validate() {
     errors.shareName = '请输入分享名称'
     ok = false
   }
-  // P1.11：自定义提取码校验
   if (form.shareCode && !/^[a-zA-Z0-9]{4,8}$/.test(form.shareCode)) {
     errors.shareCode = '4-8位字母数字'
     ok = false
   }
-  // P1.11：下载次数校验
   if (form.downloadLimit !== '' && (form.downloadLimit < 0 || form.downloadLimit > 999)) {
     errors.downloadLimit = '0~999 的整数'
     ok = false
@@ -258,7 +255,7 @@ function onClose() {
           <BaseSelect v-model="form.shareDayType" :options="dayTypeOptions" />
         </div>
 
-        <!-- P1.11：高级选项（密码 / 下载限制） -->
+        <!-- 高级选项 -->
         <div class="border-t border-[var(--color-border)] pt-4 space-y-3">
           <p class="text-xs font-medium text-[var(--color-text)] flex items-center gap-1.5">
             <Lock :size="12" />
@@ -277,7 +274,7 @@ function onClose() {
               />
               <BaseButton
                 variant="secondary"
-                size="md"
+                size="sm"
                 @click="form.shareCode = randomCode()"
                 title="随机生成"
               >
@@ -321,7 +318,7 @@ function onClose() {
           >
           <div class="flex gap-2">
             <BaseInput v-model="result.shareUrl" readonly />
-            <BaseButton variant="secondary" size="md" @click="copyAll">
+            <BaseButton variant="secondary" size="sm" @click="copyAll">
               <Copy :size="14" />
             </BaseButton>
           </div>

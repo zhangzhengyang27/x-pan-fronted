@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * AIAssistant —— AI 助手对话框（P1.18）
  *

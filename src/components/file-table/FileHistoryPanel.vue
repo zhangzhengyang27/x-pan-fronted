@@ -1,25 +1,12 @@
-<script setup>
+<script setup lang="ts">
 /**
- * FileHistoryPanel —— 文件版本历史弹窗（P1.13）
- *
- * 设计：
- * - 时间线展示（最新在上）
- * - 当前版本标星
- * - 支持回滚（生成新版本，不丢历史）
- * - 支持删除旧版本
- * - 显示 hash 截断便于识别
+ * FileHistoryPanel —— 文件版本历史抽屉
+ * 按 stitch_document_driven_page_design G4 设计规范修改
+ * 侧滑抽屉 + 时间线展示
  */
 import { computed, ref, watch } from 'vue'
-import {
-  History,
-  RotateCcw,
-  Trash2,
-  Star,
-  FileText,
-  Upload as UploadIcon,
-  Edit3
-} from '@lucide/vue'
-import BaseModal from '@/components/base/BaseModal.vue'
+import { History, RotateCcw, Trash2, Star, FileText, Upload, Edit3, X } from '@lucide/vue'
+import BaseDrawer from '@/components/base/BaseDrawer.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
 import BaseTooltip from '@/components/base/BaseTooltip.vue'
@@ -28,7 +15,8 @@ import { ElMessage, ElMessageBox } from '@/composables/useToast'
 
 const props = defineProps({
   fileId: { type: String, required: true },
-  open: { type: Boolean, default: false }
+  open: { type: Boolean, default: false },
+  filename: { type: String, default: '' }
 })
 
 const emit = defineEmits(['update:open', 'rolled-back'])
@@ -53,14 +41,12 @@ async function load() {
   )
 }
 
-// 切换文件时重新加载
 watch(
   () => props.fileId,
   () => {
     if (props.open) load()
   }
 )
-// 打开时也加载
 watch(
   () => props.open,
   (v) => {
@@ -72,7 +58,7 @@ watch(
 function operationMeta(op) {
   return (
     {
-      UPLOAD: { label: '上传', icon: UploadIcon, variant: 'primary' },
+      UPLOAD: { label: '上传', icon: Upload, variant: 'primary' },
       MODIFY: { label: '修改', icon: Edit3, variant: 'warning' },
       RENAME: { label: '改名', icon: Edit3, variant: 'neutral' },
       ROLLBACK: { label: '回滚', icon: RotateCcw, variant: 'success' },
@@ -177,91 +163,110 @@ const stats = computed(() => {
 </script>
 
 <template>
-  <BaseModal :open="open" @update:open="(v) => emit('update:open', v)" title="版本历史" size="lg">
+  <BaseDrawer
+    :open="open"
+    @update:open="(v) => emit('update:open', v)"
+    title="版本历史"
+    position="right"
+    width="480px"
+  >
     <template #header-extra>
-      <div class="flex items-center gap-3 text-xs text-[var(--color-text-muted)]">
+      <div class="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
         <span>共 {{ stats.total }} 个版本</span>
-        <BaseBadge variant="success" size="sm">
-          <span class="inline-flex items-center gap-1">
-            <Star :size="11" />当前 v{{ versions.find((v) => v.current)?.versionNo || '?' }}
-          </span>
-        </BaseBadge>
       </div>
     </template>
-    <div v-if="loading" class="py-12 text-center text-sm text-[var(--color-text-muted)]">
-      加载中...
-    </div>
-    <div v-else-if="versions.length === 0" class="py-12 text-center">
-      <div
-        class="size-12 mx-auto rounded-2xl bg-[var(--color-surface-2)] flex items-center justify-center text-[var(--color-text-muted)] mb-3"
-      >
-        <History :size="22" />
+    
+    <div class="flex flex-col h-full">
+      <!-- 文件名 -->
+      <div class="mb-4 px-1">
+        <p class="text-sm font-medium text-[var(--color-text)] truncate">{{ filename || '文件' }}</p>
       </div>
-      <p class="text-sm text-[var(--color-text-muted)]">暂无版本记录</p>
-      <p class="text-xs text-[var(--color-text-muted)] mt-1">上传或修改文件后会自动生成版本</p>
-    </div>
-    <div v-else class="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
-      <div
-        v-for="v in versions"
-        :key="v.id"
-        class="group relative flex items-start gap-3 px-4 py-3 rounded-xl border transition-colors"
-        :class="
-          v.current
-            ? 'border-[var(--color-primary-500)] bg-[var(--color-primary-50)]/40 dark:bg-[var(--color-primary-900)]/10'
-            : 'border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-2)]'
-        "
-      >
-        <!-- 图标 -->
-        <div
-          class="size-9 shrink-0 rounded-lg flex items-center justify-center"
-          :class="versionIconBg(v.operation)"
-        >
-          <component
-            :is="operationMeta(v.operation).icon"
-            :size="16"
-            :class="versionIconFg(v.operation)"
-          />
+      
+      <!-- 加载中 -->
+      <div v-if="loading" class="py-12 text-center text-sm text-[var(--color-text-muted)]">
+        加载中...
+      </div>
+      
+      <!-- 空状态 -->
+      <div v-else-if="versions.length === 0" class="py-12 text-center">
+        <div class="size-12 mx-auto rounded-2xl bg-[var(--color-surface-2)] flex items-center justify-center text-[var(--color-text-muted)] mb-3">
+          <History :size="22" />
         </div>
-        <!-- 内容 -->
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-2 flex-wrap">
-            <span class="font-medium text-sm">v{{ v.versionNo }}</span>
-            <BaseBadge :variant="operationMeta(v.operation).variant" size="sm">
-              {{ operationMeta(v.operation).label }}
-            </BaseBadge>
-            <BaseBadge v-if="v.current" variant="success" size="sm">
-              <span class="inline-flex items-center gap-1"><Star :size="10" />当前</span>
-            </BaseBadge>
-          </div>
-          <p class="mt-1 text-sm text-[var(--color-text)] truncate">{{ v.filename }}</p>
+        <p class="text-sm text-[var(--color-text-muted)]">暂无历史版本</p>
+        <p class="text-xs text-[var(--color-text-muted)] mt-1">上传或修改文件后会自动生成版本</p>
+      </div>
+      
+      <!-- 时间线 -->
+      <div v-else class="flex-1 overflow-y-auto pr-1 space-y-0">
+        <div
+          v-for="(v, index) in versions"
+          :key="v.id"
+          class="relative flex gap-4 pb-6 last:pb-0"
+        >
+          <!-- 时间线竖线 -->
           <div
-            class="mt-1 flex items-center gap-3 text-xs text-[var(--color-text-muted)] flex-wrap"
-          >
-            <span>{{ v.fileSizeDesc }}</span>
-            <span v-if="v.contentHash" class="font-mono">{{ shortHash(v.contentHash) }}</span>
-            <span>{{ v.operationTime }}</span>
-            <span v-if="v.remark" class="italic">— {{ v.remark }}</span>
+            v-if="index < versions.length - 1"
+            class="absolute left-4 top-10 bottom-0 w-px bg-[var(--color-border)]"
+          />
+          
+          <!-- 节点 -->
+          <div class="relative shrink-0">
+            <div
+              class="size-8 rounded-full flex items-center justify-center z-10"
+              :class="[
+                versionIconBg(v.operation),
+                v.current ? 'ring-2 ring-[var(--color-primary-500)]' : ''
+              ]"
+            >
+              <component
+                :is="operationMeta(v.operation).icon"
+                :size="14"
+                :class="versionIconFg(v.operation)"
+              />
+            </div>
           </div>
-        </div>
-        <!-- 操作 -->
-        <div
-          class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-        >
-          <BaseTooltip v-if="!v.current" text="回滚到此版本" position="top">
-            <BaseButton variant="ghost" size="sm" @click="doRollback(v)">
-              <RotateCcw :size="14" />
-            </BaseButton>
-          </BaseTooltip>
-          <BaseTooltip v-if="!v.current" text="删除此版本" position="top">
-            <BaseButton variant="danger" size="sm" @click="doDelete(v)">
-              <Trash2 :size="14" />
-            </BaseButton>
-          </BaseTooltip>
+          
+          <!-- 内容 -->
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 flex-wrap mb-1">
+              <span class="font-medium text-sm">v{{ v.versionNo }}</span>
+              <BaseBadge :variant="operationMeta(v.operation).variant" size="sm">
+                {{ operationMeta(v.operation).label }}
+              </BaseBadge>
+              <BaseBadge v-if="v.current" variant="success" size="sm">
+                <span class="inline-flex items-center gap-1">
+                  <Star :size="10" />
+                  当前
+                </span>
+              </BaseBadge>
+            </div>
+            <p class="text-sm text-[var(--color-text)] truncate mb-1">{{ v.filename }}</p>
+            <div class="flex items-center gap-3 text-xs text-[var(--color-text-muted)] flex-wrap">
+              <span class="tabular-nums">{{ v.fileSizeDesc }}</span>
+              <span v-if="v.contentHash" class="font-mono">{{ shortHash(v.contentHash) }}</span>
+              <span>{{ v.operationTime }}</span>
+            </div>
+            
+            <!-- 操作按钮 -->
+            <div v-if="!v.current" class="flex items-center gap-1 mt-2">
+              <BaseTooltip text="回滚到此版本" position="top">
+                <BaseButton variant="ghost" size="sm" @click="doRollback(v)">
+                  <RotateCcw :size="14" :stroke-width="2" />
+                </BaseButton>
+              </BaseTooltip>
+              <BaseTooltip text="删除此版本" position="top">
+                <BaseButton variant="danger" size="sm" @click="doDelete(v)">
+                  <Trash2 :size="14" :stroke-width="2" />
+                </BaseButton>
+              </BaseTooltip>
+            </div>
+          </div>
         </div>
       </div>
     </div>
+    
     <template #footer>
       <BaseButton variant="secondary" @click="emit('update:open', false)">关闭</BaseButton>
     </template>
-  </BaseModal>
+  </BaseDrawer>
 </template>

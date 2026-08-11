@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * AppLayout —— 主布局
  * Header + (Navbar + AppMain) + Footer

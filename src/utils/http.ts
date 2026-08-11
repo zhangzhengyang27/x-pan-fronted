@@ -29,17 +29,22 @@ function toLogin(): void {
   const fileStore = useFileStore()
   const navbarStore = useNavbarStore()
   const userStore = useUserStore()
+  // 先清空 token，避免路由守卫陷入「有 token → Login → Index → ...」的死循环
+  clearToken()
+  fileStore.clear()
+  breadcrumbStore.clear()
+  navbarStore.clear()
+  userStore.clear()
   ElMessageBox.confirm('您需要重新登陆', '确认退出登录', {
     confirmButtonText: '重新登陆',
     cancelButtonText: '取消',
     type: 'warning'
   }).then(() => {
-    clearToken()
-    fileStore.clear()
-    breadcrumbStore.clear()
-    navbarStore.clear()
-    userStore.clear()
+    // 用户确认：刷新页面（清空状态后重新加载）
     window.location.reload()
+  }).catch(() => {
+    // 用户取消：跳转到登录页
+    window.location.href = '/login'
   })
 }
 

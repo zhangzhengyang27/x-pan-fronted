@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * FileThumbnail —— 智能文件缩略图
  * 1. 图片 (fileType=7)：真实预览 + 加载中骨架 + 失败回落

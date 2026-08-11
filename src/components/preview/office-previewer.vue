@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * OfficePreviewer —— 基于 @vue-office 系列（docx/excel/pptx）
  * 1:1 复现 html5-examples OfficePreviewer

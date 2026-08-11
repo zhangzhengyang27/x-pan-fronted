@@ -1,6 +1,7 @@
 /* ==========================================================================
  * R-Pan Design Tokens  ——  Tailwind CSS v4 (CSS-first)
- * 单一真相源：颜色、排版、间距、圆角、阴影、动效、布局、暗色
+ * 单一真相源：颜色、排版、间距、圆角、阴影、动效、布局，暗色
+ * 设计规范：stitch_document_driven_page_design
  * ========================================================================== */
 
 @import "tailwindcss";
@@ -9,19 +10,29 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  /* ============= 品牌主色：信任蓝 ============= */
+  /* ============= 品牌主色：专业蓝（Linear/Vercel 风格）============= */
   --color-primary-50:  #eff6ff;
-  --color-primary-100: #dbeafe;
-  --color-primary-200: #bfdbfe;
+  --color-primary-100: #d8e2ff;
+  --color-primary-200: #aec6ff;  /* primary - 浅色文字 */
   --color-primary-300: #93c5fd;
   --color-primary-400: #60a5fa;
-  --color-primary-500: #3b82f6;
-  --color-primary-600: #2563eb;
-  --color-primary-700: #1d4ed8;
-  --color-primary-800: #1e40af;
-  --color-primary-900: #1e3a8a;
+  --color-primary-500: #0070f3;  /* primary-container */
+  --color-primary-600: #0060d8;
+  --color-primary-700: #004397;
+  --color-primary-800: #003080;
+  --color-primary-900: #001a43;
 
-  /* ============= 中性灰：9 阶 ============= */
+  /* primary-fixed 系列 */
+  --color-primary-fixed: #d8e2ff;
+  --color-primary-fixed-dim: #aec6ff;
+  --color-on-primary-fixed: #001a43;
+  --color-on-primary-fixed-variant: #004397;
+
+  /* on-primary 系列 */
+  --color-on-primary: #002e6b;
+  --color-on-primary-container: #ffffff;
+
+  /* ============= 中性灰：9 阶 + 特殊表面色 ============= */
   --color-neutral-0:   #ffffff;
   --color-neutral-50:  #fafafa;
   --color-neutral-100: #f5f5f5;
@@ -34,34 +45,81 @@
   --color-neutral-800: #262626;
   --color-neutral-900: #171717;
 
-  /* ============= 语义色 ============= */
+  /* surface-container 色阶（Material Design 3 风格） */
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f7f7f7;
+  --color-surface-container: #fafafa;
+  --color-surface-container-high: #f0f0f0;
+  --color-surface-container-highest: #ebebeb;
+
+  /* inverse 系列 */
+  --color-inverse-surface: #e0e2ed;
+  --color-inverse-on-surface: #2d3039;
+  --color-inverse-primary: #0059c5;
+
+  /* outline 系列 */
+  --color-outline: #8b90a0;
+  --color-outline-variant: #414754;
+  --color-surface-tint: #aec6ff;
+
+  /* ============= 语义色（success/warning/danger/info）============= */
   --color-success: #10b981;
+  --color-success-container: #10b981;  /* 备用 */
   --color-warning: #f59e0b;
-  --color-danger:  #ef4444;
-  --color-info:    #6366f1;
+  --color-warning-container: #f59e0b;  /* 备用 */
+  --color-danger: #ef4444;
+  --color-danger-container: #ef4444;   /* 备用 */
+  --color-error: #ffb4ab;
+  --color-error-container: #93000a;
+  --color-on-error: #690005;
+  --color-on-error-container: #ffdad6;
+  --color-info: #3b82f6;
+  --color-info-container: #3b82f6;    /* 备用 */
 
-  /* ============= 语义令牌（语义化指向，组件优先用） ============= */
-  --color-bg:          var(--color-neutral-50);
-  --color-surface:     var(--color-neutral-0);
-  --color-surface-2:   var(--color-neutral-100);
-  --color-text:        var(--color-neutral-900);
-  --color-text-muted:  var(--color-neutral-500);
-  --color-border:      var(--color-neutral-200);
-  --color-border-strong: var(--color-neutral-300);
-  --color-ring:        var(--color-primary-500);
+  /* tertiary 系列 */
+  --color-tertiary: #ffb596;
+  --color-tertiary-container: #ca4e00;
+  --color-on-tertiary: #581e00;
+  --color-on-tertiary-container: #fffeff;
+  --color-tertiary-fixed: #ffdbcd;
+  --color-tertiary-fixed-dim: #ffb596;
+  --color-on-tertiary-fixed: #360f00;
+  --color-on-tertiary-fixed-variant: #7d2d00;
 
-  /* ============= 排版 ============= */
-  --font-sans: "PingFang SC", "Microsoft YaHei", "微软雅黑", "Helvetica Neue", Helvetica, ui-sans-serif, system-ui, sans-serif;
+  /* secondary 系列 */
+  --color-secondary: #c6c6c6;
+  --color-secondary-container: #474747;
+  --color-on-secondary: #303030;
+  --color-on-secondary-container: #b5b5b5;
+  --color-secondary-fixed: #e2e2e2;
+  --color-secondary-fixed-dim: #c6c6c6;
+  --color-on-secondary-fixed: #1b1b1b;
+  --color-on-secondary-fixed-variant: #474747;
+
+  /* ============= 语义令牌（语义化指向，组件优先用）============= */
+  /* Light 模式 */
+  --color-bg:           #ffffff;
+  --color-surface:      #fafafa;
+  --color-surface-2:    #f5f5f5;
+  --color-text:         #171717;
+  --color-text-muted:   #737373;
+  --color-border:       #e5e5e5;
+  --color-border-strong: #d4d4d4;
+  --color-ring:         rgba(0, 112, 243, 0.5);
+
+  /* ============= 排版（Be Vietnam Pro + JetBrains Mono）============= */
+  --font-sans: "Be Vietnam Pro", "PingFang SC", "Microsoft YaHei", "微软雅黑", "Helvetica Neue", Helvetica, ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", "SF Mono", Menlo, Consolas, ui-monospace, monospace;
 
-  --text-xs:   0.75rem;   /* 12 */
-  --text-sm:   0.875rem;  /* 14 */
-  --text-base: 1rem;      /* 16 */
-  --text-lg:   1.125rem;  /* 18 */
-  --text-xl:   1.25rem;   /* 20 */
-  --text-2xl:  1.5rem;    /* 24 */
-  --text-3xl:  1.875rem;  /* 30 */
-  --text-4xl:  2.25rem;   /* 36 */
+  --text-xs:   0.75rem;   /* 12px */
+  --text-sm:   0.875rem;  /* 14px */
+  --text-base: 1rem;      /* 16px */
+  --text-lg:   1.125rem;  /* 18px */
+  --text-xl:   1.25rem;   /* 20px */
+  --text-2xl:  1.5rem;    /* 24px */
+  --text-3xl:  1.875rem;  /* 30px */
+  --text-4xl:  2.25rem;   /* 36px */
+  --text-9xl:  12rem;     /* 用于 404/500 大字 */
 
   --leading-tight: 1.25;
   --leading-snug:  1.375;
@@ -69,12 +127,13 @@
   --leading-relaxed: 1.625;
 
   /* ============= 圆角 ============= */
-  --radius-sm:   0.375rem;  /* 6  */
-  --radius:      0.5rem;    /* 8  */
-  --radius-md:   0.75rem;   /* 12 */
-  --radius-lg:   1rem;      /* 16 */
-  --radius-xl:   1.25rem;   /* 20 */
-  --radius-2xl:  1.5rem;    /* 24 */
+  --radius-sm:   0.375rem;  /* 6px */
+  --radius:      0.5rem;    /* 8px */
+  --radius-md:   0.75rem;   /* 12px */
+  --radius-lg:   1rem;      /* 16px */
+  --radius-xl:   1.25rem;   /* 20px */
+  --radius-2xl:  1.5rem;    /* 24px */
+  --radius-full:  9999px;
 
   /* ============= 阴影 ============= */
   --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.04);
@@ -82,9 +141,12 @@
   --shadow:    0 4px 12px -2px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.04);
   --shadow-lg: 0 12px 32px -8px rgb(0 0 0 / 0.12), 0 4px 8px -4px rgb(0 0 0 / 0.06);
   --shadow-xl: 0 24px 48px -12px rgb(0 0 0 / 0.16);
+  --shadow-2xl: 0 48px 96px -12px rgb(0 0 0 / 0.2);
 
   /* ============= 动效 ============= */
   --ease:        cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out:    cubic-bezier(0, 0, 0.2, 1);
+  --ease-in:     cubic-bezier(0.4, 0, 1, 1);
   --dur-fast:    150ms;
   --dur-base:    240ms;
   --dur-slow:    400ms;
@@ -93,9 +155,11 @@
   --header-h:           64px;
   --navbar-w:           240px;
   --navbar-w-collapsed: 64px;
-  --content-min-w:      1103px;
+  --content-max-w:      1600px;
+  --gutter:             24px;
+  --container-padding:   16px;
 
-  /* ============= Z 轴 ============= */
+  /* ============= Z 轴层级 ============= */
   --z-dropdown: 1000;
   --z-sticky:   1100;
   --z-overlay:  1200;
@@ -104,20 +168,30 @@
   --z-tooltip:  1500;
 }
 
-/* ============= 暗色主题 ============= */
+/* ============= 暗色主题（纯黑 + surface-container 分层）============= */
 .dark {
-  --color-bg:           #0b0d10;
-  --color-surface:      #14171c;
-  --color-surface-2:    #1b1f25;
-  --color-text:         #e6e8eb;
-  --color-text-muted:   #8b9098;
-  --color-border:       #23272e;
-  --color-border-strong:#2c313a;
+  /* 语义令牌 */
+  --color-bg:           #000000;   /* 纯黑背景 */
+  --color-surface:      #0a0a0a;   /* 卡片/侧栏 */
+  --color-surface-2:    #171717;   /* hover/次级容器 */
+  --color-text:         #ededed;
+  --color-text-muted:   #a1a1a1;
+  --color-border:       #262626;
+  --color-border-strong: #404040;
 
+  /* surface-container 色阶 */
+  --color-surface-container-lowest: #0b0e15;
+  --color-surface-container-low: #181b23;
+  --color-surface-container: #1c1f27;
+  --color-surface-container-high: #272a32;
+  --color-surface-container-highest: #32353d;
+
+  /* 暗色下阴影加深，但优先用 border-strong 定义深度 */
   --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.4);
   --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.5), 0 1px 2px -1px rgb(0 0 0 / 0.4);
   --shadow:    0 4px 12px -2px rgb(0 0 0 / 0.6), 0 2px 4px -2px rgb(0 0 0 / 0.4);
   --shadow-lg: 0 12px 32px -8px rgb(0 0 0 / 0.7), 0 4px 8px -4px rgb(0 0 0 / 0.5);
+  --shadow-xl: 0 24px 48px -12px rgb(0 0 0 / 0.8);
 }
 
 /* ============= 全局基础 ============= */
@@ -144,6 +218,11 @@ body {
   color: var(--color-text);
 }
 
+/* 数字等宽（文件大小/百分比/计数） */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
 /* 滚动条美化 */
 ::-webkit-scrollbar {
   width: 8px;
@@ -154,7 +233,7 @@ body {
 }
 ::-webkit-scrollbar-thumb {
   background: var(--color-border-strong);
-  border-radius: 9999px;
+  border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-text-muted);
@@ -170,9 +249,7 @@ body {
   color: var(--color-primary-100);
 }
 
-/* 焦点环（键盘用户）
- * 只作用于「非表单控件」，避免与组件自身的 focus-within/焦点样式重叠。
- * 原生表单控件（input/select/textarea 等）的焦点反馈由各自组件负责。 */
+/* 焦点环（键盘用户） */
 a:focus-visible,
 button:focus-visible,
 [tabindex]:focus-visible,
@@ -182,17 +259,7 @@ button:focus-visible,
   border-radius: var(--radius-sm);
 }
 
-/* 尊重 prefers-reduced-motion */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
-}
-
-/* 路由过渡 */
+/* 路由过渡动画 */
 .route-fade-enter-active,
 .route-fade-leave-active {
   transition: opacity var(--dur-base) var(--ease),
@@ -206,3 +273,39 @@ button:focus-visible,
   opacity: 0;
   transform: translateY(-4px);
 }
+
+/* 抽屉滑入动画 */
+.drawer-enter-active,
+.drawer-leave-active {
+  transition: transform var(--dur-base) var(--ease-out);
+}
+.drawer-enter-from,
+.drawer-leave-to {
+  transform: translateX(-100%);
+}
+
+/* 尊重 prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Glass panel 效果 */
+.glass-panel {
+  background: rgba(23, 23, 23, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(212, 212, 212, 0.1);
+}
+.dark .glass-panel {
+  background: rgba(10, 10, 10, 0.6);
+}
+
+/* 存储配额三色阈值 */
+.quota-primary { color: var(--color-primary-500); }
+.quota-warning { color: var(--color-warning); }
+.quota-danger { color: var(--color-danger); }

@@ -7,14 +7,13 @@
  */
 import { computed, ref } from 'vue'
 import { storeToRefs } from 'pinia'
-import { ArrowUp, ArrowDown, ArrowUpDown, Filter, Download, Trash2 } from '@lucide/vue'
+import { Filter, Download, Trash2 } from '@lucide/vue'
 import BasePopover from '@/components/base/BasePopover.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import TransferButton from '@/components/buttons/transfer-button/index.vue'
 import CopyButton from '@/components/buttons/copy-button/index.vue'
 import { ElMessage } from '@/composables/useToast'
 import { useFileStore } from '@/stores/file'
-import { SORT_FIELDS } from '@/composables/useTableSort'
 
 const props = defineProps({
   selectedRows: { type: Array, default: () => [] },
@@ -22,11 +21,10 @@ const props = defineProps({
   availableExtensions: { type: Array, default: () => [] }
 })
 
-const emit = defineEmits(['sort-change', 'filter-change', 'batch-download', 'batch-delete'])
+const emit = defineEmits(['filter-change', 'batch-download', 'batch-delete'])
 
 const fileStore = useFileStore()
 const { sortProp: sortField, sortOrder } = storeToRefs(fileStore)
-const { toggleSort } = fileStore
 
 const filterOpen = ref(false)
 const filter = ref({
@@ -71,16 +69,6 @@ function toggleExt(ext) {
   else filter.value.extensions.splice(idx, 1)
 }
 
-function getSortIcon(field) {
-  if (sortField.value !== field) return ArrowUpDown
-  return sortOrder.value === 'ascending' ? ArrowUp : ArrowDown
-}
-
-function onSort(field) {
-  toggleSort(field)
-  emit('sort-change', { field: sortField.value, order: sortOrder.value })
-}
-
 function onBatchDownload() {
   if (props.selectedRows.length === 0) {
     ElMessage.warning('请先选择文件')
@@ -105,22 +93,6 @@ const selectedCount = computed(() => props.selectedRows.length)
     class="toolbar flex items-center justify-between gap-2 px-3 py-2 border-b border-[var(--color-border)] bg-[var(--color-surface)]"
   >
     <div class="flex items-center gap-1">
-      <button
-        v-for="f in SORT_FIELDS"
-        :key="f.key"
-        type="button"
-        class="inline-flex items-center gap-1 h-7 px-2 rounded-md text-xs transition-colors"
-        :class="
-          sortField === f.key
-            ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)] dark:bg-[var(--color-primary-900)]/30 dark:text-[var(--color-primary-300)]'
-            : 'text-[var(--color-text-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)]'
-        "
-        @click="onSort(f.key)"
-      >
-        <component :is="getSortIcon(f.key)" :size="12" />
-        {{ f.label }}
-      </button>
-
       <BasePopover v-model:open="filterOpen" placement="bottom-start" :width="320">
         <template #trigger>
           <button

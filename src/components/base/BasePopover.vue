@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * BasePopover —— 内容可定制的浮层
  * 通过 details+summary 实现 trigger；内容由 slot 提供

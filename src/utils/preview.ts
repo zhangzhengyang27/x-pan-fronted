@@ -6,7 +6,7 @@ import panUtil from '@/utils/common'
 import { getToken } from '@/utils/cookie'
 
 export type PreviewKind =
-  'image' | 'video' | 'audio' | 'pdf' | 'code' | 'office' | 'text' | 'unsupported'
+  'image' | 'video' | 'audio' | 'pdf' | 'code' | 'office' | 'markdown' | 'text' | 'unsupported'
 
 interface PreviewInput {
   name?: string
@@ -42,7 +42,6 @@ const CODE_EXTS = [
   'yml',
   'yaml',
   'xml',
-  'md',
   'txt',
   'log',
   'sql'
@@ -61,9 +60,10 @@ export function resolvePreviewKind(input: PreviewInput): PreviewKind {
   if (VIDEO_EXTS.includes(ext)) return 'video'
   if (AUDIO_EXTS.includes(ext)) return 'audio'
   if (PDF_EXTS.includes(ext)) return 'pdf'
+  if (ext === 'md') return 'markdown'
   if (CODE_EXTS.includes(ext)) return 'code'
   if (OFFICE_EXTS.includes(ext)) return 'office'
-  if (ext === 'txt' || ext === 'md' || ext === 'log') return 'text'
+  if (ext === 'txt' || ext === 'log') return 'text'
   if (input.mimeType && input.mimeType.startsWith('image/')) return 'image'
   if (input.mimeType && input.mimeType.startsWith('video/')) return 'video'
   if (input.mimeType && input.mimeType.startsWith('audio/')) return 'audio'

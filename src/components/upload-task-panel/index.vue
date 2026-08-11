@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * UploadTaskPanel —— 右下角悬浮上传任务卡片
  * - Teleport 到 body

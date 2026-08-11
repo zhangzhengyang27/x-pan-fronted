@@ -10,7 +10,7 @@ import { ElMessage, ElMessageBox } from '@/composables/useToast'
 import BaseButton from '@/components/base/BaseButton.vue'
 
 const props = defineProps({
-  size: { type: String, default: 'md' },
+  size: { type: String, default: 'sm' },
   item: { type: Object, default: null }
 })
 
@@ -52,7 +52,7 @@ function onClick() {
 </script>
 
 <template>
-  <BaseButton variant="danger" :size="props.size" @click="onClick">
+  <BaseButton variant="secondary" :size="props.size" @click="onClick">
     <span class="inline-flex items-center gap-1.5">
       <Trash2 :size="14" />
       删除

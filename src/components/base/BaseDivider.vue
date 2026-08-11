@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * BaseDivider —— 分割线（横向 / 纵向 / 居中文案）
  */

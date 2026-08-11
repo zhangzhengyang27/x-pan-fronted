@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * BaseTooltip —— CSS-only 悬浮提示（无需 JS 即可工作）
  * 通过 ::after 显示内容，配合 transition 实现淡入

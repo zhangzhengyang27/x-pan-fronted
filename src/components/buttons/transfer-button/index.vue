@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * TransferButton —— 移动文件
  * 1:1 复现 html5-examples MoveDialog

@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * PreviewImage —— 图片画廊
  * - 同目录多图翻页（左右键 / 按钮）

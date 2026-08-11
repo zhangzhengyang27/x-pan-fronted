@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * UploadButton —— 触发文件上传（仅打开文件选择器，逻辑在 useUploader）
  * 按钮 UI 走 Tailwind + BaseButton 风格（替换原 el-button）
@@ -9,7 +9,7 @@ import { useUploader } from '@/composables/useUploader'
 import BaseButton from '@/components/base/BaseButton.vue'
 
 const props = defineProps({
-  size: { type: String, default: 'md' }
+  size: { type: String, default: 'sm' }
 })
 
 const fileInputRef = ref(null)
@@ -30,7 +30,7 @@ defineExpose({ triggerPicker })
 
 <template>
   <div class="inline-block">
-    <BaseButton variant="primary" :size="props.size" @click="triggerPicker">
+    <BaseButton variant="secondary" :size="props.size" @click="triggerPicker">
       <span class="inline-flex items-center gap-1.5">
         <Upload :size="14" />
         上传

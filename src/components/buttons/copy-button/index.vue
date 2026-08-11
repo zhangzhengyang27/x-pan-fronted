@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * CopyButton —— 复制文件
  * 1:1 复现 html5-examples MoveDialog (copy 模式)

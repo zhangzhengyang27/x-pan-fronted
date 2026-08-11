@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * PdfPreviewer —— 基于 @vue-office/pdf
  * 1:1 复现 html5-examples PdfPreviewer

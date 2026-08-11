@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * DashboardCharts —— 仪表盘图表
- * P1.10 增强：
+ * 设计规范：G3 风格
  * - 存储历史曲线（基于 localStorage 每日打点）
  * - 分类分布柱状图（基于当前列表）
  *
@@ -9,7 +9,6 @@
  */
 import { computed, ref, watch } from 'vue'
 import { TrendingUp, ChartBar, Trash2 } from '@lucide/vue'
-import { cn } from '@/utils/classnames'
 
 const props = defineProps({
   files: { type: Array, default: () => [] }
@@ -74,10 +73,10 @@ const chartData = computed(() => {
   const data = history.value.slice(-14) // 最近 14 天
   if (data.length === 0) return null
   const max = Math.max(...data.map((d) => d.bytes), 1)
-  const w = 280
-  const h = 80
+  const w = 600 // 增大 viewBox 宽度提升精度
+  const h = 120 // 增大高度使图表更清晰
   const stepX = data.length > 1 ? w / (data.length - 1) : w
-  const points = data.map((d, i) => `${i * stepX},${h - (d.bytes / max) * h * 0.9}`)
+  const points = data.map((d, i) => `${i * stepX},${h - (d.bytes / max) * h * 0.85}`)
   const path = `M ${points.join(' L ')}`
   const fillPath = `${path} L ${(data.length - 1) * stepX},${h} L 0,${h} Z`
   return { path, fillPath, data, max, w, h, stepX }
@@ -122,14 +121,14 @@ const distribution = computed(() => {
     value,
     ratio: value / total,
     color: {
-      folder: 'bg-[var(--color-primary-500)]',
-      image: 'bg-pink-500',
-      video: 'bg-violet-500',
-      doc: 'bg-blue-500',
-      audio: 'bg-rose-500',
-      archive: 'bg-amber-500',
-      code: 'bg-orange-500',
-      other: 'bg-slate-500'
+      folder: 'var(--color-primary-500)',
+      image: 'var(--color-tertiary-container)',
+      video: 'var(--color-primary-700)',
+      doc: 'var(--color-primary-600)',
+      audio: 'var(--color-danger)',
+      archive: 'var(--color-warning)',
+      code: 'var(--color-warning)',
+      other: 'var(--color-text-muted)'
     }[key]
   }))
 })
@@ -141,29 +140,34 @@ function clearHistory() {
 </script>
 
 <template>
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5">
     <!-- 存储历史曲线 -->
-    <div class="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+    <div class="rounded-xl border border-[var(--color-border)] p-4 bg-[var(--color-surface-container-low)]">
       <div class="flex items-center justify-between mb-3">
-        <h3 class="text-sm font-semibold text-[var(--color-text)] flex items-center gap-1.5">
-          <TrendingUp :size="14" />
+        <h3 class="text-sm font-semibold flex items-center gap-1.5 text-[var(--color-text)]">
+          <TrendingUp :size="14" :stroke-width="2" />
           存储趋势（最近 14 天）
         </h3>
         <button
           v-if="history.length > 0"
           type="button"
-          class="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-danger)] inline-flex items-center gap-1"
+          class="text-xs inline-flex items-center gap-1 transition-colors text-[var(--color-text-muted)] hover:text-[var(--color-danger)]"
           @click="clearHistory"
         >
-          <Trash2 :size="12" />
+          <Trash2 :size="12" :stroke-width="2" />
           清空
         </button>
       </div>
-      <div v-if="!chartData" class="py-6 text-center text-xs text-[var(--color-text-muted)]">
+      <div v-if="!chartData" class="py-6 text-center text-xs" style="color: var(--color-text-muted);">
         暂无数据，再访问几次后会显示趋势
       </div>
       <div v-else>
-        <svg :viewBox="`0 0 ${chartData.w} ${chartData.h}`" class="w-full" style="height: 80px">
+        <svg
+          :viewBox="`0 0 ${chartData.w} ${chartData.h}`"
+          class="w-full rounded-md"
+          style="height: 140px; min-height: 120px; background-color: var(--color-surface-container-high);"
+          preserveAspectRatio="none"
+        >
           <defs>
             <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stop-color="var(--color-primary-500)" stop-opacity="0.4" />
@@ -180,7 +184,7 @@ function clearHistory() {
             stroke-linejoin="round"
           />
         </svg>
-        <div class="flex justify-between mt-1 text-[10px] text-[var(--color-text-muted)]">
+        <div class="flex justify-between mt-1 text-[10px]" style="color: var(--color-text-muted);">
           <span>{{ chartData.data[0]?.date.slice(5) }}</span>
           <span>最大: {{ formatBytes(chartData.max) }}</span>
           <span>{{ chartData.data[chartData.data.length - 1]?.date.slice(5) }}</span>
@@ -189,28 +193,28 @@ function clearHistory() {
     </div>
 
     <!-- 分类柱状图 -->
-    <div class="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+    <div class="rounded-xl border border-[var(--color-border)] p-4 bg-[var(--color-surface-container-low)]">
       <div class="flex items-center justify-between mb-3">
-        <h3 class="text-sm font-semibold text-[var(--color-text)] flex items-center gap-1.5">
-          <ChartBar :size="14" />
+        <h3 class="text-sm font-semibold flex items-center gap-1.5 text-[var(--color-text)]">
+          <ChartBar :size="14" :stroke-width="2" />
           分类分布
         </h3>
-        <span class="text-xs text-[var(--color-text-muted)] tabular-nums"
-          >{{ files.length }} 项</span
-        >
+        <span class="text-xs tabular-nums" style="color: var(--color-text-muted);">
+          {{ files.length }} 项
+        </span>
       </div>
-      <div class="space-y-2">
-        <div v-for="d in distribution" :key="d.key" class="flex items-center gap-2">
-          <span class="w-12 text-xs text-[var(--color-text-muted)]">{{ d.label }}</span>
-          <div class="flex-1 h-2 bg-[var(--color-surface-2)] rounded-full overflow-hidden">
+      <div class="space-y-2.5">
+        <div v-for="d in distribution" :key="d.key" class="flex items-center gap-2.5">
+          <span class="w-12 shrink-0 text-xs" style="color: var(--color-text-muted);">{{ d.label }}</span>
+          <div class="flex-1 h-2.5 rounded-full overflow-hidden" style="background-color: var(--color-border);">
             <div
-              :class="cn('h-full transition-all', d.color)"
-              :style="{ width: `${Math.max(d.ratio * 100, d.value ? 4 : 0)}%` }"
+              class="h-full rounded-full transition-all duration-300"
+              :style="{ width: `${Math.max(d.ratio * 100, d.value ? 5 : 0)}%`, minWidth: d.value ? '8px' : '0', backgroundColor: d.color }"
             />
           </div>
-          <span class="w-8 text-right text-xs text-[var(--color-text)] tabular-nums">{{
-            d.value
-          }}</span>
+          <span class="w-7 shrink-0 text-right text-xs tabular-nums" style="color: var(--color-text-muted);">
+            {{ d.value }}
+          </span>
         </div>
       </div>
     </div>

@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * PreviewCode —— 代码预览（Shiki 高亮）
  */

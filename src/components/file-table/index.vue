@@ -21,7 +21,6 @@ import { useBreadcrumbStore } from '@/stores/breadcrumb'
 import { storeToRefs } from 'pinia'
 import { ElMessage, ElMessageBox } from '@/composables/useToast'
 import { useRouter } from 'vue-router'
-
 import BaseTable from '@/components/base/BaseTable.vue'
 import BaseTooltip from '@/components/base/BaseTooltip.vue'
 import ContextMenu from '@/components/base/ContextMenu.vue'
@@ -51,7 +50,7 @@ import {
 const router = useRouter()
 const fileStore = useFileStore()
 const breadcrumbStore = useBreadcrumbStore()
-const { fileList, tableLoading, searchFlag, hasMore, isLoadingMore, total } = storeToRefs(fileStore)
+const { fileList, tableLoading, searchFlag, hasMore, isLoadingMore, total, sortProp, sortOrder } = storeToRefs(fileStore)
 
 const selected = ref([]) // 多选 fileId
 const view = ref('list') // 'list' | 'grid'
@@ -145,12 +144,12 @@ const selectedRows = computed(() =>
 )
 
 const columns = computed(() => {
-  const base = [{ key: 'filename', title: '文件名', width: 'auto' }]
+  const base = [{ key: 'filename', title: '文件名', width: 'auto', sortable: true }]
   if (searchFlag.value)
     base.push({ key: 'parentFilename', title: '位置', width: 140, align: 'center' })
   base.push(
-    { key: 'fileSizeDesc', title: '大小', width: 120, align: 'right' },
-    { key: 'updateTime', title: '修改日期', width: 200, align: 'center' },
+    { key: 'fileSizeDesc', title: '大小', width: 120, align: 'right', sortable: true },
+    { key: 'updateTime', title: '修改日期', width: 200, align: 'center', sortable: true },
     { key: 'actions', title: '操作', width: 240, align: 'right' }
   )
   return base
@@ -160,6 +159,10 @@ function handleSelectionChange(keys) {
   selected.value = keys
   const rows = fileList.value.filter((r) => keys.includes(r.fileId))
   fileStore.setMultipleSelection(rows)
+}
+
+function handleSort(field) {
+  fileStore.toggleSort(field)
 }
 
 function goInFolder(fileId) {
@@ -575,7 +578,6 @@ async function promptRename(row) {
   <FileTableToolbar
     :selected-rows="selectedRows"
     :available-extensions="availableExtensions"
-    @sort-change="() => {}"
     @filter-change="(f) => (filter = f)"
     @batch-download="batchDownload"
     @batch-delete="batchDelete"
@@ -592,10 +594,13 @@ async function promptRename(row) {
     row-key="fileId"
     :selected="selected"
     empty-text="该文件夹为空，试试上传文件"
+    :sort-field="sortProp"
+    :sort-order="sortOrder"
     @update:selected="(v) => handleSelectionChange(v)"
     @rowClick="onRowClick"
     @rowDblclick="onRowDblclick"
     @rowContextmenu="(e, row) => onContextMenu(e, row)"
+    @sortChange="handleSort"
   >
     <template #cell-filename="{ row }">
       <BaseTooltip :text="row.filename" position="top">

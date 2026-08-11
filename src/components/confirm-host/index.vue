@@ -1,12 +1,15 @@
 <script setup lang="ts">
 /**
  * ConfirmHost —— 全局确认/输入对话框宿主
- * - 监听 useToast.ts 的模块级 confirm 队列与 prompt 队列
- * - 支持 danger / 自定义按钮文案 / 输入校验
+ * 设计规范：G 设计风格
+ * - Teleport to body
+ * - 全屏遮罩 + 居中卡片
+ * - 队列式渲染
  */
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import BaseModal from '@/components/base/BaseModal.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
+import BaseInput from '@/components/base/BaseInput.vue'
 import { AlertTriangle, AlertCircle } from '@lucide/vue'
 import {
   getConfirmQueue,
@@ -43,7 +46,6 @@ function validateInput(): string {
   const item = promptCurrent.value
   if (!item) return ''
   const value = inputValue.value
-  // 优先使用调用方提供的 inputValidator 回调（返回 true 或错误文案）
   if (item.inputValidator) {
     const result = item.inputValidator(value)
     return result === true ? '' : (result || '输入格式不正确')
@@ -100,17 +102,17 @@ onBeforeUnmount(() => {
   >
     <div class="flex gap-3">
       <div
-        class="shrink-0 size-9 rounded-full flex items-center justify-center"
-        :class="
+        class="shrink-0 size-10 rounded-full flex items-center justify-center"
+        :style="
           current.danger
-            ? 'bg-[var(--color-danger)]/10 text-[var(--color-danger)]'
-            : 'bg-[var(--color-warning)]/10 text-[var(--color-warning)]'
+            ? 'background-color: rgba(239, 68, 68, 0.1); color: var(--color-danger);'
+            : 'background-color: rgba(245, 158, 11, 0.1); color: var(--color-warning);'
         "
       >
-        <AlertTriangle v-if="current.danger" :size="18" />
-        <AlertCircle v-else :size="18" />
+        <AlertTriangle v-if="current.danger" :size="20" :stroke-width="2" />
+        <AlertCircle v-else :size="20" :stroke-width="2" />
       </div>
-      <div class="flex-1 text-sm text-[var(--color-text)] leading-relaxed">
+      <div class="flex-1 text-sm leading-relaxed text-[var(--color-text)]">
         {{ current.message }}
       </div>
     </div>
@@ -134,17 +136,16 @@ onBeforeUnmount(() => {
     @close="onPromptCancel"
   >
     <div class="space-y-3">
-      <div class="text-sm text-[var(--color-text)] leading-relaxed">
+      <div class="text-sm leading-relaxed text-[var(--color-text)]">
         {{ promptCurrent.message }}
       </div>
-      <input
+      <BaseInput
         v-model="inputValue"
         type="text"
-        class="w-full h-9 px-3 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-primary-500)]"
-        :class="{ '!border-[var(--color-danger)]': inputError }"
+        :error="!!inputError"
         @keydown.enter.prevent="onPromptConfirm"
       />
-      <p v-if="inputError" class="text-xs text-[var(--color-danger)]">
+      <p v-if="inputError" class="text-xs" style="color: var(--color-danger);">
         {{ inputError }}
       </p>
     </div>

@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * BaseResult —— 结果页（成功/失败/信息/警告）
  */

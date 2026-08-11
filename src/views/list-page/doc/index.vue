@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * DocListPage —— 文档类型列表
  */
@@ -20,7 +20,13 @@ onMounted(() => {
 
 <template>
   <div class="flex flex-col gap-1">
-    <div class="py-3">
+    <div class="flex items-center gap-3 py-3">
+      <h1 class="text-xl font-semibold tracking-tight text-[var(--color-text)]">文档</h1>
+      <span class="px-2 py-0.5 rounded-full font-mono text-xs" style="background-color: var(--color-surface-container-low); color: var(--color-text-muted);">
+        {{ fileStore.fileList?.length || 0 }} items
+      </span>
+    </div>
+    <div class="flex items-center justify-between gap-4 py-3 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-container-low)]">
       <FileButtonGroup :button-array="buttonArray" />
     </div>
     <FileTable />

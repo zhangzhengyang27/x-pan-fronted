@@ -1,9 +1,13 @@
-<script setup>
+<script setup lang="ts">
 /**
  * ShareListPage —— 我的分享列表
+ * 设计规范：G 设计风格
+ * - 标题 + 副标题
+ * - 分享统计（总数/有效/下载次数）
+ * - BaseTable（分享类型/提取码/过期时间/浏览次数/操作）
  */
 import { computed, onMounted, ref } from 'vue'
-import { Share2, Link as LinkIcon, X, Download } from '@lucide/vue'
+import { Share2, Link as LinkIcon, X, Globe, Lock, Eye } from '@lucide/vue'
 import shareService from '@/api/share'
 import { ElMessage, ElMessageBox } from '@/composables/useToast'
 import BaseTable from '@/components/base/BaseTable.vue'
@@ -16,27 +20,24 @@ const selected = ref([])
 const tableLoading = ref(true)
 
 const columns = [
-  { key: 'shareName', title: '分享名称', width: 'auto' },
-  { key: 'shareUrl', title: '分享链接', width: 280, align: 'center' },
-  { key: 'shareCode', title: '提取码', width: 110, align: 'center' },
-  { key: 'createTime', title: '分享时间', width: 170, align: 'center' },
-  { key: 'downloadStats', title: '下载统计', width: 130, align: 'center' },
-  { key: 'shareStatusText', title: '状态', width: 160, align: 'center' },
-  { key: 'actions', title: '操作', width: 120, align: 'right' }
+  { key: 'filename', title: '分享名称', width: 'auto' },
+  { key: 'shareType', title: '分享类型', width: 120, align: 'center' },
+  { key: 'shareCode', title: '提取码', width: 100, align: 'center' },
+  { key: 'expireTime', title: '过期时间', width: 160, align: 'center' },
+  { key: 'browseCount', title: '浏览次数', width: 100, align: 'center' },
+  { key: 'actions', title: '操作', width: 160, align: 'right' }
 ]
-
-const STATUS_TEXT_KEY = '_statusText'
 
 function loadTableData() {
   tableLoading.value = true
   shareService.getShares(
     (res) => {
       tableLoading.value = false
-      // 避免与后端 shareStatusText 字段冲突：本地显示状态重命名为 _statusText
-      tableData.value = (res.data || []).map((row) => ({
-        ...row,
-        _statusText: formatStatus(row)
-      }))
+      if (res.code === 0 && res.data) {
+        tableData.value = res.data.shares || []
+      } else {
+        tableData.value = []
+      }
     },
     (res) => {
       tableLoading.value = false
@@ -45,20 +46,12 @@ function loadTableData() {
   )
 }
 
-function formatStatus(row) {
-  if (row.shareStatus === 1) return { label: '有分享文件被删除', variant: 'warning' }
-  if (row.shareDayType === 0) return { label: '永久有效', variant: 'success' }
-  return { label: `${row.shareEndTime} 到期`, variant: 'neutral' }
-}
-
 function copyShare(row) {
-  // 优先使用现代 Clipboard API，不可用时退化到隐藏 textarea + execCommand
-  const text = `链接：${row.shareUrl}\n提取码：${row.shareCode}\n赶快分享给小伙伴吧！`
+  const text = row.shareCode
+    ? `链接：${row.shareUrl}\n提取码：${row.shareCode}\n赶快分享给小伙伴吧！`
+    : `链接：${row.shareUrl}\n赶快分享给小伙伴吧！`
   if (navigator.clipboard && window.isSecureContext) {
-    navigator.clipboard
-      .writeText(text)
-      .then(() => ElMessage.success('已复制'))
-      .catch(() => fallbackCopy(text))
+    navigator.clipboard.writeText(text).then(() => ElMessage.success('链接已复制')).catch(() => fallbackCopy(text))
   } else {
     fallbackCopy(text)
   }
@@ -73,7 +66,7 @@ function fallbackCopy(text) {
   ta.select()
   try {
     document.execCommand('copy')
-    ElMessage.success('已复制')
+    ElMessage.success('链接已复制')
   } catch {
     ElMessage.error('复制失败，请手动选择')
   } finally {
@@ -82,14 +75,14 @@ function fallbackCopy(text) {
 }
 
 function doCancelShares(shareIds) {
-  ElMessageBox.confirm('分享取消后将不可恢复，您确定这样做吗？', '取消分享', {
-    confirmButtonText: '确认取消',
+  ElMessageBox.confirm('确定取消分享?取消后链接将失效', '取消分享', {
+    confirmButtonText: '确认',
     cancelButtonText: '取消',
     type: 'warning'
   })
     .then(() => {
       shareService.cancelShare(
-        { shareIds },
+        { shareId: shareIds },
         () => {
           ElMessage.success('取消分享成功')
           loadTableData()
@@ -102,8 +95,7 @@ function doCancelShares(shareIds) {
 
 function cancelShares() {
   if (selected.value.length === 0) return ElMessage.error('请选择要取消的分享')
-  // selected 基于 row-key="shareId"，存的是 shareId 值而非数组下标，直接取用即可
-  const ids = selected.value.filter(Boolean).join('__,__')
+  const ids = selected.value.filter(Boolean).join(',')
   doCancelShares(ids)
 }
 
@@ -113,7 +105,6 @@ function cancelShare(row) {
 
 onMounted(loadTableData)
 
-/** P1.12：分享总览统计 */
 const summary = computed(() => {
   const rows = tableData.value
   const now = Date.now()
@@ -134,51 +125,88 @@ const summary = computed(() => {
     remainingQuota: remaining
   }
 })
+
+function isPublicShare(row) {
+  return row.shareType === 0
+}
+
+function isExpired(row) {
+  if (!row.expireAt) return false
+  return new Date(row.expireAt).getTime() < Date.now()
+}
+
+function formatExpireTime(row) {
+  if (!row.expireAt) return '永久'
+  return row.expireAt.split(' ')[0]
+}
 </script>
 
 <template>
-  <div class="flex flex-col gap-1">
-    <!-- P1.12：分享总览统计 -->
-    <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-3">
+  <div class="flex flex-col gap-4">
+    <!-- 页面标题 -->
+    <div class="flex items-center gap-3">
+      <h1 class="text-2xl font-semibold tracking-tight text-[var(--color-text)]">
+        我的分享
+      </h1>
+      <span class="text-sm" style="color: var(--color-text-muted);">
+        管理您分享的文件
+      </span>
+    </div>
+
+    <!-- 分享统计 -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
       <div
-        class="px-4 py-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]"
+        class="rounded-xl border border-[var(--color-border)] p-4 bg-[var(--color-surface-container-low)]"
       >
-        <div class="text-xs text-[var(--color-text-muted)]">分享总数</div>
-        <div class="mt-1 text-2xl font-semibold tabular-nums">{{ summary.totalShares }}</div>
+        <div class="text-xs mb-1" style="color: var(--color-text-muted);">分享总数</div>
+        <div class="text-2xl font-bold tabular-nums text-[var(--color-text)]">
+          {{ summary.totalShares }}
+        </div>
       </div>
       <div
-        class="px-4 py-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]"
+        class="rounded-xl border border-[var(--color-border)] p-4 bg-[var(--color-surface-container-low)]"
       >
-        <div class="text-xs text-[var(--color-text-muted)]">有效分享</div>
-        <div class="mt-1 text-2xl font-semibold tabular-nums text-[var(--color-success)]">
+        <div class="text-xs mb-1" style="color: var(--color-text-muted);">有效分享</div>
+        <div class="text-2xl font-bold tabular-nums" style="color: var(--color-success);">
           {{ summary.activeShares }}
         </div>
       </div>
       <div
-        class="px-4 py-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]"
+        class="rounded-xl border border-[var(--color-border)] p-4 bg-[var(--color-surface-container-low)]"
       >
-        <div class="text-xs text-[var(--color-text-muted)]">总下载次数</div>
-        <div class="mt-1 text-2xl font-semibold tabular-nums text-[var(--color-primary-600)]">
+        <div class="text-xs mb-1" style="color: var(--color-text-muted);">总下载次数</div>
+        <div class="text-2xl font-bold tabular-nums" style="color: var(--color-primary-500);">
           {{ summary.totalDownloads }}
         </div>
       </div>
       <div
-        class="px-4 py-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]"
+        class="rounded-xl border border-[var(--color-border)] p-4 bg-[var(--color-surface-container-low)]"
       >
-        <div class="text-xs text-[var(--color-text-muted)]">剩余下载配额</div>
-        <div class="mt-1 text-2xl font-semibold tabular-nums text-[var(--color-warning)]">
+        <div class="text-xs mb-1" style="color: var(--color-text-muted);">剩余下载配额</div>
+        <div class="text-2xl font-bold tabular-nums" style="color: var(--color-warning);">
           {{ summary.remainingQuota }}
         </div>
       </div>
     </div>
-    <div class="flex items-center justify-between py-3">
-      <BaseButton variant="danger" @click="cancelShares">
+
+    <!-- 操作栏 -->
+    <div class="flex items-center justify-end">
+      <BaseButton
+        variant="danger"
+        size="sm"
+        :disabled="selected.length === 0"
+        @click="cancelShares"
+      >
         <template #default>
-          <span class="flex items-center gap-2"> <X :size="16" /> 取消分享 </span>
+          <span class="inline-flex items-center gap-1.5">
+            <X :size="14" :stroke-width="2" />
+            取消分享
+          </span>
         </template>
       </BaseButton>
     </div>
 
+    <!-- 表格 -->
     <BaseTable
       :columns="columns"
       :data="tableData"
@@ -186,51 +214,60 @@ const summary = computed(() => {
       :selected="selected"
       selectable
       row-key="shareId"
-      empty-text="还没有分享记录"
+      empty-text="还没有分享过文件"
       @update:selected="(v) => (selected = v)"
     >
-      <template #cell-shareName="{ row }">
+      <template #cell-filename="{ row }">
         <div class="flex items-center gap-3">
-          <Share2 :size="18" class="text-[var(--color-primary-500)] shrink-0" />
-          <span class="truncate">{{ row.shareName }}</span>
+          <Share2 :size="18" :stroke-width="2" class="shrink-0" style="color: var(--color-primary-500);" />
+          <span class="truncate text-[var(--color-text)]">{{ row.filename || row.fileName || '未命名' }}</span>
         </div>
       </template>
-      <template #cell-shareUrl="{ row }">
-        <a
-          :href="row.shareUrl"
-          target="_blank"
-          class="text-[var(--color-primary-600)] hover:underline truncate inline-block max-w-[280px] align-middle"
-        >
-          {{ row.shareUrl.length > 30 ? row.shareUrl.slice(0, 30) + '…' : row.shareUrl }}
-        </a>
-      </template>
-      <template #cell-shareStatusText="{ row }">
-        <BaseBadge :variant="row[STATUS_TEXT_KEY].variant">{{
-          row[STATUS_TEXT_KEY].label
-        }}</BaseBadge>
-      </template>
-      <template #cell-downloadStats="{ row }">
-        <div class="inline-flex items-center gap-1.5 text-xs">
-          <Download :size="12" class="text-[var(--color-text-muted)]" />
-          <span class="font-medium tabular-nums">{{ row.downloadCount || 0 }}</span>
-          <span v-if="row.downloadLimit > 0" class="text-[var(--color-text-muted)]">
-            / {{ row.downloadLimit }}
+
+      <template #cell-shareType="{ row }">
+        <BaseBadge :variant="isPublicShare(row) ? 'success' : 'warning'">
+          <span class="inline-flex items-center gap-1">
+            <Globe v-if="isPublicShare(row)" :size="12" :stroke-width="2" />
+            <Lock v-else :size="12" :stroke-width="2" />
+            {{ isPublicShare(row) ? '公开' : '加密' }}
           </span>
-          <span v-else class="text-[var(--color-text-muted)] text-[10px]">(不限)</span>
-        </div>
+        </BaseBadge>
       </template>
-      <template #cell-actions="{ row }">
-        <div
-          class="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity"
+
+      <template #cell-shareCode="{ row }">
+        <span v-if="row.shareCode" class="font-mono tabular-nums text-sm tracking-wider text-[var(--color-text)]">
+          {{ row.shareCode }}
+        </span>
+        <span v-else style="color: var(--color-text-muted);">—</span>
+      </template>
+
+      <template #cell-expireTime="{ row }">
+        <span
+          class="tabular-nums text-sm"
+          :style="isExpired(row) ? 'color: var(--color-danger);' : 'color: var(--color-text-muted);'"
         >
+          {{ formatExpireTime(row) }}
+          <span v-if="isExpired(row)" class="ml-1">(已过期)</span>
+        </span>
+      </template>
+
+      <template #cell-browseCount="{ row }">
+        <span class="inline-flex items-center gap-1 tabular-nums text-sm text-[var(--color-text)]">
+          <Eye :size="12" :stroke-width="2" style="color: var(--color-text-muted);" />
+          {{ row.downloadCount || 0 }}
+        </span>
+      </template>
+
+      <template #cell-actions="{ row }">
+        <div class="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
           <BaseTooltip text="复制链接" position="top">
-            <BaseButton variant="ghost" size="sm" @click="copyShare(row)">
-              <LinkIcon :size="14" />
+            <BaseButton variant="secondary" size="sm" @click="copyShare(row)">
+              <LinkIcon :size="14" :stroke-width="2" />
             </BaseButton>
           </BaseTooltip>
           <BaseTooltip text="取消分享" position="top">
             <BaseButton variant="danger" size="sm" @click="cancelShare(row)">
-              <X :size="14" />
+              <X :size="14" :stroke-width="2" />
             </BaseButton>
           </BaseTooltip>
         </div>

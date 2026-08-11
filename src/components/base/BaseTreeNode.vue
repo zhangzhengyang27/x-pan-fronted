@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * BaseTreeNode —— 树节点（递归组件自己）
  */

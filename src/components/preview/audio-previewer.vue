@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * AudioPreviewer —— 基于 APlayer（动态 import）
  * 1:1 复现 html5-examples AudioPreviewer

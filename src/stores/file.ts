@@ -104,14 +104,10 @@ export const useFileStore = defineStore('file', (): FileStore => {
   )
 
   // ─── 排序状态（默认按名称升序，与工具栏一致） ───────────────────────────────
-  const sortProp = ref<string>('name')
+  const sortProp = ref<string>('filename')
   const sortOrder = ref<SortOrder>('ascending')
 
   function valueOf(item: Record<string, unknown>, prop: string): number | string {
-    if (prop === 'name') {
-      const n = item.filename ?? item.name
-      return typeof n === 'string' ? n : ''
-    }
     const v = item[prop]
     return typeof v === 'number' || typeof v === 'string' ? v : ''
   }

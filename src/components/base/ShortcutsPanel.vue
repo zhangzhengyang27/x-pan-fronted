@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * ShortcutsPanel —— 全局快捷键面板（P1.12）
  *

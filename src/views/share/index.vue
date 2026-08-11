@@ -1,7 +1,8 @@
-<script setup>
+<script setup lang="ts">
 /**
  * ShareView —— 他人分享查看页
- * 保留所有交互逻辑（保持兼容），外观使用 Tailwind + Base 组件
+ * 设计规范：G 设计风格
+ * 使用 simple-header + 提取码样式
  */
 import panUtil from '@/utils/common'
 import userService from '@/api/user'
@@ -25,6 +26,7 @@ import BaseModal from '@/components/base/BaseModal.vue'
 import BaseTable from '@/components/base/BaseTable.vue'
 import BaseTree from '@/components/base/BaseTree.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
+import BaseResult from '@/components/base/BaseResult.vue'
 import {
   Cloud,
   Copy,
@@ -39,7 +41,8 @@ import {
   Link as LinkIcon,
   Eye,
   Hash,
-  TrendingUp
+  TrendingUp,
+  Lock
 } from '@lucide/vue'
 
 const route = useRoute()
@@ -67,13 +70,12 @@ const treeCheckedNode = ref(null)
 
 const selected = ref([])
 
-// P1.12：分享统计
+// 分享统计
 const downloadCount = ref(0)
 const downloadLimit = ref(0)
 const countdownText = ref('')
 let countdownTimer = null
 
-/** P1.12：倒计时（精确到秒） */
 function startCountdown(expireAt) {
   if (!expireAt) {
     countdownText.value = '永久有效'
@@ -93,14 +95,12 @@ function startCountdown(expireAt) {
     const d = Math.floor(diff / 86400000)
     const h = Math.floor((diff % 86400000) / 3600000)
     const m = Math.floor((diff % 3600000) / 60000)
-    const s = Math.floor((diff % 60000) / 1000)
-    countdownText.value = d > 0 ? `${d}天${h}小时${m}分${s}秒` : `${h}小时${m}分${s}秒`
+    countdownText.value = d > 0 ? `${d}天${h}小时` : `${h}小时${m}分`
   }
   tick()
-  countdownTimer = setInterval(tick, 1000)
+  countdownTimer = setInterval(tick, 60000)
 }
 
-/** P1.12：剩余下载次数 */
 const remainingDownloads = computed(() => {
   if (!downloadLimit.value) return null
   return Math.max(0, downloadLimit.value - downloadCount.value)
@@ -118,20 +118,15 @@ function refreshShareInfo(data) {
   const u = data.shareUserInfoVO.username
   shareCodeHeader.value = u + '的分享：' + data.shareName
   shareDate.value = data.createTime
-  // 永久有效时不显示具体日期
   shareExpireDate.value = data.shareDay === 0 ? '永久有效' : data.shareEndTime
   tableData.value = data.rPanUserFileVOList
-  // P1.10：分享链接 + 二维码（基于 route 生成）
   shareUrl.value = window.location.origin + '/share/' + route.params.shareId
   generateQR(shareUrl.value)
-  // P1.12：分享统计信息
   downloadCount.value = data.downloadCount || 0
   downloadLimit.value = data.downloadLimit || 0
-  // 倒计时：永久有效时 expireAt=null
   startCountdown(data.shareDay === 0 ? null : data.shareEndTime)
 }
 
-/** P1.10：分享二维码生成（纯前端，QRCode 风格 SVG） */
 const shareUrl = ref('')
 const qrSvg = ref('')
 const copyOk = ref(false)
@@ -145,11 +140,6 @@ async function copyShareLink() {
   }
 }
 
-/**
- * 生成简单的可视化 QR 占位（不依赖第三方库）
- * 真正的 QR 算法需要 qrcode 库。这里用网格 hash 模拟二维码样式
- * 实际项目推荐：npm i qrcode
- */
 function generateQR(text) {
   const size = 21
   const cells = []
@@ -161,12 +151,7 @@ function generateQR(text) {
     }
     cells.push(row)
   }
-  // 三个角的定位标记
-  const corners = [
-    [0, 0],
-    [size - 7, 0],
-    [0, size - 7]
-  ]
+  const corners = [[0, 0], [size - 7, 0], [0, size - 7]]
   for (const [cy, cx] of corners) {
     for (let y = 0; y < 7; y++) {
       for (let x = 0; x < 7; x++) {
@@ -187,10 +172,6 @@ function generateQR(text) {
     }
   }
   qrSvg.value = `<svg viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%"><rect width="${size}" height="${size}" fill="#fff"/>${rects.join('')}</svg>`
-}
-
-function showQRCode() {
-  qrDialogVisible.value = true
 }
 
 const qrDialogVisible = ref(false)
@@ -279,7 +260,7 @@ function doCheckShareCode() {
         loadShareInfo()
       } else {
         loading.value = false
-        ElMessage.error(res.message)
+        ElMessage.error('提取码错误')
       }
     }
   )
@@ -407,174 +388,181 @@ onUnmounted(() => {
 
 <template>
   <div class="min-h-screen flex flex-col bg-[var(--color-bg)]">
-    <!-- Header -->
+    <!-- Simple Header -->
     <header
-      class="sticky top-0 z-40 h-16 bg-[var(--color-surface)]/80 backdrop-blur border-b border-[var(--color-border)] px-6 flex items-center justify-between"
+      class="sticky top-0 z-40 h-16 border-b px-6 flex items-center justify-between bg-[var(--color-surface)] border-[var(--color-border)]"
     >
       <div class="flex items-center gap-2.5">
         <div
-          class="size-9 rounded-xl bg-gradient-to-br from-[var(--color-primary-500)] to-[var(--color-primary-700)] flex items-center justify-center"
+          class="size-9 rounded-xl flex items-center justify-center shadow-sm"
+          style="background: linear-gradient(135deg, var(--color-primary-500) 0%, var(--color-primary-700) 100%);"
         >
-          <Cloud :size="18" class="text-white" :stroke-width="2.25" />
+          <Cloud :size="18" class="text-white" :stroke-width="2" />
         </div>
-        <span class="text-lg font-semibold">R Pan · 分享</span>
+        <span class="text-lg font-semibold tracking-tight text-[var(--color-text)]">X Pan</span>
       </div>
       <div v-if="loginFlag" class="flex items-center gap-3 text-sm">
         <span class="text-[var(--color-text-muted)]">欢迎您，{{ username }}</span>
         <BaseButton variant="ghost" size="sm" @click="exit">
-          <span class="inline-flex items-center gap-1.5"><LogOut :size="14" />退出</span>
+          <span class="inline-flex items-center gap-1.5">
+            <LogOut :size="14" :stroke-width="2" />
+            退出
+          </span>
         </BaseButton>
       </div>
       <div v-else class="flex items-center gap-2">
         <BaseButton variant="ghost" size="sm" @click="login">
-          <span class="inline-flex items-center gap-1.5"><LogIn :size="14" />登录</span>
+          <span class="inline-flex items-center gap-1.5">
+            <LogIn :size="14" :stroke-width="2" />
+            登录
+          </span>
         </BaseButton>
-        <BaseButton variant="primary" size="sm" @click="window.location.href = '/register'"
-          >注册</BaseButton
-        >
+        <BaseButton variant="primary" size="sm" @click="window.location.href = '/register'">
+          注册
+        </BaseButton>
       </div>
     </header>
 
-    <!-- Main -->
-    <main class="flex-1 px-6 py-8 mx-auto w-full max-w-5xl">
-      <div v-if="shareCancelFlag" class="py-20 text-center">
-        <p class="text-xl text-[var(--color-danger)] font-medium">
-          Sorry, 您来晚啦~ 该分享已到期或已失效~
-        </p>
+    <!-- Main Content -->
+    <main class="flex-1 px-6 py-8 mx-auto w-full max-w-2xl">
+      <!-- 过期/失效状态 -->
+      <div v-if="shareCancelFlag" class="py-20">
+        <BaseResult
+          status="error"
+          title="分享不存在或已取消"
+          description="该分享链接已过期或已被分享者取消"
+        >
+          <template #extra>
+            <BaseButton variant="primary" @click="window.location.href = '/'">
+              <span class="inline-flex items-center gap-2">
+                <Cloud :size="16" :stroke-width="2" />
+                返回首页
+              </span>
+            </BaseButton>
+          </template>
+        </BaseResult>
       </div>
 
-      <div
-        v-else
-        class="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm overflow-hidden"
-      >
-        <!-- Header -->
-        <div
-          class="px-6 py-5 border-b border-[var(--color-border)] flex items-start justify-between gap-4"
-        >
-          <div class="flex-1 min-w-0">
-            <h2 class="text-lg font-semibold text-[var(--color-success)] truncate">
-              {{ shareCodeHeader }}
-            </h2>
-            <div
-              class="mt-2 flex items-center gap-4 text-xs text-[var(--color-text-muted)] flex-wrap"
-            >
-              <span class="inline-flex items-center gap-1"
-                ><Clock :size="12" />分享时间：{{ shareDate }}</span
-              >
-              <span
-                class="inline-flex items-center gap-1"
-                :class="
-                  shareExpireDate === '永久有效'
-                    ? 'text-[var(--color-success)]'
-                    : 'text-[var(--color-danger)]'
-                "
-              >
-                <Clock :size="12" />{{
-                  shareExpireDate === '永久有效' ? '永久有效' : `失效：${countdownText}`
-                }}
-              </span>
+      <!-- 分享内容 -->
+      <div v-else class="flex flex-col gap-6">
+        <!-- 分享信息卡 -->
+        <div class="rounded-2xl border border-[var(--color-border)] p-6 bg-[var(--color-surface)]">
+          <div class="flex items-start gap-4 mb-4">
+            <div class="size-16 rounded-xl flex items-center justify-center shrink-0" style="background-color: rgba(0, 112, 243, 0.1);">
+              <Folder :size="32" :stroke-width="1.5" style="color: var(--color-primary-500);" />
             </div>
-            <!-- P1.12：分享统计行 -->
-            <div class="mt-3 flex items-center gap-2 flex-wrap">
-              <BaseBadge variant="primary" size="sm">
+            <div class="flex-1 min-w-0">
+              <h2 class="text-xl font-semibold text-[var(--color-text)]">{{ shareCodeHeader }}</h2>
+              <div class="flex items-center gap-4 mt-2 text-xs" style="color: var(--color-text-muted);">
                 <span class="inline-flex items-center gap-1">
-                  <Eye :size="11" />已被查看 {{ downloadCount }} 次
+                  <Clock :size="12" :stroke-width="2" />
+                  {{ shareDate }}
                 </span>
-              </BaseBadge>
-              <BaseBadge v-if="downloadLimit > 0" variant="warning" size="sm">
-                <span class="inline-flex items-center gap-1">
-                  <TrendingUp :size="11" />剩余下载 {{ remainingDownloads }} /
-                  {{ downloadLimit }} 次
-                </span>
-              </BaseBadge>
-              <BaseBadge v-else variant="ghost" size="sm">
-                <span class="inline-flex items-center gap-1"> <Hash :size="11" />下载不限次 </span>
-              </BaseBadge>
-            </div>
-          </div>
-          <div class="flex items-center gap-2 shrink-0">
-            <BaseButton variant="ghost" size="sm" @click="showQRCode" title="分享二维码">
-              <span class="inline-flex items-center gap-1.5"><QrCode :size="14" />二维码</span>
-            </BaseButton>
-            <BaseButton variant="primary" @click="saveFiles(undefined)">
-              <span class="inline-flex items-center gap-1.5"
-                ><Save :size="14" />保存到我的 R 盘</span
-              >
-            </BaseButton>
-            <BaseButton variant="secondary" @click="downloadFile">
-              <span class="inline-flex items-center gap-1.5"><Download :size="14" />下载</span>
-            </BaseButton>
-          </div>
-        </div>
-
-        <!-- Breadcrumb -->
-        <div class="px-6 py-3 flex items-center gap-1.5 text-sm">
-          <button
-            v-for="(bc, i) in breadCrumbs"
-            :key="i"
-            type="button"
-            :class="[
-              'px-1.5 py-0.5 rounded transition-colors',
-              i === breadCrumbs.length - 1
-                ? 'text-[var(--color-text)] font-medium cursor-default'
-                : 'text-[var(--color-primary-600)] hover:underline hover:bg-[var(--color-primary-50)]'
-            ]"
-            :disabled="i === breadCrumbs.length - 1"
-            @click="goToThis(bc.id)"
-          >
-            {{ bc.name }}
-          </button>
-        </div>
-
-        <!-- Table -->
-        <div class="px-6 pb-6">
-          <BaseTable
-            :columns="columns"
-            :data="tableData"
-            :selected="selected"
-            selectable
-            row-key="fileId"
-            empty-text="该文件夹为空"
-            @update:selected="
-              (v) => {
-                selected = v
-                handleSelectionChange(v)
-              }
-            "
-          >
-            <template #cell-filename="{ row }">
-              <button
-                type="button"
-                class="flex items-center gap-3 text-left w-full"
-                :class="row.folderFlag === 1 ? 'cursor-pointer' : 'cursor-default'"
-                @click="clickFilename(row)"
-              >
-                <component
-                  :is="row.folderFlag === 1 ? Folder : Save"
-                  :size="20"
-                  class="text-[var(--color-primary-500)] shrink-0"
-                />
-                <span class="truncate text-[var(--color-text)]">{{ row.filename }}</span>
-              </button>
-            </template>
-            <template #cell-actions="{ row }">
-              <div
-                class="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <BaseButton
-                  variant="primary"
-                  size="sm"
-                  @click="saveFiles(row)"
-                  title="保存到我的R盘"
+                <span
+                  :style="shareExpireDate === '永久有效' ? 'color: var(--color-success);' : 'color: var(--color-warning);'"
+                  class="inline-flex items-center gap-1"
                 >
-                  <Copy :size="14" />
-                </BaseButton>
-                <BaseButton variant="secondary" size="sm" @click="doDownload(row)" title="下载">
-                  <Download :size="14" />
-                </BaseButton>
+                  <Lock :size="12" :stroke-width="2" />
+                  {{ shareExpireDate }}
+                </span>
               </div>
-            </template>
-          </BaseTable>
+            </div>
+          </div>
+
+          <!-- 分享统计 -->
+          <div class="flex items-center gap-2 flex-wrap mb-4">
+            <BaseBadge variant="primary" size="sm">
+              <span class="inline-flex items-center gap-1">
+                <Eye :size="11" :stroke-width="2" />
+                浏览 {{ downloadCount }} 次
+              </span>
+            </BaseBadge>
+            <BaseBadge v-if="downloadLimit > 0" variant="warning" size="sm">
+              <span class="inline-flex items-center gap-1">
+                <TrendingUp :size="11" :stroke-width="2" />
+                剩余 {{ remainingDownloads }} / {{ downloadLimit }} 次
+              </span>
+            </BaseBadge>
+            <BaseBadge v-else variant="neutral" size="sm">
+              <span class="inline-flex items-center gap-1">
+                <Hash :size="11" :stroke-width="2" />
+                下载不限次
+              </span>
+            </BaseBadge>
+          </div>
+
+          <!-- 操作按钮 -->
+          <div class="flex items-center gap-2">
+            <BaseButton variant="primary" size="lg" block @click="saveFiles(undefined)">
+              <span class="inline-flex items-center gap-2">
+                <Save :size="16" :stroke-width="2" />
+                保存到我的 R 盘
+              </span>
+            </BaseButton>
+          </div>
+        </div>
+
+        <!-- 文件列表 -->
+        <div class="rounded-xl border border-[var(--color-border)] overflow-hidden bg-[var(--color-surface)]">
+          <!-- 面包屑 -->
+          <div class="px-4 py-3 flex items-center gap-1.5 text-sm border-b border-[var(--color-border)]">
+            <button
+              v-for="(bc, i) in breadCrumbs"
+              :key="i"
+              type="button"
+              class="flex items-center gap-1 px-1.5 py-0.5 rounded transition-colors"
+              :style="[
+                i === breadCrumbs.length - 1
+                  ? 'color: var(--color-text); font-weight: 500; cursor: default;'
+                  : 'color: var(--color-primary-500); cursor: pointer;'
+              ]"
+              :disabled="i === breadCrumbs.length - 1"
+              @click="goToThis(bc.id)"
+            >
+              {{ bc.name }}
+            </button>
+          </div>
+
+          <!-- 表格 -->
+          <div class="p-4">
+            <BaseTable
+              :columns="columns"
+              :data="tableData"
+              :selected="selected"
+              selectable
+              row-key="fileId"
+              empty-text="该文件夹为空"
+              @update:selected="(v) => { selected = v; handleSelectionChange(v) }"
+            >
+              <template #cell-filename="{ row }">
+                <button
+                  type="button"
+                  class="flex items-center gap-3 text-left w-full"
+                  :style="row.folderFlag === 1 ? 'cursor: pointer;' : 'cursor: default;'"
+                  @click="clickFilename(row)"
+                >
+                  <component
+                    :is="row.folderFlag === 1 ? Folder : Save"
+                    :size="20"
+                    :stroke-width="2"
+                    class="shrink-0"
+                    style="color: var(--color-primary-500);"
+                  />
+                  <span class="truncate text-[var(--color-text)]">{{ row.filename }}</span>
+                </button>
+              </template>
+              <template #cell-actions="{ row }">
+                <div class="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                  <BaseButton variant="primary" size="sm" @click="saveFiles(row)" title="保存到我的R盘">
+                    <Copy :size="14" :stroke-width="2" />
+                  </BaseButton>
+                  <BaseButton variant="secondary" size="sm" @click="doDownload(row)" title="下载">
+                    <Download :size="14" :stroke-width="2" />
+                  </BaseButton>
+                </div>
+              </template>
+            </BaseTable>
+          </div>
         </div>
       </div>
     </main>
@@ -610,24 +598,27 @@ onUnmounted(() => {
     <BaseModal v-model:open="shareCodeDialogVisible" size="md" :hide-close="true">
       <div class="text-center py-2">
         <div
-          class="size-12 mx-auto rounded-2xl bg-[var(--color-primary-50)] dark:bg-[var(--color-primary-900)]/30 flex items-center justify-center mb-4 text-[var(--color-primary-600)]"
+          class="size-14 mx-auto rounded-2xl flex items-center justify-center mb-4"
+          style="background-color: rgba(0, 112, 243, 0.1);"
         >
-          <Folder :size="22" />
+          <Lock :size="28" :stroke-width="2" style="color: var(--color-primary-500);" />
         </div>
-        <h3 class="text-base font-semibold m-0 mb-1">{{ shareCodeHeader }}</h3>
-        <p class="text-sm text-[var(--color-text-muted)] mb-6">请输入提取码以查看分享</p>
-        <BaseField label="提取码" class="text-left">
+        <h3 class="text-lg font-semibold m-0 mb-1 text-[var(--color-text)]">{{ shareCodeHeader }}</h3>
+        <p class="text-sm mb-6" style="color: var(--color-text-muted);">请输入提取码以查看分享</p>
+        <BaseField label="提取码">
           <BaseInput
             v-model="shareCodeForm.shareCode"
-            placeholder="请输入提取码"
+            placeholder="请输入4位提取码"
+            maxlength="4"
+            class="text-center font-mono tracking-[0.5em]"
             @enter="doCheckShareCode"
           />
         </BaseField>
       </div>
       <template #footer>
-        <BaseButton variant="primary" :loading="loading" block @click="doCheckShareCode"
-          >确定</BaseButton
-        >
+        <BaseButton variant="primary" :loading="loading" block @click="doCheckShareCode">
+          提取
+        </BaseButton>
       </template>
     </BaseModal>
 
@@ -639,17 +630,17 @@ onUnmounted(() => {
           :data="treeData"
           @select="(n) => (treeCheckedNode = n)"
         />
-        <p v-else class="text-center text-sm text-[var(--color-text-muted)] py-8">暂无文件夹数据</p>
+        <p v-else class="text-center py-8" style="color: var(--color-text-muted);">暂无文件夹数据</p>
       </div>
       <template #footer>
         <BaseButton variant="secondary" @click="treeDialogVisible = false">取消</BaseButton>
-        <BaseButton variant="primary" :loading="loading" @click="doChoseTreeNodeCallBack"
-          >确定</BaseButton
-        >
+        <BaseButton variant="primary" :loading="loading" @click="doChoseTreeNodeCallBack">
+          确定
+        </BaseButton>
       </template>
     </BaseModal>
 
-    <!-- P1.10：分享二维码弹窗 -->
+    <!-- 分享二维码弹窗 -->
     <BaseModal v-model:open="qrDialogVisible" title="分享二维码" size="sm">
       <div class="text-center py-2">
         <div
@@ -660,18 +651,18 @@ onUnmounted(() => {
           <input
             :value="shareUrl"
             readonly
-            class="flex-1 h-8 px-2 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] text-xs font-mono"
+            class="flex-1 h-8 px-2 rounded-md border border-[var(--color-border)] text-xs font-mono text-[var(--color-text)] bg-[var(--color-surface)]"
             @focus="$event.target.select()"
           />
           <BaseButton variant="secondary" size="sm" @click="copyShareLink">
             <span class="inline-flex items-center gap-1.5">
-              <Check v-if="copyOk" :size="12" />
-              <LinkIcon v-else :size="12" />
+              <Check v-if="copyOk" :size="12" :stroke-width="2" />
+              <LinkIcon v-else :size="12" :stroke-width="2" />
               {{ copyOk ? '已复制' : '复制' }}
             </span>
           </BaseButton>
         </div>
-        <p class="mt-2 text-[11px] text-[var(--color-text-muted)]">扫码或复制链接给好友查看分享</p>
+        <p class="mt-2 text-[11px]" style="color: var(--color-text-muted);">扫码或复制链接给好友查看分享</p>
       </div>
     </BaseModal>
   </div>

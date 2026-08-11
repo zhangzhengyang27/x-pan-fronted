@@ -6,7 +6,6 @@ import router from './router'
 import './styles/tokens.css'
 import { initTheme } from '@/composables/useTheme'
 import { useWebSocket } from '@/composables/useWebSocket'
-import { useUserStore } from '@/stores/user'
 import { getToken } from '@/utils/cookie'
 
 const app = createApp(App)
@@ -21,7 +20,6 @@ initTheme()
 
 // P4：启动 WebSocket 通知连接（登录后自动重连）
 const ws = useWebSocket()
-const userStore = useUserStore()
 
 // 监听路由：登录页 → 自动连接；登出 → 断开
 router.afterEach((to) => {
@@ -51,6 +49,3 @@ ws.on('SYSTEM_NOTICE', (payload: { level?: string; message?: string }) => {
 })
 
 app.mount('#app')
-
-// 防止 userStore 未使用警告（保留以备扩展）
-void userStore

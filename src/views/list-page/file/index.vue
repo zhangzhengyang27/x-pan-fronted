@@ -1,17 +1,24 @@
-<script setup>
+<script setup lang="ts">
 /**
- * AppFileListPage —— 主文件列表页（带视图切换 + 拖拽上传）
+ * AppFileListPage —— 主文件列表页
+ * 设计规范：G3 设计风格
+ * - FileTypeFilter（类型筛选 chips）
+ * - 工具条（FileButtonGroup + 视图切换）
+ * - 面包屑 BreadCrumb
+ * - DashboardCards + DashboardCharts（仅根目录+非搜索态）
+ * - FileTable（列表/网格双视图）
+ * - 拖拽上传反馈
  */
 import { onMounted, onUnmounted, ref } from 'vue'
-import { LayoutGrid, List } from '@lucide/vue'
+import { LayoutGrid, List, CloudUpload } from '@lucide/vue'
 import FileButtonGroup from '@/components/file-button-group/index.vue'
 import BreadCrumb from '@/components/breadcrumb/index.vue'
 import FileTable from '@/components/file-table/index.vue'
 import UploadTaskPanel from '@/components/upload-task-panel/index.vue'
-import FileTypeFilter from '@/components/file-type-filter/index.vue'
 import BaseTooltip from '@/components/base/BaseTooltip.vue'
 import DashboardCards from '@/components/dashboard/DashboardCards.vue'
 import DashboardCharts from '@/components/dashboard/DashboardCharts.vue'
+import FileTypeFilter from '@/components/file-type-filter/index.vue'
 import { useFileStore } from '@/stores/file'
 import { useBreadcrumbStore } from '@/stores/breadcrumb'
 import { useUploader } from '@/composables/useUploader'
@@ -53,7 +60,6 @@ function onDrop(e) {
   if (files?.length) addFiles(files)
 }
 
-// 防止浏览器误打开文件，离开页面也清状态
 function onWindowDragOver(e) {
   e.preventDefault()
 }
@@ -78,9 +84,10 @@ onUnmounted(() => {
 </script>
 
 <template>
+  <!-- 拖拽上传区域 -->
   <div
-    class="flex flex-col gap-1 relative"
-    :class="isDragOver ? 'ring-2 ring-inset ring-[var(--color-primary)] rounded-xl' : ''"
+    class="flex flex-col gap-4 relative"
+    :class="isDragOver ? 'ring-2 ring-inset ring-[var(--color-primary-500)] rounded-xl' : ''"
     @dragover="onDragOver"
     @dragleave="onDragLeave"
     @drop="onDrop"
@@ -96,66 +103,64 @@ onUnmounted(() => {
     >
       <div
         v-if="isDragOver"
-        class="pointer-events-none absolute inset-0 z-30 flex items-center justify-center bg-[var(--color-primary)]/5 backdrop-blur-sm rounded-xl"
+        class="pointer-events-none absolute inset-0 z-30 flex items-center justify-center backdrop-blur-sm rounded-xl m-4 border-2 border-dashed"
+        style="border-color: var(--color-primary-500); background-color: rgba(0, 112, 243, 0.05);"
       >
-        <div class="text-center">
-          <div class="text-base font-medium text-[var(--color-primary)]">
+        <div class="flex flex-col items-center gap-4" style="color: var(--color-primary-500);">
+          <CloudUpload :size="64" :stroke-width="1.5" />
+          <div class="text-base font-medium">
             松开以上传到当前文件夹
           </div>
         </div>
       </div>
     </Transition>
 
-    <!-- 类型筛选 -->
+    <!-- 文件类型筛选 -->
     <FileTypeFilter />
 
     <!-- 工具条 -->
-    <div class="flex items-center justify-between gap-4 py-3">
+    <div
+      class="flex items-center justify-between gap-4 p-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-container-low)]"
+    >
       <FileButtonGroup :button-array="buttonArray" />
       <div
-        class="flex items-center gap-1 p-0.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]"
+        class="flex items-center rounded-lg overflow-hidden bg-[var(--color-surface)] border border-[var(--color-border)]"
       >
         <BaseTooltip text="列表视图" position="bottom">
           <button
             type="button"
-            class="size-7 flex items-center justify-center rounded-md transition-colors"
-            :class="
-              view === 'list'
-                ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)] dark:bg-[var(--color-primary-900)]/30 dark:text-[var(--color-primary-300)]'
-                : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]'
-            "
+            class="size-8 flex items-center justify-center transition-colors"
+            :style="view === 'list' ? 'background-color: var(--color-primary-500); color: white;' : 'color: var(--color-text-muted);'"
             aria-label="列表视图"
             @click="view = 'list'"
           >
-            <List :size="14" />
+            <List :size="16" :stroke-width="2" />
           </button>
         </BaseTooltip>
         <BaseTooltip text="网格视图" position="bottom">
           <button
             type="button"
-            class="size-7 flex items-center justify-center rounded-md transition-colors"
-            :class="
-              view === 'grid'
-                ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)] dark:bg-[var(--color-primary-900)]/30 dark:text-[var(--color-primary-300)]'
-                : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]'
-            "
+            class="size-8 flex items-center justify-center transition-colors"
+            :style="view === 'grid' ? 'background-color: var(--color-primary-500); color: white;' : 'color: var(--color-text-muted);'"
             aria-label="网格视图"
             @click="view = 'grid'"
           >
-            <LayoutGrid :size="14" />
+            <LayoutGrid :size="16" :stroke-width="2" />
           </button>
         </BaseTooltip>
       </div>
     </div>
 
+    <!-- 面包屑 -->
     <BreadCrumb />
 
-    <!-- P1.9 仪表盘：仅在根目录显示 -->
+    <!-- 仪表盘：仅根目录 + 非搜索态 + 有文件时 -->
     <DashboardCards v-if="showDashboard && !searchFlag && fileList.length > 0" :files="fileList" />
 
-    <!-- P1.10 图表 -->
+    <!-- 图表 -->
     <DashboardCharts v-if="showDashboard && !searchFlag && fileList.length > 0" :files="fileList" />
 
+    <!-- 文件表格 -->
     <FileTable :key="view" />
   </div>
 

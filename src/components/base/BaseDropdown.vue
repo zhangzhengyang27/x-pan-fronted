@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * BaseDropdown —— 基于 <details> 的零依赖下拉菜单
  * 支持 v-model 绑定 open；clickoutside 通过 <details> 的 toggle 原生处理

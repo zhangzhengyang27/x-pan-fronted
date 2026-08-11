@@ -49,6 +49,8 @@ const modalWidth = computed(() => {
     case 'excel':
     case 'pptx':
       return 960
+    case 'markdown':
+      return 960
     default:
       return 960
   }

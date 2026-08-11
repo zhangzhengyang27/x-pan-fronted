@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * VideoPreviewer —— ArtPlayer 视频预览（动态 import）
  * 1:1 复现 html5-examples VideoPreviewer

@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * BaseDrawer —— 侧滑抽屉
  * position: left | right | top | bottom

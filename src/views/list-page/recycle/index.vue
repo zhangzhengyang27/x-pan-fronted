@@ -1,7 +1,8 @@
-<script setup>
+<script setup lang="ts">
 /**
  * RecycleListPage —— 回收站
- * P1.7：过期清理提示（基于 updateTime 计算 X 天后清除）
+ * 设计规范：G 设计风格
+ * 顶部提示条 + 还原/彻底删除操作
  */
 import { computed, onMounted, ref } from 'vue'
 import {
@@ -18,7 +19,8 @@ import {
   FileBarChart2,
   AlertTriangle,
   Clock,
-  Eraser
+  Eraser,
+  Info
 } from '@lucide/vue'
 import recycleService from '@/api/recycle'
 import { ElMessage, ElMessageBox } from '@/composables/useToast'
@@ -26,7 +28,7 @@ import BaseTable from '@/components/base/BaseTable.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseTooltip from '@/components/base/BaseTooltip.vue'
 
-const RECYCLE_EXPIRE_DAYS = 30 // 后端清理阈值
+const RECYCLE_EXPIRE_DAYS = 30
 
 const tableData = ref([])
 const selected = ref([])
@@ -71,10 +73,7 @@ function loadTableData() {
 }
 
 /**
- * P1.7：基于 updateTime 计算剩余天数
- * - daysLeft > 7：蓝色（充足）
- * - daysLeft 0~7：橙色（即将过期）
- * - daysLeft < 0：红色（已过期，由后端 cron 清理）
+ * 计算剩余天数
  */
 function expireInfo(row) {
   if (!row.updateTime) return { text: '—', urgent: false, expired: false }
@@ -121,7 +120,7 @@ function cleanExpired() {
     .catch(() => {})
 }
 
-/** 解析 fileSizeDesc（B/KB/MB/GB）成字节，用于累加 */
+/** 解析 fileSizeDesc 成字节 */
 function parseSize(desc) {
   if (!desc) return 0
   const m = String(desc).match(/^([\d.]+)\s*(B|KB|MB|GB|TB)?$/i)
@@ -168,7 +167,6 @@ function doRestore(fileIds) {
 
 function restoreRecycle() {
   if (selected.value.length === 0) return ElMessage.error('请选择要还原的文件')
-  // selected.value 本身就是 fileId 数组（BaseTable 行 key 映射），不要再 map 索引
   const ids = selected.value.filter(Boolean).join('__,__')
   doRestore(ids)
 }
@@ -199,43 +197,65 @@ onMounted(loadTableData)
 
 <template>
   <div class="flex flex-col gap-1">
-    <!-- P1.12：回收站统计 -->
+    <!-- 页面标题 -->
+    <div class="flex items-center gap-3 py-3">
+      <h1 class="text-xl font-semibold tracking-tight text-[var(--color-text)]">回收站</h1>
+      <span class="px-2 py-0.5 rounded-full text-xs font-mono" style="background-color: var(--color-surface-container-low); color: var(--color-text-muted);">
+        {{ summary.count }} items
+      </span>
+    </div>
+
+    <!-- 顶部提示条 -->
+    <div class="rounded-lg p-3 flex items-center justify-between gap-3" style="background-color: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3);">
+      <div class="flex items-center gap-2 text-sm">
+        <Info :size="16" class="shrink-0" style="color: var(--color-warning);" />
+        <span class="text-[var(--color-text)]">
+          文件将在 <span class="font-medium tabular-nums">{{ RECYCLE_EXPIRE_DAYS }}</span> 天后自动清除
+        </span>
+      </div>
+      <BaseButton variant="danger" size="sm" @click="cleanRecycle">
+        <span class="flex items-center gap-1.5">
+          <Trash2 :size="14" :stroke-width="2" />
+          清空回收站
+        </span>
+      </BaseButton>
+    </div>
+
+    <!-- 统计卡片 -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
-      <div
-        class="px-4 py-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]"
-      >
-        <div class="text-xs text-[var(--color-text-muted)]">回收站文件数</div>
-        <div class="mt-1 text-2xl font-semibold tabular-nums">{{ summary.count }}</div>
+      <div class="px-4 py-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-container-low)]">
+        <div class="text-xs" style="color: var(--color-text-muted);">回收站文件数</div>
+        <div class="mt-1 text-2xl font-semibold tabular-nums text-[var(--color-text)]">{{ summary.count }}</div>
       </div>
-      <div
-        class="px-4 py-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]"
-      >
-        <div class="text-xs text-[var(--color-text-muted)]">占用空间</div>
-        <div class="mt-1 text-2xl font-semibold tabular-nums">{{ summary.totalSize }}</div>
+      <div class="px-4 py-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-container-low)]">
+        <div class="text-xs" style="color: var(--color-text-muted);">占用空间</div>
+        <div class="mt-1 text-2xl font-semibold tabular-nums text-[var(--color-text)]">{{ summary.totalSize }}</div>
       </div>
-      <div
-        class="px-4 py-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]"
-      >
-        <div class="text-xs text-[var(--color-text-muted)]">将释放空间（清理过期）</div>
-        <div class="mt-1 text-2xl font-semibold tabular-nums text-[var(--color-warning)]">
+      <div class="px-4 py-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-container-low)]">
+        <div class="text-xs" style="color: var(--color-text-muted);">将释放空间（清理过期）</div>
+        <div class="mt-1 text-2xl font-semibold tabular-nums" style="color: var(--color-warning);">
           {{ summary.expiredSize }}
         </div>
       </div>
     </div>
+
+    <!-- 操作按钮 -->
     <div class="flex items-center justify-between py-3 flex-wrap gap-2">
-      <div class="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
-        <Clock :size="14" />
+      <div class="flex items-center gap-2 text-xs" style="color: var(--color-text-muted);">
+        <Clock :size="14" :stroke-width="2" />
         回收站文件将在 {{ RECYCLE_EXPIRE_DAYS }} 天后被自动清理
         <span
           v-if="totalUrgent > 0"
-          class="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
+          class="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded"
+          style="background-color: rgba(245, 158, 11, 0.2); color: var(--color-warning);"
         >
-          <AlertTriangle :size="12" />
+          <AlertTriangle :size="12" :stroke-width="2" />
           {{ totalUrgent }} 个即将过期
         </span>
         <span
           v-if="totalExpired > 0"
-          class="ml-1 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+          class="ml-1 inline-flex items-center gap-1 px-2 py-0.5 rounded"
+          style="background-color: rgba(239, 68, 68, 0.2); color: var(--color-danger);"
         >
           {{ totalExpired }} 个已过期
         </span>
@@ -243,14 +263,17 @@ onMounted(loadTableData)
       <div class="flex items-center gap-2">
         <BaseTooltip v-if="totalExpired > 0" text="清理所有已过期文件" position="top">
           <BaseButton variant="warning" @click="cleanExpired">
-            <span class="flex items-center gap-2"><Eraser :size="16" /> 清理过期</span>
+            <span class="flex items-center gap-1.5">
+              <Eraser :size="14" :stroke-width="2" />
+              清理过期
+            </span>
           </BaseButton>
         </BaseTooltip>
-        <BaseButton variant="primary" @click="restoreRecycle">
-          <span class="flex items-center gap-2"><RefreshCw :size="16" /> 还原</span>
-        </BaseButton>
-        <BaseButton variant="danger" :disabled="summary.count === 0" @click="cleanRecycle">
-          <span class="flex items-center gap-2"><Trash2 :size="16" /> 清空回收站</span>
+        <BaseButton variant="primary" :disabled="selected.length === 0" @click="restoreRecycle">
+          <span class="flex items-center gap-1.5">
+            <RefreshCw :size="14" :stroke-width="2" />
+            还原
+          </span>
         </BaseButton>
       </div>
     </div>
@@ -270,38 +293,38 @@ onMounted(loadTableData)
           <component
             :is="fileIcon(row.fileType)"
             :size="20"
-            class="text-[var(--color-text-muted)] shrink-0"
+            :stroke-width="2"
+            class="shrink-0"
+            style="color: var(--color-text-muted);"
           />
-          <span class="truncate">{{ row.filename }}</span>
+          <span class="truncate text-[var(--color-text)]">{{ row.filename }}</span>
         </div>
       </template>
       <template #cell-expireHint="{ row }">
         <span
           class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs"
-          :class="
+          :style="
             expireInfo(row).expired
-              ? 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+              ? 'background-color: rgba(239, 68, 68, 0.2); color: var(--color-danger);'
               : expireInfo(row).urgent
-                ? 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
-                : 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+                ? 'background-color: rgba(245, 158, 11, 0.2); color: var(--color-warning);'
+                : 'background-color: rgba(0, 112, 243, 0.2); color: var(--color-primary-500);'
           "
         >
-          <AlertTriangle v-if="expireInfo(row).urgent" :size="12" />
+          <AlertTriangle v-if="expireInfo(row).urgent" :size="12" :stroke-width="2" />
           {{ expireInfo(row).text }}
         </span>
       </template>
       <template #cell-actions="{ row }">
-        <div
-          class="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity"
-        >
+        <div class="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
           <BaseTooltip text="还原" position="top">
             <BaseButton variant="primary" size="sm" @click="doRestore(row.fileId)">
-              <RefreshCw :size="14" />
+              <RefreshCw :size="14" :stroke-width="2" />
             </BaseButton>
           </BaseTooltip>
           <BaseTooltip text="彻底删除" position="top">
             <BaseButton variant="danger" size="sm" @click="doDelete(row.fileId)">
-              <Trash2 :size="14" />
+              <Trash2 :size="14" :stroke-width="2" />
             </BaseButton>
           </BaseTooltip>
         </div>

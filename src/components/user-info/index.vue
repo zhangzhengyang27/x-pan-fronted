@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * AppUserInfo —— 用户菜单 + 修改密码弹窗
  * 使用 BaseDropdown + BaseModal + BaseField + BaseInput + BaseButton

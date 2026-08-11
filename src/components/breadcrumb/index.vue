@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * AppBreadcrumb —— 路径面包屑
  * "返回" + 分隔符 + 路径节点

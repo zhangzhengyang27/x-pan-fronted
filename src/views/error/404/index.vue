@@ -1,106 +1,104 @@
-<script setup>
+<script setup lang="ts">
 /**
- * Error404 —— 404 错误页（带插画）
+ * Error404 —— 404 错误页
+ * 设计规范：G6 风格
+ * - 大号"404"装饰数字（primary 色，低透明度）
+ * - Glass panel 卡片
+ * - 背景网格装饰
  */
-import { Home } from '@lucide/vue'
-import BaseButton from '@/components/base/BaseButton.vue'
+import { Home, ArrowLeft, AlertCircle } from '@lucide/vue'
 
 const goHome = () => (window.location.href = '/')
+const goBack = () => window.history.back()
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-[var(--color-bg)] px-6">
-    <div class="max-w-md w-full text-center">
-      <!-- 装饰插画 -->
-      <div class="relative mb-8">
-        <div class="absolute inset-0 flex items-center justify-center">
-          <div
-            class="size-72 rounded-full bg-gradient-to-br from-[var(--color-primary-100)] to-transparent dark:from-[var(--color-primary-900)]/30 blur-2xl"
-          />
-        </div>
-        <svg
-          class="relative mx-auto"
-          width="220"
-          height="180"
-          viewBox="0 0 220 180"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          aria-hidden="true"
+  <div class="min-h-screen flex items-center justify-center relative overflow-hidden bg-[var(--color-bg)]">
+    <!-- 背景网格装饰 -->
+    <div
+      class="absolute inset-0 z-0 opacity-20 pointer-events-none"
+      style="background-image: radial-gradient(circle, var(--color-border-strong) 1px, transparent 1px); background-size: 32px 32px;"
+    />
+
+    <!-- 环境光晕 -->
+    <div
+      class="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-[120px] opacity-10 pointer-events-none"
+      style="background-color: var(--color-primary-500);"
+    />
+    <div
+      class="absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full blur-[120px] opacity-5 pointer-events-none"
+      style="background-color: var(--color-warning);"
+    />
+
+    <!-- 404 View -->
+    <div class="relative z-10 flex flex-col items-center justify-center w-full max-w-2xl px-gutter text-center">
+      <!-- 大号背景数字 -->
+      <div class="error-code-bg text-[var(--color-primary-500)]">404</div>
+
+      <!-- Glass Panel 卡片 -->
+      <div
+        class="rounded-xl p-8 relative z-10 w-full max-w-md mx-auto transform hover:scale-[1.01] transition-transform duration-300"
+        style="background: var(--color-surface-container-low); border: 1px solid var(--color-border);"
+      >
+        <div
+          class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6"
+          style="background-color: var(--color-surface-container-high); border: 1px solid var(--color-border-strong);"
         >
-          <!-- 漂浮星球 -->
-          <circle cx="170" cy="50" r="38" fill="url(#planet)" opacity="0.9" />
-          <defs>
-            <radialGradient id="planet" cx="0.3" cy="0.3" r="0.8">
-              <stop offset="0%" stop-color="var(--color-primary-300)" />
-              <stop offset="60%" stop-color="var(--color-primary-500)" />
-              <stop offset="100%" stop-color="var(--color-primary-700)" />
-            </radialGradient>
-          </defs>
+          <AlertCircle :size="32" :stroke-width="2" style="color: var(--color-warning);" />
+        </div>
 
-          <!-- 行星环 -->
-          <ellipse
-            cx="170"
-            cy="50"
-            rx="60"
-            ry="14"
-            stroke="var(--color-primary-300)"
-            stroke-width="1.5"
-            fill="none"
-            opacity="0.6"
-            transform="rotate(-20 170 50)"
-          />
+        <h1 class="text-3xl font-bold mb-4 tracking-tight text-[var(--color-text)]">
+          页面不存在
+        </h1>
 
-          <!-- 小星星 -->
-          <g class="animate-pulse">
-            <circle cx="40" cy="30" r="2" fill="var(--color-primary-400)" />
-            <circle cx="200" cy="120" r="1.5" fill="var(--color-primary-500)" />
-            <circle cx="60" cy="140" r="1" fill="var(--color-primary-400)" />
-          </g>
+        <p class="text-base mb-8 text-[var(--color-text-muted)]">
+          您寻找的文件或页面似乎已经漂流到数字虚空之中。请检查链接是否正确。
+        </p>
 
-          <!-- 404 数字 -->
-          <text
-            x="110"
-            y="125"
-            text-anchor="middle"
-            font-family="system-ui, -apple-system, sans-serif"
-            font-size="84"
-            font-weight="700"
-            fill="var(--color-text)"
-            letter-spacing="-4"
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <button
+            type="button"
+            class="flex items-center justify-center gap-2 py-3 px-6 rounded-lg text-sm font-medium transition-colors border border-[var(--color-border)] bg-[var(--color-surface-2)] text-[var(--color-text)] hover:bg-[var(--color-surface-container-high)]"
+            @click="goBack"
           >
-            404
-          </text>
+            <ArrowLeft :size="18" :stroke-width="2" />
+            返回上一页
+          </button>
 
-          <!-- 漂浮小行星 -->
-          <circle cx="20" cy="100" r="6" fill="var(--color-primary-400)" opacity="0.7">
-            <animateTransform
-              attributeName="transform"
-              type="translate"
-              values="0,0; 8,4; 0,0"
-              dur="4s"
-              repeatCount="indefinite"
-            />
-          </circle>
-          <circle cx="210" cy="160" r="4" fill="var(--color-primary-500)" opacity="0.6">
-            <animateTransform
-              attributeName="transform"
-              type="translate"
-              values="0,0; -6,3; 0,0"
-              dur="5s"
-              repeatCount="indefinite"
-            />
-          </circle>
-        </svg>
+          <button
+            type="button"
+            class="flex items-center justify-center gap-2 py-3 px-6 rounded-lg text-sm font-medium transition-colors bg-[var(--color-primary-500)] text-white hover:opacity-90"
+            @click="goHome"
+          >
+            <Home :size="18" :stroke-width="2" />
+            返回首页
+          </button>
+        </div>
       </div>
 
-      <h1 class="text-2xl font-semibold text-[var(--color-text)] mb-2">页面去外太空旅行了</h1>
-      <p class="text-sm text-[var(--color-text-muted)] mb-8 leading-relaxed">
-        您访问的页面暂时找不到，<br />检查一下网址是否正确，或者返回首页继续探索。
-      </p>
-
-      <BaseButton variant="primary" size="lg" @click="goHome">
-        <span class="inline-flex items-center gap-2"><Home :size="16" />返回首页</span>
-      </BaseButton>
+      <!-- 底部信息 -->
+      <div class="mt-12 text-center z-10">
+        <p class="text-xs font-mono text-[var(--color-text-muted)]">
+          X Pan Distributed Storage • Error: NOT_FOUND_404
+        </p>
+      </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+.error-code-bg {
+  font-size: 12rem;
+  line-height: 1;
+  font-weight: 900;
+  opacity: 0.08;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 0;
+  pointer-events: none;
+  user-select: none;
+  letter-spacing: -0.05em;
+}
+</style>

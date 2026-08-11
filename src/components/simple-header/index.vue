@@ -1,62 +1,42 @@
 <template>
-  <div class="pan-header-content">
-    <div class="pan-header-content-wrapper">
-      <div class="pan-title-font-content">
-        <span class="pan-title-font" @click="goHome">R Pan</span>
-      </div>
-      <div class="pan-user-info-content">
+  <header
+    class="sticky top-0 z-50 h-16 border-b bg-[var(--color-surface)] border-[var(--color-border)]"
+  >
+    <div class="h-full w-full flex items-center justify-between px-4 md:px-6 gap-3">
+      <!-- 品牌 -->
+      <router-link to="/" class="flex items-center gap-2.5 shrink-0 group">
+        <div
+          class="size-9 rounded-xl flex items-center justify-center shadow-sm"
+          style="background: linear-gradient(135deg, var(--color-primary-500) 0%, var(--color-primary-700) 100%);"
+        >
+          <Cloud :size="18" :stroke-width="2" class="text-white" />
+        </div>
+        <span class="text-lg font-bold tracking-tight text-[var(--color-text)]">X Pan</span>
+      </router-link>
+
+      <div class="flex items-center gap-2 md:gap-3">
+        <!-- 主题切换 -->
+        <button
+          type="button"
+          class="size-9 rounded-lg flex items-center justify-center transition-colors text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-2)]"
+          :aria-label="theme.isDark ? '切换为浅色' : '切换为深色'"
+          @click="theme.toggle"
+        >
+          <Sun v-if="theme.isDark" :size="18" :stroke-width="2" />
+          <Moon v-else :size="18" :stroke-width="2" />
+        </button>
+
+        <!-- 用户信息 -->
         <pan-user-info />
       </div>
     </div>
-  </div>
+  </header>
 </template>
 
-<script setup>
+<script setup lang="ts">
+import { Cloud, Sun, Moon } from '@lucide/vue'
 import PanUserInfo from '@/components/user-info/index.vue'
+import { useTheme } from '@/composables/useTheme'
 
-const goHome = () => {
-  window.location.href = '/'
-}
+const theme = useTheme()
 </script>
-
-<style scoped>
-.pan-header-content {
-  top: 0;
-  left: 0;
-  width: 100%;
-  z-index: 41;
-  position: fixed;
-}
-
-.pan-header-content .pan-header-content-wrapper {
-  height: 62px;
-  line-height: 62px;
-  position: relative;
-  background: #fff;
-  box-shadow: 0 2px 6px 0 rgba(0, 0, 0, 0.05);
-  -webkit-transition: background 1s ease;
-  -moz-transition: background 1s ease;
-  -o-transition: background 1s ease;
-  transition: background 1s ease;
-}
-
-.pan-header-content .pan-header-content-wrapper .pan-title-font-content {
-  display: inline-block;
-  position: absolute;
-  left: 40px;
-}
-
-.pan-header-content-wrapper .pan-title-font-content .pan-title-font {
-  font-size: 40px;
-  font-weight: bolder;
-  cursor: pointer;
-  color: #f56c6c;
-}
-
-.pan-header-content-wrapper .pan-user-info-content {
-  display: inline-block;
-  position: absolute;
-  right: 60px;
-  top: 20px;
-}
-</style>

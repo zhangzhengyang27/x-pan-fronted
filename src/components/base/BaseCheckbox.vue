@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * BaseCheckbox —— 单个 / 受控复选框
  * v-model 为 boolean

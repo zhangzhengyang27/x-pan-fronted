@@ -1,6 +1,7 @@
-<script setup>
+<script setup lang="ts">
 /**
  * BaseModal —— Teleport 到 body 的模态对话框
+ * 设计规范：G 设计风格
  * - 基于原生 <dialog> 元素（自带焦点陷阱、ESC、滚动锁）
  * - 支持 v-model:open
  * - 支持 size: sm | md | lg | xl
@@ -64,10 +65,10 @@ function onCancel(e) {
       ref="dialogRef"
       :class="
         cn(
-          'm-auto p-0 rounded-2xl bg-[var(--color-surface)] text-[var(--color-text)]',
-          'shadow-xl border border-[var(--color-border)]',
-          'backdrop:bg-black/50 backdrop:backdrop-blur-sm',
+          'm-auto p-0 rounded-2xl text-[var(--color-text)]',
+          'shadow-xl',
           'w-[92vw]',
+          'bg-[var(--color-surface)] border border-[var(--color-border)]',
           sizeClass[size]
         )
       "
@@ -82,11 +83,11 @@ function onCancel(e) {
         <button
           v-if="!hideClose"
           type="button"
-          class="text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors rounded-md p-1 hover:bg-[var(--color-surface-2)]"
+          class="rounded-md p-1 transition-colors text-[var(--color-text-muted)] hover:bg-[var(--color-surface-2)]"
           aria-label="关闭"
           @click="onClose"
         >
-          <X :size="18" />
+          <X :size="18" :stroke-width="2" />
         </button>
       </div>
       <div class="px-5 py-4 max-h-[70vh] overflow-y-auto">
@@ -94,7 +95,7 @@ function onCancel(e) {
       </div>
       <div
         v-if="$slots.footer"
-        class="px-5 py-3 border-t border-[var(--color-border)] flex items-center justify-end gap-2 bg-[var(--color-surface-2)] rounded-b-2xl"
+        class="px-5 py-3 flex items-center justify-end gap-2 rounded-b-2xl border-t border-[var(--color-border)] bg-[var(--color-surface-2)]"
       >
         <slot name="footer" />
       </div>

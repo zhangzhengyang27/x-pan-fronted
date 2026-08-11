@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * PreviewMusic —— 音乐预览（自定义播放器）
  */

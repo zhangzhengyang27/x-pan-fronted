@@ -116,6 +116,20 @@ const routes: RouteRecordRaw[] = [
     name: 'Error404',
     component: () => import('@/views/error/404/index.vue')
   },
+  {
+    path: '/agreement',
+    name: 'Agreement',
+    component: () => import('@/views/protocol/index.vue'),
+    props: { type: 'agreement' },
+    meta: { type: 'agreement' }
+  },
+  {
+    path: '/privacy',
+    name: 'Privacy',
+    component: () => import('@/views/protocol/index.vue'),
+    props: { type: 'privacy' },
+    meta: { type: 'privacy' }
+  },
   { path: '/:pathMatch(.*)*', redirect: '/404' }
 ]
 
@@ -125,66 +139,66 @@ const router = createRouter({
 })
 
 const toIndexPageList = ['Login', 'Register', 'Forget']
-const whiteList = ['Login', 'Register', 'Forget', 'Share', 'Error404', 'Error500']
+const whiteList = ['Login', 'Register', 'Forget', 'Share', 'Agreement', 'Privacy', 'Error404', 'Error500']
 
 router.beforeEach((to, from, next) => {
   NProgress.start()
   const hasToken = getToken()
   const userStore = useUserStore()
   const fileStore = useFileStore()
-  if (hasToken) {
-    if (toIndexPageList.indexOf(to.name as string) !== -1) {
-      next({ name: 'Index' })
-      NProgress.done()
-    } else {
-      const redirect = from.query.redirect as string | undefined
-      // 过滤脏 redirect：必须是以 / 开头的合法路径，且不能携带 #（hash 路由下会产生 /%23/xx 的脏值）
-      const validRedirect =
-        redirect && redirect.startsWith('/') && !redirect.includes('#') ? redirect : ''
-      if (!validRedirect || to.path === validRedirect) {
-        // 防止有 token 直接跳转首页的情况下没有初始化用户信息的情况
-        if (!userStore.username) {
-          userService.info(
-            (res) => {
-              fileStore.setParentId(res.data.rootFileId)
-              fileStore.setDefaultParentId(res.data.rootFileId)
-              fileStore.setDefaultParentFilename(res.data.rootFilename)
-              userStore.setUsername(res.data.username)
-              next()
-              NProgress.done()
-            },
-            (res) => {
-              // 区分「用户取消登录」与「真实错误」：取消时停留在当前页，不强制跳转
-              if (res && (res.code === 10 || res.code === 401)) {
-                next({ name: 'Login', query: { redirect: to.fullPath } })
-              } else {
-                ElMessage.error(res?.message || '获取用户信息失败')
-              }
-              NProgress.done()
-            }
-          )
-        } else {
-          next()
-          NProgress.done()
-        }
-      } else {
-        next({ path: validRedirect })
-        NProgress.done()
-      }
-    }
-  } else {
-    if (whiteList.indexOf(to.name as string) !== -1) {
-      next()
-    } else {
-      next({
-        name: 'Login',
-        query: {
-          redirect: to.fullPath
-        }
-      })
-    }
+  if (hasToken && toIndexPageList.indexOf(to.name as string) !== -1) {
+    next({ name: 'Index' })
     NProgress.done()
+    return
   }
+  if (!hasToken && whiteList.indexOf(to.name as string) === -1) {
+    next({
+      name: 'Login',
+      query: {
+        redirect: to.fullPath
+      }
+    })
+    NProgress.done()
+    return
+  }
+  if (hasToken && !userStore.username) {
+    // 给 userService.info 加超时兜底：3 秒内未返回则放行，避免后端挂掉时卡死整个路由
+    let called = false
+    const finishNext = () => {
+      if (called) return
+      called = true
+      next()
+      NProgress.done()
+    }
+    const timeoutId = window.setTimeout(() => {
+      console.warn('[router] userService.info 超时，直接放行')
+      finishNext()
+    }, 3000)
+    userService.info(
+      (res) => {
+        window.clearTimeout(timeoutId)
+        fileStore.setParentId(res.data.rootFileId)
+        fileStore.setDefaultParentId(res.data.rootFileId)
+        fileStore.setDefaultParentFilename(res.data.rootFilename)
+        userStore.setUsername(res.data.username)
+        finishNext()
+      },
+      (res) => {
+        window.clearTimeout(timeoutId)
+        // 区分「用户取消登录」与「真实错误」：取消时停留在当前页，不强制跳转
+        if (res && (res.code === 10 || res.code === 401)) {
+          next({ name: 'Login', query: { redirect: to.fullPath } })
+          NProgress.done()
+        } else {
+          ElMessage.error(res?.message || '获取用户信息失败')
+          finishNext()
+        }
+      }
+    )
+    return
+  }
+  next()
+  NProgress.done()
 })
 
 router.afterEach(() => {

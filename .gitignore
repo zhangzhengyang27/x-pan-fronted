@@ -8,3 +8,6 @@ dist
 *.log
 package-lock.ep.json
 .playwright-mcp/
+
+stitch-prompts/
+stitch_document_driven_page_design/

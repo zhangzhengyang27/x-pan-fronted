@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * PreviewOffice —— Office 文档预览（独立路由页）
  * 1:1 复用 OfficePreviewer（@vue-office 系列）

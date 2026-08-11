@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 /**
  * AppSearch —— 全局搜索
  * 使用 BaseInput + BaseAutocomplete
