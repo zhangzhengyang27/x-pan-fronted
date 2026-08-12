@@ -1,7 +1,7 @@
 <template>
   <div class="create-folder-button-content">
     <BaseButton
-      v-if="roundFlag"
+      v-if="showRound"
       variant="secondary"
       :size="btnSize"
       class="rounded-full !bg-[var(--color-success)] !text-white !border-transparent hover:!opacity-90"
@@ -64,6 +64,10 @@ import { storeToRefs } from 'pinia'
 import { ElMessage } from '@/composables/useToast'
 
 const btnSize = computed(() => (props.size === 'small' ? 'sm' : 'md'))
+
+// 显式传 circleFlag=true 时走圆形变体；否则默认显示带文字的圆角变体
+// （修复 FileButtonGroup 未传 roundFlag 导致按钮不显示的问题）
+const showRound = computed(() => !props.circleFlag || props.roundFlag)
 
 const fileStore = useFileStore()
 const { paramParentId } = storeToRefs(fileStore)

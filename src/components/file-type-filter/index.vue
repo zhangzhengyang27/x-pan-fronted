@@ -5,34 +5,41 @@
  * - rounded-full chips
  * - 选中态：bg-primary-container text-on-primary-container
  */
-import { ref, computed, onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { Image as ImageIcon, FileType as FileText, Video, Music, Folder } from '@lucide/vue'
 import { useFileStore } from '@/stores/file'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 const fileStore = useFileStore()
 const route = useRoute()
+const router = useRouter()
 
+// P2-8: types 同时持有 fileTypes(value) 与 query.type(query)，与 file/index.vue 映射一致
 const types = [
-  { value: '-1', label: '全部', icon: Folder },
-  { value: '7', label: '图片', icon: ImageIcon },
-  { value: '3', label: '文档', icon: FileText },
-  { value: '9', label: '视频', icon: Video },
-  { value: '8', label: '音乐', icon: Music },
-  { value: '0', label: '其他', icon: null }
+  { value: '-1', query: '', label: '全部', icon: Folder },
+  { value: '7', query: 'imgs', label: '图片', icon: ImageIcon },
+  { value: '3,4,10', query: 'docs', label: '文档', icon: FileText },
+  { value: '9', query: 'videos', label: '视频', icon: Video },
+  { value: '8', query: 'musics', label: '音乐', icon: Music },
+  { value: '0', query: 'other', label: '其他', icon: null }
 ]
 
-const current = ref(fileStore.fileTypes || '-1')
+// current 由 route.query.type 驱动，保证高亮与 URL 同步
+const current = computed(() => {
+  const q = Array.isArray(route.query.type) ? route.query.type[0] : route.query.type
+  if (!q) return '-1'
+  const found = types.find((t) => t.query === q)
+  return found ? found.value : '-1'
+})
 
 const visible = computed(() => {
   return route.name === 'Files' && !fileStore.searchFlag
 })
 
 function pick(t) {
-  if (current.value === t) return
-  current.value = t
-  fileStore.setFileTypes(t)
-  fileStore.loadFileList()
+  if (current.value === t.value) return
+  // P2-8: 更新 query.type，由 file/index.vue 的 watch 统一应用筛选并保留目录上下文
+  router.replace({ path: '/files', query: t.query ? { type: t.query } : {} })
 }
 
 onMounted(() => {
@@ -52,7 +59,7 @@ onMounted(() => {
           ? 'bg-[var(--color-primary-container)] text-[var(--color-on-primary-container)] border border-transparent'
           : 'bg-[var(--color-surface-container)] border border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-surface-container-high)]'
       ]"
-      @click="pick(t.value)"
+      @click="pick(t)"
     >
       <component v-if="t.icon" :is="t.icon" :size="14" :stroke-width="2" />
       {{ t.label }}

@@ -9,11 +9,6 @@
  */
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import DownloadButton from '@/components/buttons/download-button/index.vue'
-import DeleteButton from '@/components/buttons/delete-button/index.vue'
-import RenameButton from '@/components/buttons/rename-button/index.vue'
-import CopyButton from '@/components/buttons/copy-button/index.vue'
-import TransferButton from '@/components/buttons/transfer-button/index.vue'
-import ShareButton from '@/components/buttons/share-button/index.vue'
 import fileService from '@/api/file'
 import panUtil from '@/utils/common'
 import { useFileStore } from '@/stores/file'
@@ -23,9 +18,11 @@ import { ElMessage, ElMessageBox } from '@/composables/useToast'
 import { useRouter } from 'vue-router'
 import BaseTable from '@/components/base/BaseTable.vue'
 import BaseTooltip from '@/components/base/BaseTooltip.vue'
+import BaseEmpty from '@/components/base/BaseEmpty.vue'
 import ContextMenu from '@/components/base/ContextMenu.vue'
 import FolderPickerDialog from '@/components/base/FolderPickerDialog.vue'
 import DrivePreviewModal from '@/components/preview/drive-preview-modal.vue'
+import ExtractDialog from '@/components/base/ExtractDialog.vue'
 import FileTableToolbar from './FileTableToolbar.vue'
 import FileThumbnail from './FileThumbnail.vue'
 import FileHistoryPanel from './FileHistoryPanel.vue'
@@ -33,6 +30,7 @@ import { useFavorites } from '@/composables/useFavorites'
 import { useRecent } from '@/composables/useRecent'
 import { useDrivePreview } from '@/composables/useDrivePreview'
 import { useMediaQuery } from '@/composables/useMediaQuery'
+import { useFileTags } from '@/composables/useFileTags'
 import { getDownloadUrl } from '@/utils/preview'
 import {
   LoaderCircle,
@@ -44,8 +42,19 @@ import {
   FolderInput,
   Star,
   Eye,
-  History
+  History,
+  QrCode,
+  Edit2,
+  Tags,
+  Sparkles,
+  SearchX,
+  FolderOpen,
+  FileArchive,
+  Shield
 } from '@lucide/vue'
+import QRCode from 'qrcode'
+import shareService from '@/api/share'
+import vaultService from '@/api/vault'
 
 const router = useRouter()
 const fileStore = useFileStore()
@@ -150,7 +159,7 @@ const columns = computed(() => {
   base.push(
     { key: 'fileSizeDesc', title: '大小', width: 120, align: 'right', sortable: true },
     { key: 'updateTime', title: '修改日期', width: 200, align: 'center', sortable: true },
-    { key: 'actions', title: '操作', width: 240, align: 'right' }
+    { key: 'actions', title: '操作', width: 100, align: 'right' }
   )
   return base
 })
@@ -415,6 +424,18 @@ const preview = useDrivePreview(() => fileList.value)
 // ─── 收藏 / 最近访问（P1.9） ───────────────────────────────────────────────
 const { isFavorite, toggle: toggleFavorite } = useFavorites()
 const { visit: visitRecent } = useRecent()
+// P3-2：智能打标
+const { loading: tagLoading, autoTag, getTags } = useFileTags()
+
+async function handleAutoTag(row) {
+  if (tagLoading.value) return
+  const tags = await autoTag(row)
+  if (tags.length === 0) {
+    ElMessage.info('未能生成标签')
+  } else {
+    ElMessage.success(`已生成 ${tags.length} 个标签：${tags.join('、')}`)
+  }
+}
 
 function onRowDblclick(row) {
   visitRecent(row) // 记录最近访问
@@ -437,10 +458,46 @@ function previewDownload(item) {
 const ctxMenu = ref({ visible: false, x: 0, y: 0, row: null })
 
 // ─── 版本历史（P1.13） ────────────────────────────────────────────────────
-const historyPanel = ref({ open: false, fileId: null })
+const historyPanel = ref({ open: false, fileId: '' })
 
 function openHistory(row) {
   historyPanel.value = { open: true, fileId: panUtil.handleId(row.fileId) }
+}
+
+// ─── 在线解压（P3-3） ───────────────────────────────────────────────────────
+const extractDialog = ref({ open: false, fileId: '', filename: '' })
+
+const ARCHIVE_EXTS = ['.zip', '.rar', '.7z', '.tar', '.gz', '.bz2']
+
+function isArchive(row): boolean {
+  if (row.fileType === 0) return false
+  const fn = (row.filename || row.name || '').toLowerCase()
+  return ARCHIVE_EXTS.some((ext) => fn.endsWith(ext))
+}
+
+function openExtract(row) {
+  extractDialog.value = {
+    open: true,
+    fileId: panUtil.handleId(row.fileId),
+    filename: row.filename || row.name || ''
+  }
+}
+
+// ─── 移入保险箱（P3-4） ───────────────────────────────────────────────────
+function moveToVault(rows) {
+  if (!rows || rows.length === 0) return
+  const fileIds = rows.map((r) => panUtil.handleId(r.fileId)).join(',')
+  vaultService.move(
+    fileIds,
+    () => {
+      ElMessage.success(`已移入保险箱 ${rows.length} 项`)
+      fileStore.loadFileList()
+    },
+    (err) => {
+      const m = (err as { message?: string })?.message
+      ElMessage.error(m || '移入保险箱失败')
+    }
+  )
 }
 
 function onContextMenu(e, row) {
@@ -463,6 +520,8 @@ const ctxItems = computed(() => {
   const isFolder = r.fileType === 0
   const favorited = isFavorite(r.fileId)
   const isMulti = selectedRows.value.length > 1
+  const multiRows = selectedRows.value.length ? selectedRows.value : [r]
+  const archive = isArchive(r)
   return [
     {
       key: 'open',
@@ -471,6 +530,14 @@ const ctxItems = computed(() => {
       shortcut: 'Enter',
       action: () => (isFolder ? goInFolder(panUtil.handleId(r.fileId)) : onRowDblclick(r))
     },
+    // P3-3：压缩包显示"在线解压"
+    {
+      key: 'extract',
+      label: '在线解压',
+      icon: FileArchive,
+      visible: archive && !isMulti,
+      action: () => openExtract(r)
+    },
     { divider: true },
     {
       key: 'download',
@@ -478,15 +545,15 @@ const ctxItems = computed(() => {
       icon: Download,
       shortcut: 'Ctrl+D',
       disabled: isFolder,
-      action: () => batchDownload(selectedRows.value.length ? selectedRows.value : [r])
+      action: () => batchDownload(multiRows)
     },
     {
+      // 合并 rename / batchRename：单文件→重命名；多选→批量重命名（自动加序号）
       key: 'rename',
-      label: '重命名',
-      icon: Edit3,
+      label: isMulti ? `批量重命名 ${selectedRows.value.length} 项` : '重命名',
+      icon: isMulti ? Edit2 : Edit3,
       shortcut: 'F2',
-      disabled: isMulti,
-      action: () => promptRename(r)
+      action: () => (isMulti ? batchRename(selectedRows.value) : promptRename(r))
     },
     {
       key: 'copy',
@@ -494,26 +561,28 @@ const ctxItems = computed(() => {
       icon: Copy,
       shortcut: 'Ctrl+C',
       action: () => {
-        // 复用移动对话框，mode 改为 copy
-        moveDialog.value = {
-          open: true,
-          mode: 'copy',
-          row: selectedRows.value.length ? selectedRows.value : [r]
-        }
+        moveDialog.value = { open: true, mode: 'copy', row: multiRows }
       }
     },
     {
       key: 'move',
       label: '移动到...',
       icon: FolderInput,
-      action: () => openMoveDialog(selectedRows.value.length ? selectedRows.value : [r])
+      action: () => openMoveDialog(multiRows)
     },
     {
+      // 合并 share / qrcode：单文件→二维码分享弹窗；多选→提示走工具栏
       key: 'share',
-      label: '分享',
-      icon: Share2,
-      disabled: isMulti,
-      action: () => ElMessage.info('分享功能：请点击工具栏的"分享"按钮')
+      label: isMulti ? `批量分享 ${selectedRows.value.length} 项` : '分享 / 二维码',
+      icon: isMulti ? Share2 : QrCode,
+      disabled: isFolder,
+      action: () => {
+        if (isMulti) {
+          ElMessage.info('批量分享：请点击工具栏的"分享"按钮')
+        } else {
+          shareWithQRCode(r)
+        }
+      }
     },
     { divider: true },
     {
@@ -529,6 +598,21 @@ const ctxItems = computed(() => {
       icon: Star,
       action: () => toggleFavorite(r)
     },
+    {
+      // P3-2：智能打标（AI 生成标签）
+      key: 'autotag',
+      label: '智能打标',
+      icon: tagLoading ? LoaderCircle : Sparkles,
+      disabled: isMulti || tagLoading,
+      action: () => handleAutoTag(r)
+    },
+    {
+      // P3-4：移入保险箱（支持多选）
+      key: 'vault',
+      label: isMulti ? `移入保险箱 ${selectedRows.value.length} 项` : '移入保险箱',
+      icon: Shield,
+      action: () => moveToVault(multiRows)
+    },
     { divider: true },
     {
       key: 'delete',
@@ -536,13 +620,28 @@ const ctxItems = computed(() => {
       icon: Trash2,
       shortcut: 'Del',
       danger: true,
-      action: () => batchDelete(selectedRows.value.length ? selectedRows.value : [r])
+      action: () => batchDelete(multiRows)
     }
   ]
 })
 
 function onCtxSelect(item) {
   if (item && typeof item.action === 'function') item.action()
+}
+
+// 过滤 visible: false 的项，并清理连续 divider
+function filterCtxItems(items) {
+  return items
+    .filter((item) => item.visible !== false)
+    .reduce((acc, item, idx, arr) => {
+      // 跳过首尾 divider 与连续 divider
+      if (item.divider) {
+        const prev = acc[acc.length - 1]
+        if (!prev || prev.divider || idx === arr.length - 1) return acc
+      }
+      acc.push(item)
+      return acc
+    }, [])
 }
 
 /**
@@ -571,6 +670,171 @@ async function promptRename(row) {
     // 用户点取消
   }
 }
+
+// ─── 批量重命名（P1-2）─────────────────────────────────────────────────────
+async function batchRename(rows) {
+  if (!rows || rows.length === 0) return
+  const base = rows[0].filename || rows[0].name || 'file'
+  // 去扩展名作为基础名
+  const dotIdx = base.lastIndexOf('.')
+  const baseName = dotIdx > 0 ? base.slice(0, dotIdx) : base
+  const ext = dotIdx > 0 ? base.slice(dotIdx) : ''
+
+  try {
+    const { value } = await ElMessageBox.prompt(
+      `将对 ${rows.length} 个文件批量重命名，自动添加序号 (1)(2)...`,
+      '批量重命名',
+      {
+        inputValue: baseName,
+        inputValidator: (val) => (val && val.trim()) || '名称不能为空',
+        confirmButtonText: '确认',
+        cancelButtonText: '取消'
+      }
+    )
+    if (!value) return
+
+    let successCount = 0
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i]
+      const dot = (row.filename || row.name || '').lastIndexOf('.')
+      const e = dot > 0 ? (row.filename || row.name).slice(dot) : ''
+      const newName = `${value.trim()}(${i + 1})${e}`
+      await new Promise((resolve) => {
+        fileService.update(
+          { fileId: row.fileId, filename: newName },
+          () => {
+            successCount++
+            resolve(true)
+          },
+          () => resolve(false)
+        )
+      })
+    }
+    ElMessage.success(`批量重命名完成，成功 ${successCount}/${rows.length} 个`)
+    fileStore.loadFileList()
+  } catch {
+    // 用户取消
+  }
+}
+
+// ─── 二维码分享（P1-2）─────────────────────────────────────────────────────
+async function shareWithQRCode(row) {
+  try {
+    shareService.createShare(
+      { fileId: row.fileId },
+      (res) => {
+        const shareId = res.data?.shareId || res.data
+        const url = window.location.origin + '/share/' + shareId
+        showQRModal(url, row.filename || row.name || '分享')
+      },
+      () => ElMessage.error('创建分享失败')
+    )
+  } catch {
+    ElMessage.error('二维码生成失败')
+  }
+}
+
+async function showQRModal(url, title) {
+  try {
+    const qrDataUrl = await QRCode.toDataURL(url, { width: 240, margin: 2 })
+    const modal = document.createElement('div')
+    modal.style.cssText =
+      'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);'
+    modal.innerHTML = `
+      <div style="background:var(--color-surface);border-radius:16px;padding:24px;max-width:320px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+        <p style="font-size:16px;font-weight:600;margin:0 0 4px;color:var(--color-text);">${title}</p>
+        <p style="font-size:12px;color:var(--color-text-muted);margin:0 0 16px;">扫描二维码访问分享</p>
+        <img src="${qrDataUrl}" width="240" height="240" style="border-radius:8px;" />
+        <p style="font-size:11px;color:var(--color-text-muted);margin:12px 0 0;word-break:break-all;">${url}</p>
+        <button style="margin-top:16px;padding:8px 24px;background:var(--color-primary-500);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;">关闭</button>
+      </div>
+    `
+    modal.querySelector('button').onclick = () => modal.remove()
+    modal.onclick = (e) => { if (e.target === modal) modal.remove() }
+    document.body.appendChild(modal)
+  } catch {
+    ElMessage.error('二维码生成失败')
+  }
+}
+
+// ─── 框选（P0-2）── 鼠标拖动虚线框批量选择 ────────────────────────────────
+const selBox = ref({ active: false, x1: 0, y1: 0, x2: 0, y2: 0 })
+const selContainer = ref<HTMLElement | null>(null)
+
+function onSelStart(e: MouseEvent) {
+  if (e.button !== 0) return
+  // 点在卡片/按钮/输入框上时不触发框选，交由点击逻辑
+  const t = e.target as HTMLElement
+  if (t.closest('[data-file-id]')) return
+  if (t.closest('button, input, a, [contenteditable]')) return
+  if (!selContainer.value) return
+
+  const rect = selContainer.value.getBoundingClientRect()
+  const x = e.clientX - rect.left
+  const y = e.clientY - rect.top
+  selBox.value = { active: true, x1: x, y1: y, x2: x, y2: y }
+
+  // 非 Shift 开始框选时清空已选
+  if (!e.shiftKey && selected.value.length > 0) {
+    selected.value = []
+    handleSelectionChange([])
+  }
+
+  const onMove = (ev: MouseEvent) => {
+    if (!selBox.value.active) return
+    selBox.value.x2 = ev.clientX - rect.left
+    selBox.value.y2 = ev.clientY - rect.top
+    updateSelFromBox()
+  }
+  const onUp = () => {
+    selBox.value.active = false
+    window.removeEventListener('mousemove', onMove)
+    window.removeEventListener('mouseup', onUp)
+  }
+  window.addEventListener('mousemove', onMove)
+  window.addEventListener('mouseup', onUp)
+}
+
+function updateSelFromBox() {
+  if (!selContainer.value) return
+  const b = selBox.value
+  const left = Math.min(b.x1, b.x2)
+  const right = Math.max(b.x1, b.x2)
+  const top = Math.min(b.y1, b.y2)
+  const bottom = Math.max(b.y1, b.y2)
+  // 太小的框视为点击，不处理
+  if (right - left < 4 && bottom - top < 4) return
+
+  const containerRect = selContainer.value.getBoundingClientRect()
+  const cards = selContainer.value.querySelectorAll('[data-file-id]')
+  const hitIds: string[] = []
+  cards.forEach((card) => {
+    const r = (card as HTMLElement).getBoundingClientRect()
+    const cx = r.left - containerRect.left
+    const cy = r.top - containerRect.top
+    // 矩形相交
+    if (cx < right && cx + r.width > left && cy < bottom && cy + r.height > top) {
+      hitIds.push((card as HTMLElement).dataset.fileId as string)
+    }
+  })
+  // 反查 filteredList 得到原类型 fileId，保持与 selected 类型一致
+  const matched = filteredList.value.filter((r) => hitIds.includes(String(r.fileId)))
+  if (matched.length > 0) {
+    selected.value = matched.map((r) => r.fileId)
+    handleSelectionChange([...selected.value])
+  }
+}
+
+const selBoxStyle = computed(() => {
+  const b = selBox.value
+  if (!b.active) return { display: 'none' }
+  return {
+    left: Math.min(b.x1, b.x2) + 'px',
+    top: Math.min(b.y1, b.y2) + 'px',
+    width: Math.abs(b.x2 - b.x1) + 'px',
+    height: Math.abs(b.y2 - b.y1) + 'px'
+  }
+})
 </script>
 
 <template>
@@ -658,22 +922,14 @@ async function promptRename(row) {
         <BaseTooltip text="下载" position="top"
           ><DownloadButton size="small" :item="row"
         /></BaseTooltip>
-        <BaseTooltip text="重命名" position="top"
-          ><RenameButton size="small" :item="row"
-        /></BaseTooltip>
-        <BaseTooltip text="删除" position="top"
-          ><DeleteButton size="small" :item="row"
-        /></BaseTooltip>
-        <BaseTooltip text="分享" position="top"
-          ><ShareButton size="small" :item="row"
-        /></BaseTooltip>
-        <BaseTooltip text="复制到" position="top"
-          ><CopyButton size="small" :item="row"
-        /></BaseTooltip>
-        <BaseTooltip text="移动到" position="top"
-          ><TransferButton size="small" :item="row"
-        /></BaseTooltip>
       </div>
+    </template>
+    <template #empty>
+      <BaseEmpty
+        :icon="filterActive ? SearchX : FolderOpen"
+        :title="filterActive ? '没有符合筛选条件的文件' : '该文件夹为空'"
+        :description="filterActive ? '试着调整筛选条件或清除筛选' : '将文件拖拽到此处，或点击上传按钮添加文件'"
+      />
     </template>
   </BaseTable>
 
@@ -710,22 +966,30 @@ async function promptRename(row) {
       已加载全部 {{ total }} 个文件
     </div>
 
-    <div
+    <BaseEmpty
       v-else-if="filteredList.length === 0"
-      class="text-center py-20 text-sm text-[var(--color-text-muted)]"
-    >
-      <template v-if="filterActive"> 没有符合筛选条件的文件 </template>
-      <template v-else>该文件夹为空，试试上传文件</template>
-    </div>
+      :icon="filterActive ? SearchX : FolderOpen"
+      :title="filterActive ? '没有符合筛选条件的文件' : '该文件夹为空'"
+      :description="filterActive ? '试着调整筛选条件或清除筛选' : '将文件拖拽到此处，或点击上传按钮添加文件'"
+    />
 
     <div
       v-else
-      class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"
+      ref="selContainer"
+      class="relative grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 select-none"
+      @mousedown="onSelStart"
     >
+      <!-- 框选虚线框 -->
+      <div
+        v-if="selBox.active"
+        class="absolute pointer-events-none border border-[var(--color-primary-500)] bg-[var(--color-primary-500)]/10 rounded-sm z-10"
+        :style="selBoxStyle"
+      />
       <button
         v-for="row in filteredList"
         :key="row.fileId"
         type="button"
+        :data-file-id="row.fileId"
         class="group relative aspect-square rounded-2xl border bg-[var(--color-surface)] hover:shadow-md transition-all p-4 flex flex-col items-center justify-center text-center"
         :class="
           selected.includes(row.fileId)
@@ -762,9 +1026,17 @@ async function promptRename(row) {
     :visible="ctxMenu.visible"
     :x="ctxMenu.x"
     :y="ctxMenu.y"
-    :items="ctxItems"
+    :items="filterCtxItems(ctxItems)"
     @select="onCtxSelect"
     @close="closeCtxMenu"
+  />
+
+  <!-- P3-3 在线解压弹窗 -->
+  <ExtractDialog
+    v-model:open="extractDialog.open"
+    :file-id="extractDialog.fileId"
+    :filename="extractDialog.filename"
+    @extracted="fileStore.loadFileList()"
   />
 
   <!-- P1.13：版本历史弹窗 -->

@@ -9,16 +9,14 @@
  * - FileTable（列表/网格双视图）
  * - 拖拽上传反馈
  */
-import { onMounted, onUnmounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { LayoutGrid, List, CloudUpload } from '@lucide/vue'
 import FileButtonGroup from '@/components/file-button-group/index.vue'
 import BreadCrumb from '@/components/breadcrumb/index.vue'
 import FileTable from '@/components/file-table/index.vue'
 import UploadTaskPanel from '@/components/upload-task-panel/index.vue'
 import BaseTooltip from '@/components/base/BaseTooltip.vue'
-import DashboardCards from '@/components/dashboard/DashboardCards.vue'
-import DashboardCharts from '@/components/dashboard/DashboardCharts.vue'
-import FileTypeFilter from '@/components/file-type-filter/index.vue'
 import { useFileStore } from '@/stores/file'
 import { useBreadcrumbStore } from '@/stores/breadcrumb'
 import { useUploader } from '@/composables/useUploader'
@@ -27,21 +25,38 @@ import { storeToRefs } from 'pinia'
 const fileStore = useFileStore()
 const breadcrumbStore = useBreadcrumbStore()
 const { searchFlag, defaultParentId, defaultParentFilename, fileList } = storeToRefs(fileStore)
+const route = useRoute()
+
+// P2-8: query.type → fileTypes 映射（与 file-type-filter 保持一致）
+const typeQueryMap: Record<string, string> = {
+  imgs: '7',
+  docs: '3,4,10',
+  videos: '9',
+  musics: '8',
+  other: '0'
+}
+
+function applyTypeQuery(typeQuery: unknown) {
+  const key = Array.isArray(typeQuery) ? typeQuery[0] : typeQuery
+  const fileTypes = typeQueryMap[key as string] || '-1'
+  fileStore.setFileTypes(fileTypes)
+  fileStore.loadFileList()
+}
 
 const showDashboard = ref(true)
 const view = ref('list')
 const isDragOver = ref(false)
+const fileTableRef = ref(null)
 const { addFiles } = useUploader()
+
+// 视图切换：通过 setView 同步到 FileTable 内部状态（而非 :key 强制重挂载）
+watch(view, (v) => {
+  fileTableRef.value?.setView(v)
+})
 
 const buttonArray = ref([
   'upload',
-  'createFolder',
-  'download',
-  'delete',
-  'rename',
-  'share',
-  'copy',
-  'transfer'
+  'createFolder'
 ])
 
 function onDragOver(e) {
@@ -70,12 +85,22 @@ onMounted(() => {
     breadcrumbStore.clear()
     breadcrumbStore.addItem(firstItem)
     fileStore.refreshParentId()
-    fileStore.setFileTypes('-1')
-    fileStore.loadFileList()
+    // P2-8: 从 query.type 读取类型筛选（首次进入仍重置到根目录）
+    applyTypeQuery(route.query.type)
   }
   window.addEventListener('dragover', onWindowDragOver)
   window.addEventListener('drop', onWindowDragOver)
 })
+
+// P2-8: query.type 变化时切换类型筛选，保留当前目录上下文（不 refreshParentId）
+watch(
+  () => route.query.type,
+  (newType, oldType) => {
+    if (newType === oldType) return
+    if (searchFlag.value) return // 搜索态不响应类型切换
+    applyTypeQuery(newType)
+  }
+)
 
 onUnmounted(() => {
   window.removeEventListener('dragover', onWindowDragOver)
@@ -115,9 +140,6 @@ onUnmounted(() => {
       </div>
     </Transition>
 
-    <!-- 文件类型筛选 -->
-    <FileTypeFilter />
-
     <!-- 工具条 -->
     <div
       class="flex items-center justify-between gap-4 p-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-container-low)]"
@@ -154,14 +176,8 @@ onUnmounted(() => {
     <!-- 面包屑 -->
     <BreadCrumb />
 
-    <!-- 仪表盘：仅根目录 + 非搜索态 + 有文件时 -->
-    <DashboardCards v-if="showDashboard && !searchFlag && fileList.length > 0" :files="fileList" />
-
-    <!-- 图表 -->
-    <DashboardCharts v-if="showDashboard && !searchFlag && fileList.length > 0" :files="fileList" />
-
     <!-- 文件表格 -->
-    <FileTable :key="view" />
+    <FileTable ref="fileTableRef" />
   </div>
 
   <UploadTaskPanel />

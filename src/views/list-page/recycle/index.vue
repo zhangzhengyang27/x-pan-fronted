@@ -1,10 +1,11 @@
 <script setup lang="ts">
 /**
- * RecycleListPage —— 回收站
- * 设计规范：G 设计风格
- * 顶部提示条 + 还原/彻底删除操作
+ * RecycleListPage —— 回收站（P1-6 增强）
+ * - 关键词搜索（本地模糊匹配，文件名 includes）
+ * - 时间范围筛选（全部 / 最近7天 / 最近30天 / 即将过期 / 已过期）
+ * - 批量还原（已有）+ 基于筛选结果的批量操作
  */
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import {
   RefreshCw,
   Trash2,
@@ -20,19 +21,34 @@ import {
   AlertTriangle,
   Clock,
   Eraser,
-  Info
+  Info,
+  Search as SearchIcon,
+  Filter
 } from '@lucide/vue'
 import recycleService from '@/api/recycle'
 import { ElMessage, ElMessageBox } from '@/composables/useToast'
 import BaseTable from '@/components/base/BaseTable.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseTooltip from '@/components/base/BaseTooltip.vue'
+import BaseInput from '@/components/base/BaseInput.vue'
 
 const RECYCLE_EXPIRE_DAYS = 30
 
 const tableData = ref([])
 const selected = ref([])
 const tableLoading = ref(true)
+
+// P1-6：筛选状态
+const searchKeyword = ref('')
+const timeFilter = ref<'all' | '7d' | '30d' | 'expiring' | 'expired'>('all')
+
+const timeFilterOptions = [
+  { value: 'all', label: '全部时间' },
+  { value: '7d', label: '最近 7 天' },
+  { value: '30d', label: '最近 30 天' },
+  { value: 'expiring', label: '即将过期（7天内）' },
+  { value: 'expired', label: '已过期' }
+]
 
 const columns = [
   { key: 'filename', title: '文件名', width: 'auto' },
@@ -72,6 +88,39 @@ function loadTableData() {
   )
 }
 
+// P1-6：筛选后数据（关键词 + 时间范围）
+const filteredTableData = computed(() => {
+  let list = tableData.value
+  const kw = searchKeyword.value.trim().toLowerCase()
+  if (kw) {
+    list = list.filter((r) => {
+      const name = (r.filename || r.name || '').toLowerCase()
+      return name.includes(kw)
+    })
+  }
+  if (timeFilter.value !== 'all') {
+    const now = Date.now()
+    const dayMs = 86400000
+    list = list.filter((r) => {
+      const info = expireInfo(r)
+      if (timeFilter.value === 'expired') return info.expired
+      if (timeFilter.value === 'expiring') return info.urgent && !info.expired
+      // 按删除时间筛
+      const t = new Date(r.updateTime || 0).getTime()
+      const days = (now - t) / dayMs
+      if (timeFilter.value === '7d') return days <= 7
+      if (timeFilter.value === '30d') return days <= 30
+      return true
+    })
+  }
+  return list
+})
+
+// 筛选变化时清空选择（避免选中已不在视图的项）
+watch([searchKeyword, timeFilter], () => {
+  selected.value = []
+})
+
 /**
  * 计算剩余天数
  */
@@ -88,7 +137,7 @@ function expireInfo(row) {
 function cleanRecycle() {
   if (tableData.value.length === 0) return ElMessage.warning('回收站已经是空的')
   ElMessageBox.confirm(
-    `将永久删除 ${tableData.value.length} 个文件/文件夹（${summary.value.totalSize}），此操作不可恢复！`,
+    `将永久删除全部 ${totalSummary.value.count} 个文件/文件夹（${totalSummary.value.totalSize}），此操作不可恢复！`,
     '清空回收站',
     {
       confirmButtonText: '确认清空',
@@ -105,8 +154,9 @@ function cleanRecycle() {
 function cleanExpired() {
   const expired = tableData.value.filter((r) => expireInfo(r).expired)
   if (expired.length === 0) return ElMessage.warning('没有过期文件可清理')
+  const expiredBytes = expired.reduce((acc, r) => acc + parseSize(r.fileSizeDesc), 0)
   ElMessageBox.confirm(
-    `将删除 ${expired.length} 个已过期文件，释放 ${summary.value.expiredSize} 空间`,
+    `将删除 ${expired.length} 个已过期文件，释放 ${formatSize(expiredBytes)} 空间`,
     '清理过期文件',
     {
       confirmButtonText: '确认清理',
@@ -177,7 +227,8 @@ const totalUrgent = computed(
 )
 
 const summary = computed(() => {
-  const rows = tableData.value
+  // 统计基于筛选后数据，让用户看到当前视图的汇总
+  const rows = filteredTableData.value
   let totalBytes = 0
   let expiredBytes = 0
   rows.forEach((r) => {
@@ -192,6 +243,43 @@ const summary = computed(() => {
   }
 })
 
+// 全量统计（用于顶部提示条"清空回收站"文案）
+const totalSummary = computed(() => ({
+  count: tableData.value.length,
+  totalSize: formatSize(
+    tableData.value.reduce((acc, r) => acc + parseSize(r.fileSizeDesc), 0)
+  )
+}))
+
+// 批量删除选中项（P1-6 补全）
+function batchDeleteSelected() {
+  if (selected.value.length === 0) return ElMessage.error('请选择要删除的文件')
+  ElMessageBox.confirm(
+    `将永久删除选中的 ${selected.value.length} 个文件，此操作不可恢复！`,
+    '批量彻底删除',
+    { confirmButtonText: '确认删除', cancelButtonText: '取消', type: 'danger' }
+  )
+    .then(() => {
+      doDelete(selected.value.filter(Boolean).join('__,__'))
+    })
+    .catch(() => {})
+}
+
+// 一键还原当前筛选结果（P1-6 便捷操作）
+function restoreAllFiltered() {
+  if (filteredTableData.value.length === 0) return
+  ElMessageBox.confirm(
+    `将还原当前筛选的 ${filteredTableData.value.length} 个文件到原位置`,
+    '批量还原',
+    { confirmButtonText: '确认还原', cancelButtonText: '取消' }
+  )
+    .then(() => {
+      const ids = filteredTableData.value.map((r) => r.fileId).join('__,__')
+      doRestore(ids)
+    })
+    .catch(() => {})
+}
+
 onMounted(loadTableData)
 </script>
 
@@ -201,7 +289,7 @@ onMounted(loadTableData)
     <div class="flex items-center gap-3 py-3">
       <h1 class="text-xl font-semibold tracking-tight text-[var(--color-text)]">回收站</h1>
       <span class="px-2 py-0.5 rounded-full text-xs font-mono" style="background-color: var(--color-surface-container-low); color: var(--color-text-muted);">
-        {{ summary.count }} items
+        {{ totalSummary.count }} items
       </span>
     </div>
 
@@ -221,10 +309,45 @@ onMounted(loadTableData)
       </BaseButton>
     </div>
 
-    <!-- 统计卡片 -->
+    <!-- P1-6：筛选栏（关键词 + 时间范围） -->
+    <div class="flex items-center gap-3 py-3 flex-wrap">
+      <div class="flex-1 min-w-[240px] max-w-md">
+        <BaseInput
+          v-model="searchKeyword"
+          placeholder="搜索回收站文件名…"
+          :prefix="SearchIcon"
+          clearable
+        />
+      </div>
+      <div class="relative">
+        <Filter
+          :size="14"
+          :stroke-width="2"
+          class="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--color-text-muted)]"
+        />
+        <select
+          v-model="timeFilter"
+          class="h-9 pl-8 pr-8 text-sm rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] outline-none cursor-pointer transition-colors hover:border-[var(--color-border-strong)] focus:border-[var(--color-primary-500)] focus:ring-2 focus:ring-[var(--color-ring)] appearance-none"
+        >
+          <option v-for="opt in timeFilterOptions" :key="opt.value" :value="opt.value">
+            {{ opt.label }}
+          </option>
+        </select>
+      </div>
+      <span
+        v-if="searchKeyword || timeFilter !== 'all'"
+        class="text-xs text-[var(--color-text-muted)]"
+      >
+        筛选结果：{{ summary.count }} 项
+      </span>
+    </div>
+
+    <!-- 统计卡片（基于当前筛选结果） -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
       <div class="px-4 py-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-container-low)]">
-        <div class="text-xs" style="color: var(--color-text-muted);">回收站文件数</div>
+        <div class="text-xs" style="color: var(--color-text-muted);">
+          {{ searchKeyword || timeFilter !== 'all' ? '当前筛选文件数' : '回收站文件数' }}
+        </div>
         <div class="mt-1 text-2xl font-semibold tabular-nums text-[var(--color-text)]">{{ summary.count }}</div>
       </div>
       <div class="px-4 py-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-container-low)]">
@@ -269,10 +392,34 @@ onMounted(loadTableData)
             </span>
           </BaseButton>
         </BaseTooltip>
+        <!-- P1-6：一键还原当前筛选结果 -->
+        <BaseTooltip text="还原当前筛选出的全部文件" position="top">
+          <BaseButton
+            variant="ghost"
+            :disabled="filteredTableData.length === 0"
+            @click="restoreAllFiltered"
+          >
+            <span class="flex items-center gap-1.5">
+              <RefreshCw :size="14" :stroke-width="2" />
+              还原筛选结果
+            </span>
+          </BaseButton>
+        </BaseTooltip>
+        <!-- P1-6：批量彻底删除选中 -->
+        <BaseButton
+          variant="danger"
+          :disabled="selected.length === 0"
+          @click="batchDeleteSelected"
+        >
+          <span class="flex items-center gap-1.5">
+            <Trash2 :size="14" :stroke-width="2" />
+            彻底删除
+          </span>
+        </BaseButton>
         <BaseButton variant="primary" :disabled="selected.length === 0" @click="restoreRecycle">
           <span class="flex items-center gap-1.5">
             <RefreshCw :size="14" :stroke-width="2" />
-            还原
+            还原选中
           </span>
         </BaseButton>
       </div>
@@ -280,12 +427,12 @@ onMounted(loadTableData)
 
     <BaseTable
       :columns="columns"
-      :data="tableData"
+      :data="filteredTableData"
       :loading="tableLoading"
       :selected="selected"
       selectable
       row-key="fileId"
-      empty-text="回收站是空的"
+      :empty-text="searchKeyword || timeFilter !== 'all' ? '没有符合筛选条件的文件' : '回收站是空的'"
       @update:selected="(v) => (selected = v)"
     >
       <template #cell-filename="{ row }">
