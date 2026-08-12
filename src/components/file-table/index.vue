@@ -61,7 +61,7 @@ const currentView = ref(props.view)
 // 外部传入 view 变化时同步
 watch(() => props.view, (v) => { if (v) currentView.value = v })
 
-// ─── 排序 / 筛选 ────────────────────────────────────────────────────────────
+// ─── 排序 / 筛选（均交由后端处理） ─────────────────────────────────────────
 const filter = ref({
   extensions: [] as string[],
   fileTypes: [] as FileType[],
@@ -73,33 +73,22 @@ const filter = ref({
 
 const filterActive = computed(() => filter.value.fileTypes.length > 0)
 
+// 筛选变化：把所选文件类型映射为后端 fileTypes 字符串并重新加载
 watch(filterActive, (active) => {
-  if (active && !searchFlag.value) {
-    fileStore.loadAllForFilter()
-  } else if (!active && !searchFlag.value && fileStore.total > 0) {
+  if (!searchFlag.value) {
+    const types = active ? filter.value.fileTypes.join(',') : '-1'
+    fileStore.setFileTypes(types)
     fileStore.loadFileList()
   }
 })
 
-const availableExtensions = computed(() => {
-  const set = new Set()
-  fileList.value.forEach((r) => {
-    const fn = r.filename || r.name || ''
-    const idx = fn.lastIndexOf('.')
-    if (idx > 0 && idx < fn.length - 1) {
-      set.add(fn.slice(idx + 1).toLowerCase())
-    }
-  })
-  return Array.from(set).sort()
+// 排序变化：直接重新加载（后端按 orderBy/order 返回）
+watch([sortProp, sortOrder], () => {
+  if (!searchFlag.value) fileStore.loadFileList()
 })
 
-const filteredList = computed(() => {
-  let items = fileList.value
-  if (filter.value.fileTypes.length) {
-    items = items.filter((r) => filter.value.fileTypes.includes(Number(r.fileType) as FileType))
-  }
-  return fileStore.sortItems(items)
-})
+// 列表数据直接来自 store（后端已完成排序与类型筛选）
+const filteredList = computed(() => fileList.value)
 
 // 重置选择:筛选/目录/排序变化
 watch([filterActive, () => fileStore.parentId], () => {
@@ -618,7 +607,6 @@ onBeforeUnmount(() => {
     <!-- 工具栏:筛选+批量操作(列表视图上方) -->
     <FileTableToolbar
       :selected-rows="selectedRows"
-      :available-extensions="availableExtensions"
       @filter-change="(f: any) => (filter = f)"
       @batch-download="batchDownload"
       @batch-delete="batchDelete"

@@ -17,6 +17,8 @@ const fileService = {
       pageNum?: number
       pageSize?: number
       keyword?: string
+      orderBy?: string
+      order?: string
     },
     resolve: Callback<PageVO<IFileVO>>,
     reject: Callback<unknown>

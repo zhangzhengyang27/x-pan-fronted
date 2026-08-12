@@ -20,11 +20,10 @@ interface FieldOption {
   label: string
 }
 
-/** 排序字段：与图片一致 */
+/** 排序字段：与后端 SafeOrderBy 白名单一致 */
 const fields: FieldOption[] = [
   { key: '', label: '综合排序' },
   { key: 'filename', label: '按文件名' },
-  { key: 'fileType', label: '按文件类型' },
   { key: 'updateTime', label: '按修改时间' },
   { key: 'createTime', label: '按创建时间' },
   { key: 'fileSize', label: '按文件大小' }

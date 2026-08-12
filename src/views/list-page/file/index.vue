@@ -54,20 +54,6 @@ const { addFiles } = useUploader()
 // 排序 / 筛选状态（与 FileTable 共享）
 const sortOpen = ref(false)
 const filterOpen = ref(false)
-const availableExtensions = ref<string[]>([])
-
-// 监听 fileList 变化，推导可用扩展名
-watch(fileList, (list) => {
-  const set = new Set<string>()
-  list.forEach((r) => {
-    const fn = r.filename || r.name || ''
-    const idx = fn.lastIndexOf('.')
-    if (idx > 0 && idx < fn.length - 1) {
-      set.add(fn.slice(idx + 1).toLowerCase())
-    }
-  })
-  availableExtensions.value = Array.from(set).sort()
-})
 
 function onFilterChange(filter: any) {
   // 透传给 file-table，内部通过 watch filter 生效
@@ -177,7 +163,6 @@ onUnmounted(() => {
         <SortMenu v-model:open="sortOpen" />
         <FilterMenu
           v-model:open="filterOpen"
-          :available-extensions="availableExtensions"
           @filter-change="onFilterChange"
         />
       </div>

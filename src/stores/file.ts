@@ -52,8 +52,9 @@ export interface FileStore {
   clear: () => void
   loadFileList: () => void
   loadMore: () => void
-  loadAllForFilter: () => void
   searchWithFilter: (filter: SearchFilter) => void
+  getOrderBy: () => string
+  getOrder: () => string
   toggleSort: (prop: string) => void
   sortItems: <T extends Record<string, unknown>>(list: T[]) => T[]
 }
@@ -228,6 +229,24 @@ export const useFileStore = defineStore('file', (): FileStore => {
     }
   }
 
+  // 把前端排序字段映射为后端 orderBy（对应后端 SafeOrderBy 白名单）
+  function getOrderBy(): string {
+    switch (sortProp.value) {
+      case 'fileSize':
+        return 'file_size'
+      case 'updateTime':
+        return 'update_time'
+      case 'createTime':
+        return 'create_time'
+      default:
+        return 'filename'
+    }
+  }
+
+  function getOrder(): string {
+    return sortOrder.value === 'descending' ? 'desc' : 'asc'
+  }
+
   function loadFileList(): void {
     setTableLoading(true)
     pageNum.value = 1
@@ -254,7 +273,9 @@ export const useFileStore = defineStore('file', (): FileStore => {
           parentId: paramParentId.value,
           fileTypes: fileTypes.value,
           pageNum: 1,
-          pageSize: pageSize.value
+          pageSize: pageSize.value,
+          orderBy: getOrderBy(),
+          order: getOrder()
         },
         (res: ApiResponse<PageVO<IFileVO>>) => {
           setTableLoading(false)
@@ -277,7 +298,9 @@ export const useFileStore = defineStore('file', (): FileStore => {
         parentId: paramParentId.value,
         fileTypes: fileTypes.value,
         pageNum: next,
-        pageSize: pageSize.value
+        pageSize: pageSize.value,
+        orderBy: getOrderBy(),
+        order: getOrder()
       },
       (res: ApiResponse<PageVO<IFileVO>>) => {
         isLoadingMore.value = false
@@ -285,27 +308,6 @@ export const useFileStore = defineStore('file', (): FileStore => {
       },
       (res: ApiResponse<unknown>) => {
         isLoadingMore.value = false
-        ElMessage.error(res.message)
-      }
-    )
-  }
-
-  function loadAllForFilter(): void {
-    if (searchFlag.value) return
-    setTableLoading(true)
-    fileService.list(
-      {
-        parentId: paramParentId.value,
-        fileTypes: fileTypes.value,
-        pageNum: 1,
-        pageSize: 9999
-      },
-      (res: ApiResponse<PageVO<IFileVO>>) => {
-        setTableLoading(false)
-        applyPageResponse(res.data, false)
-      },
-      (res: ApiResponse<unknown>) => {
-        setTableLoading(false)
         ElMessage.error(res.message)
       }
     )
@@ -391,8 +393,9 @@ export const useFileStore = defineStore('file', (): FileStore => {
     clear,
     loadFileList,
     loadMore,
-    loadAllForFilter,
     searchWithFilter,
+    getOrderBy,
+    getOrder,
     toggleSort,
     sortItems
   }
