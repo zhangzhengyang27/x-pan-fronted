@@ -13,17 +13,19 @@ import { getPreviewUrl } from '@/utils/preview'
 
 const props = defineProps({
   fileId: { type: [String, Number], required: true },
-  kind: { type: String, required: true } // 'docx' | 'excel' | 'pptx'
+  kind: { type: String, required: true }, // 'docx' | 'excel' | 'pptx'
+  /** 外部已解析好的预览 URL（优先于本地拼接） */
+  url: { type: String, default: '' }
 })
 
-const url = computed(() => getPreviewUrl(props.fileId))
+const resolvedUrl = computed(() => props.url || getPreviewUrl(props.fileId))
 </script>
 
 <template>
   <div class="h-full w-full overflow-auto bg-[var(--color-surface-2)]">
-    <VueOfficeDocx v-if="kind === 'docx'" :src="url" class="min-h-full" />
-    <VueOfficeExcel v-else-if="kind === 'excel'" :src="url" class="min-h-full" />
-    <VueOfficePptx v-else-if="kind === 'pptx'" :src="url" class="min-h-full" />
+    <VueOfficeDocx v-if="kind === 'docx'" :src="resolvedUrl" class="min-h-full" />
+    <VueOfficeExcel v-else-if="kind === 'excel'" :src="resolvedUrl" class="min-h-full" />
+    <VueOfficePptx v-else-if="kind === 'pptx'" :src="resolvedUrl" class="min-h-full" />
     <div
       v-else
       class="flex h-full items-center justify-center text-sm text-[var(--color-text-muted)]"

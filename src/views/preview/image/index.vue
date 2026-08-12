@@ -12,7 +12,7 @@ import { ChevronLeft, ChevronRight, X, Download, ZoomIn, ZoomOut, RotateCcw } fr
 import fileService from '@/api/file'
 import panUtil from '@/utils/common'
 import { ElMessage } from '@/composables/useToast'
-import { getPreviewUrl, getDownloadUrl } from '@/utils/preview'
+import { getPreviewUrl, getDownloadUrl, resolvePreviewUrl } from '@/utils/preview'
 
 const route = useRoute()
 const items = ref([])
@@ -22,8 +22,13 @@ const scale = ref(1)
 const rotation = ref(0)
 const showList = ref(true)
 
+// fileId -> 签名 URL（优先），失败保持空由 urlOf 降级到授权直链
+const urlMap = ref<Record<string, string>>({})
+
 const activeItem = computed(() => items.value[activeIdx.value] || null)
-const src = computed(() => (activeItem.value ? getPreviewUrl(activeItem.value.fileId) : ''))
+// 优先签名 URL，降级到授权 query 直链
+const urlOf = (fileId: string) => urlMap.value[fileId] || getPreviewUrl(fileId)
+const src = computed(() => (activeItem.value ? urlOf(activeItem.value.fileId) : ''))
 const downloadUrl = computed(() =>
   activeItem.value ? getDownloadUrl(activeItem.value.fileId) : ''
 )
@@ -85,6 +90,14 @@ onMounted(() => {
       const idx = items.value.findIndex((x) => x.fileId === route.params.fileId)
       activeIdx.value = idx === -1 ? 0 : idx
       loading.value = false
+      // 预取每个图片的签名 URL，避免长期 token 进 URL
+      items.value.forEach((it) => {
+        resolvePreviewUrl(it.fileId)
+          .then((u) => {
+            if (u) urlMap.value = { ...urlMap.value, [it.fileId]: u }
+          })
+          .catch(() => {})
+      })
     },
     (res) => {
       ElMessage.error(res.message)
@@ -176,7 +189,7 @@ onBeforeUnmount(() => {
           @click="pick(i)"
         >
           <img
-            :src="getPreviewUrl(it.fileId)"
+            :src="urlOf(it.fileId)"
             :alt="it.filename"
             class="w-full h-full object-cover rounded border-2"
             :class="i === activeIdx ? 'border-[var(--color-primary-400)]' : 'border-transparent'"
@@ -239,7 +252,7 @@ onBeforeUnmount(() => {
         @click="pick(i)"
       >
         <img
-          :src="getPreviewUrl(it.fileId)"
+          :src="urlOf(it.fileId)"
           :alt="it.filename"
           class="w-full h-full object-cover"
         />

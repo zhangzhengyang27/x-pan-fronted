@@ -5,10 +5,10 @@
  * 注：file-table 双击已经走 DrivePreviewModal 弹窗；
  * 此路由保留主要为了兼容外部链接直接打开。
  */
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { Download } from '@lucide/vue'
-import { getDownloadUrl, resolvePreviewKind } from '@/utils/preview'
+import { getDownloadUrl, resolvePreviewKind, resolvePreviewUrl } from '@/utils/preview'
 import BaseButton from '@/components/base/BaseButton.vue'
 import PdfPreviewer from '@/components/preview/pdf-previewer.vue'
 import MarkdownPreviewer from '@/components/preview/markdown-previewer.vue'
@@ -19,10 +19,21 @@ const fileId = computed(() => route.params.fileId)
 const filename = computed(() => route.query.filename || route.params.filename || 'preview')
 const kind = computed(() => resolvePreviewKind({ name: filename.value, fileType: null }))
 const downloadUrl = computed(() => getDownloadUrl(fileId.value))
+
+// 统一走签名 URL（与 DrivePreviewModal 一致），避免长期 token 进 URL
+const previewUrl = ref('')
+watch(
+  fileId,
+  (id) => {
+    previewUrl.value = ''
+    if (id) resolvePreviewUrl(id).then((u) => (previewUrl.value = u)).catch(() => {})
+  },
+  { immediate: true }
+)
 </script>
 
 <template>
-  <div class="min-h-screen flex flex-col bg-[var(--color-bg)]">
+  <div class="h-screen flex flex-col overflow-hidden bg-[var(--color-bg)]">
     <header
       class="h-14 px-6 flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface)]"
     >
@@ -38,11 +49,12 @@ const downloadUrl = computed(() => getDownloadUrl(fileId.value))
         </BaseButton>
       </a>
     </header>
-    <main class="flex-1 min-h-0">
-      <PdfPreviewer v-if="kind === 'pdf'" :file-id="fileId" />
-      <MarkdownPreviewer v-else-if="kind === 'markdown'" :file-id="fileId" />
+    <main class="flex-1 min-h-0 overflow-hidden">
+      <PdfPreviewer v-if="kind === 'pdf'" :url="previewUrl || undefined" :file-id="fileId" />
+      <MarkdownPreviewer v-else-if="kind === 'markdown'" :url="previewUrl || undefined" :file-id="fileId" />
       <CodePreviewer
         v-else-if="kind === 'code' || kind === 'text'"
+        :url="previewUrl || undefined"
         :file-id="fileId"
         :filename="filename"
       />

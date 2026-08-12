@@ -25,11 +25,13 @@ import {
 import { usePdfSearch } from '@/composables/usePdfSearch'
 
 const props = defineProps({
-  fileId: { type: [String, Number], required: true }
+  fileId: { type: [String, Number], required: true },
+  /** 外部已解析好的预览 URL（优先于本地拼接） */
+  url: { type: String, default: '' }
 })
 
 const rendered = ref(false)
-const url = ref(getPreviewUrl(props.fileId))
+const url = computed(() => props.url || getPreviewUrl(props.fileId))
 
 const handleRendered = () => {
   rendered.value = true

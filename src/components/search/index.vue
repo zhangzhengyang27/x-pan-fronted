@@ -5,7 +5,7 @@
  * - P1-5：自然语言短语解析（"上周""大于100MB""图片"等）+ Fuse.js 本地模糊匹配
  * - 搜索建议下拉（输入时实时匹配本地文件）
  */
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import Fuse from 'fuse.js'
 import fileService from '@/api/file'
 import { ElMessage } from '@/composables/useToast'
@@ -25,6 +25,18 @@ const { defaultParentId, defaultParentFilename, fileList } = storeToRefs(fileSto
 const searchKey = ref('')
 const showSuggest = ref(false)
 const suggestions = ref([])
+const inputRef = ref(null)
+
+// Ctrl/Cmd+K 聚焦搜索框
+function onFocusSearch() {
+  inputRef.value?.focus()
+}
+onMounted(() => {
+  window.addEventListener('xpan:focus-search', onFocusSearch)
+})
+onBeforeUnmount(() => {
+  window.removeEventListener('xpan:focus-search', onFocusSearch)
+})
 
 // Fuse.js 配置：模糊匹配文件名，容忍拼写错误
 const fuse = computed(
@@ -207,6 +219,7 @@ function clickSuggestion(item) {
       @submit.prevent="doSearch"
     >
       <BaseInput
+        ref="inputRef"
         v-model="searchKey"
         type="search"
         placeholder="搜索文件…"

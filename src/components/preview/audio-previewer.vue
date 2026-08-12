@@ -9,7 +9,9 @@ import { getPreviewUrl } from '@/utils/preview'
 
 const props = defineProps({
   fileId: { type: [String, Number], required: true },
-  title: { type: String, default: '音频' }
+  title: { type: String, default: '音频' },
+  /** 外部已解析好的预览 URL（优先于本地拼接） */
+  url: { type: String, default: '' }
 })
 
 const containerRef = ref(null)
@@ -24,7 +26,7 @@ onMounted(async () => {
       {
         name: props.title,
         artist: 'X Pan',
-        url: getPreviewUrl(props.fileId)
+        url: props.url || getPreviewUrl(props.fileId)
       }
     ],
     autoplay: true,

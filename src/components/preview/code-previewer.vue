@@ -18,8 +18,12 @@ import { Search, X, ChevronUp, ChevronDown, Hash } from '@lucide/vue'
 const props = defineProps({
   fileId: { type: [String, Number], required: true },
   filename: { type: String, required: true },
-  mode: { type: String, default: 'block' }
+  mode: { type: String, default: 'block' },
+  /** 外部已解析好的预览 URL（优先于本地拼接） */
+  url: { type: String, default: '' }
 })
+
+const resolvedUrl = () => props.url || getPreviewUrl(props.fileId)
 
 const { isDark } = useTheme()
 const html = ref('')
@@ -58,7 +62,7 @@ async function load() {
   error.value = ''
   truncated.value = false
   try {
-    const res = await fetch(getPreviewUrl(props.fileId), { signal: abortCtrl.signal })
+    const res = await fetch(resolvedUrl(), { signal: abortCtrl.signal })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     let text = await res.text()
     if (text.length > MAX_CHARS) {
@@ -151,11 +155,12 @@ function scrollToLine(line) {
 }
 
 onMounted(load)
-watch(() => [props.fileId, isDark.value], load)
+// 同时监听 fileId / 主题 / 外部签名 URL：父组件异步拿到预览直链后需重新加载
+watch(() => [props.fileId, isDark.value, props.url], load)
 </script>
 
 <template>
-  <div class="h-full flex flex-col bg-[var(--color-surface-2)]">
+  <div class="relative h-full flex flex-col bg-[var(--color-surface-2)]">
     <!-- 工具栏 -->
     <div
       class="flex items-center justify-center gap-2 py-2 bg-[var(--color-surface)]/90 backdrop-blur border-b border-[var(--color-border)]"
@@ -238,26 +243,28 @@ watch(() => [props.fileId, isDark.value], load)
       </button>
     </div>
 
-    <div v-if="loading" class="flex-1 flex items-center justify-center">
+    <!-- 代码容器始终渲染，避免 load() 拿到文本时容器尚未挂载而被丢弃 -->
+    <div ref="scrollContainerRef" class="flex-1 overflow-auto code-scroll-container">
+      <div class="shiki-host text-sm" v-html="html" />
+    </div>
+    <div
+      v-if="truncated"
+      class="px-4 py-2 text-xs text-[var(--color-text-muted)] border-t border-[var(--color-border)] bg-[var(--color-surface)]"
+    >
+      文件过大，仅展示前 {{ MAX_CHARS / 1000 }}K 字符。请下载完整文件查看。
+    </div>
+    <div
+      v-if="loading"
+      class="absolute inset-0 flex items-center justify-center bg-[var(--color-surface-2)]"
+    >
       <div class="size-10 rounded-xl bg-[var(--color-surface)] animate-pulse" />
     </div>
     <div
       v-else-if="error"
-      class="flex-1 flex items-center justify-center text-sm text-[var(--color-danger)]"
+      class="absolute inset-0 flex items-center justify-center text-sm text-[var(--color-danger)]"
     >
       {{ error }}
     </div>
-    <template v-else>
-      <div ref="scrollContainerRef" class="flex-1 overflow-auto code-scroll-container">
-        <div class="shiki-host text-sm" v-html="html" />
-      </div>
-      <div
-        v-if="truncated"
-        class="px-4 py-2 text-xs text-[var(--color-text-muted)] border-t border-[var(--color-border)] bg-[var(--color-surface)]"
-      >
-        文件过大，仅展示前 {{ MAX_CHARS / 1000 }}K 字符。请下载完整文件查看。
-      </div>
-    </template>
   </div>
 </template>
 

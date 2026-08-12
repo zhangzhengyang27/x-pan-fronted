@@ -5,12 +5,13 @@
  * 注：file-table 双击已经走 DrivePreviewModal 弹窗；
  * 此路由保留主要为了兼容外部链接直接打开。
  */
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { Download } from '@lucide/vue'
 import {
   getDownloadUrl,
   getFileExtension,
+  resolvePreviewUrl,
   DOCX_EXTENSIONS,
   EXCEL_EXTENSIONS,
   PPTX_EXTENSIONS
@@ -32,6 +33,17 @@ const kind = computed(() => {
 })
 
 const downloadUrl = computed(() => getDownloadUrl(fileId.value))
+
+// 统一走签名 URL（与 DrivePreviewModal 一致），避免长期 token 进 URL
+const previewUrl = ref('')
+watch(
+  fileId,
+  (id) => {
+    previewUrl.value = ''
+    if (id) resolvePreviewUrl(id).then((u) => (previewUrl.value = u)).catch(() => {})
+  },
+  { immediate: true }
+)
 </script>
 
 <template>
@@ -53,7 +65,7 @@ const downloadUrl = computed(() => getDownloadUrl(fileId.value))
       </a>
     </header>
     <main class="flex-1 min-h-0">
-      <OfficePreviewer v-if="kind" :file-id="fileId" :kind="kind" />
+      <OfficePreviewer v-if="kind" :url="previewUrl || undefined" :file-id="fileId" :kind="kind" />
       <div
         v-else
         class="flex h-full items-center justify-center text-sm text-[var(--color-text-muted)]"

@@ -72,6 +72,12 @@ function onClear() {
 function onKeydown(e) {
   if (e.key === 'Enter') emit('enter', e)
 }
+
+const inputRef = ref<HTMLInputElement | null>(null)
+function focus() {
+  inputRef.value?.focus()
+}
+defineExpose({ focus })
 </script>
 
 <template>
@@ -81,6 +87,7 @@ function onKeydown(e) {
     </span>
 
     <input
+      ref="inputRef"
       :id="id"
       :type="inputType"
       :value="modelValue"

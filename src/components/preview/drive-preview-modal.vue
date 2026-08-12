@@ -8,7 +8,7 @@
  */
 import { computed, defineAsyncComponent, ref, watch } from 'vue'
 import { Download, ExternalLink, AlertCircle } from '@lucide/vue'
-import { resolvePreviewUrl, isOffice } from '@/utils/preview'
+import { resolvePreviewUrl, isOfficeKind } from '@/utils/preview'
 import ImageGalleryPreviewer from './image-gallery-previewer.vue'
 import BaseModal from '@/components/base/BaseModal.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
@@ -146,29 +146,35 @@ function handleGalleryIndex(i) {
       <template v-else-if="previewUrl && currentItem">
         <VideoPreviewer
           v-if="state.kind === 'video'"
+          :url="previewUrl || undefined"
           :file-id="currentItem.fileId || currentItem.id"
           :title="fileName"
         />
         <AudioPreviewer
           v-else-if="state.kind === 'audio'"
+          :url="previewUrl || undefined"
           :file-id="currentItem.fileId || currentItem.id"
           :title="fileName"
         />
         <PdfPreviewer
           v-else-if="state.kind === 'pdf'"
+          :url="previewUrl || undefined"
           :file-id="currentItem.fileId || currentItem.id"
         />
         <OfficePreviewer
-          v-else-if="isOffice(state.kind)"
+          v-else-if="isOfficeKind(state.kind)"
+          :url="previewUrl || undefined"
           :file-id="currentItem.fileId || currentItem.id"
           :kind="state.kind"
         />
         <MarkdownPreviewer
           v-else-if="state.kind === 'markdown'"
+          :url="previewUrl || undefined"
           :file-id="currentItem.fileId || currentItem.id"
         />
         <CodePreviewer
           v-else-if="state.kind === 'code' || state.kind === 'text'"
+          :url="previewUrl || undefined"
           :file-id="currentItem.fileId || currentItem.id"
           :filename="fileName"
         />

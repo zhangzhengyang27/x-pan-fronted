@@ -21,7 +21,7 @@ import { useFavorites } from '@/composables/useFavorites'
 import { useRecent } from '@/composables/useRecent'
 import { useMediaQuery } from '@/composables/useMediaQuery'
 import { useFileTags } from '@/composables/useFileTags'
-import { getDownloadUrl } from '@/utils/preview'
+import { getDownloadUrl, resolvePreviewKind, isOfficeKind } from '@/utils/preview'
 import { useUploader } from '@/composables/useUploader'
 import {
   LoaderCircle,
@@ -162,26 +162,6 @@ async function createFolder() {
   }
 }
 
-// 暴露方法给父组件（列表/网格视图切换、筛选、快捷键操作、批量选择）
-defineExpose({
-  applyFilter,
-  setView: (v: string) => { currentView.value = v },
-  download: downloadSelected,
-  rename: renameSelected,
-  refresh: refreshList,
-  createFolder,
-  triggerUpload,
-  selectedRows,
-  selectedCount,
-  batchDownload,
-  batchDelete,
-  batchRename,
-  shareWithQRCode,
-  toggleFavorite,
-  selectAll,
-  clearSelection
-})
-
 const selectedRows = computed(() =>
   filteredList.value.filter((r) => selected.value.includes(r.fileId))
 )
@@ -255,6 +235,17 @@ function clickFilename(row: Record<string, any>) {
     case 11:
       return openNewPage('/preview/code', 'PreviewCode', { fileId: panUtil.handleId(row.fileId) }, { filename: row.filename })
   }
+  // 兜底：后端 fileType 未覆盖时（如 .md/.txt 文本、部分 code 文件），按扩展名判断
+  const kind = resolvePreviewKind({ name: row.filename, fileType: row.fileType })
+  if (kind === 'pdf' || kind === 'markdown' || kind === 'text') {
+    return openNewPage('/preview/iframe', 'PreviewIframe', { fileId: panUtil.handleId(row.fileId) }, { filename: row.filename })
+  }
+  if (kind === 'code') {
+    return openNewPage('/preview/code', 'PreviewCode', { fileId: panUtil.handleId(row.fileId) }, { filename: row.filename })
+  }
+  if (isOfficeKind(kind)) {
+    return openNewPage('/preview/office', 'PreviewOffice', { fileId: panUtil.handleId(row.fileId) }, { filename: row.filename })
+  }
 }
 
 // ─── 行点击 ────────────────────────────────────────────────────────────────
@@ -270,10 +261,10 @@ function onRowClick(row: Record<string, any>, e?: MouseEvent) {
 }
 
 // ─── 行双击 ───────────────────────────────────────────────────────────────
-const { visit: visitRecent } = useRecent()
+const { add: addRecent } = useRecent()
 
 function onRowDblclick(row: Record<string, any>) {
-  visitRecent(row)
+  addRecent(row)
   clickFilename(row)
 }
 
@@ -753,6 +744,26 @@ async function showQRModal(url: string, title: string) {
   }
 }
 
+// 暴露方法给父组件（列表/网格视图切换、筛选、快捷键操作、批量选择）
+defineExpose({
+  applyFilter,
+  setView: (v: string) => { currentView.value = v },
+  download: downloadSelected,
+  rename: renameSelected,
+  refresh: refreshList,
+  createFolder,
+  triggerUpload,
+  selectedRows,
+  selectedCount,
+  batchDownload,
+  batchDelete,
+  batchRename,
+  shareWithQRCode,
+  toggleFavorite,
+  selectAll,
+  clearSelection
+})
+
 onMounted(() => {
   fileStore.setMultipleSelection([])
   window.addEventListener('keydown', onKeyDown)
@@ -792,7 +803,7 @@ onBeforeUnmount(() => {
           <button
             type="button"
             class="group flex items-center gap-3 text-left w-full min-w-0"
-            @click.stop="clickFilename(row)"
+            @click.stop="onRowClick(row)"
             @dblclick.stop="clickFilename(row)"
           >
             <FileThumbnail :file="row" :size="32" rounded="rounded-sm" />

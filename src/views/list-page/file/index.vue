@@ -20,7 +20,8 @@ import {
   Trash2,
   MoreHorizontal,
   Check,
-  Minus
+  Minus,
+  RefreshCw
 } from '@lucide/vue'
 import FileButtonGroup from '@/components/file-button-group/index.vue'
 import BreadCrumb from '@/components/breadcrumb/index.vue'
@@ -29,6 +30,7 @@ import SortMenu from '@/components/file-table/SortMenu.vue'
 import FilterMenu from '@/components/file-table/FilterMenu.vue'
 import TransferButton from '@/components/buttons/transfer-button/index.vue'
 import CopyButton from '@/components/buttons/copy-button/index.vue'
+import FileDetailPanel from '@/components/file-table/FileDetailPanel.vue'
 import UploadTaskPanel from '@/components/upload-task-panel/index.vue'
 import BaseTooltip from '@/components/base/BaseTooltip.vue'
 import BasePopover from '@/components/base/BasePopover.vue'
@@ -116,6 +118,7 @@ watch(view, (v) => {
 
 const buttonArray = ref(['upload', 'createFolder'])
 const selectedCount = computed(() => multipleSelection.value.length)
+const selectedRows = computed(() => multipleSelection.value)
 const isAllSelected = computed(() => {
   if (!fileList.value.length) return false
   return fileList.value.every((r) => multipleSelection.value.some((s) => s.fileId === r.fileId))
@@ -124,6 +127,8 @@ const isIndeterminate = computed(() => {
   return selectedCount.value > 0 && !isAllSelected.value
 })
 const moreMenuOpen = ref(false)
+const detailOpen = ref(false)
+const detailFile = ref<Record<string, any> | null>(null)
 
 function toggleSelectAll() {
   const table = fileTableRef.value as any
@@ -136,55 +141,74 @@ function toggleSelectAll() {
 
 function onBatchDownload() {
   const table = fileTableRef.value as any
-  if (!table?.selectedRows?.length) {
+  const rows = selectedRows.value
+  if (!rows.length) {
     ElMessage.warning('请先选择文件')
     return
   }
-  table.batchDownload?.(table.selectedRows)
+  table?.batchDownload?.(rows)
 }
 
 function onBatchDelete() {
   const table = fileTableRef.value as any
-  if (!table?.selectedRows?.length) {
+  const rows = selectedRows.value
+  if (!rows.length) {
     ElMessage.warning('请先选择文件')
     return
   }
-  table.batchDelete?.(table.selectedRows)
+  table?.batchDelete?.(rows)
 }
 
 function onBatchRename() {
   const table = fileTableRef.value as any
-  if (!table?.selectedRows?.length) {
+  const rows = selectedRows.value
+  if (!rows.length) {
     ElMessage.warning('请先选择文件')
     return
   }
-  table.batchRename?.(table.selectedRows)
+  if (rows.length === 1) {
+    table?.rename?.()
+  } else {
+    table?.batchRename?.(rows)
+  }
 }
 
 function onBatchShare() {
   const table = fileTableRef.value as any
-  if (!table?.selectedRows?.length) {
+  if (!selectedRows.value.length) {
     ElMessage.warning('请先选择文件')
     return
   }
-  table.shareWithQRCode?.()
+  table?.shareWithQRCode?.()
 }
 
 function onMoreAction(key: string) {
   moreMenuOpen.value = false
+  const table = fileTableRef.value as any
+  const rows = selectedRows.value
   switch (key) {
     case 'rename':
       onBatchRename()
       break
     case 'favorite': {
-      const table = fileTableRef.value as any
-      if (table?.selectedRows?.length) table?.toggleFavorite?.(table.selectedRows[0])
+      const row = rows[0]
+      if (row) table?.toggleFavorite?.(row)
       break
     }
-    case 'detail':
-      ElMessage.info('文件详情')
+    case 'detail': {
+      const row = rows[0]
+      if (row) {
+        detailFile.value = row
+        detailOpen.value = true
+      }
       break
+    }
   }
+}
+
+function onRefresh() {
+  fileTableRef.value?.refresh?.()
+  ElMessage.success('已刷新')
 }
 
 function onDragOver(e) {
@@ -237,15 +261,16 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <!-- 拖拽上传区域 -->
-  <div
-    class="flex flex-col gap-4 relative"
-    :class="isDragOver ? 'ring-2 ring-inset ring-[var(--color-primary-500)] rounded-xl' : ''"
-    @dragover="onDragOver"
-    @dragleave="onDragLeave"
-    @drop="onDrop"
-  >
-    <!-- 拖拽遮罩提示 -->
+  <div class="flex flex-1 gap-4 min-h-0">
+    <!-- 拖拽上传区域 -->
+    <div
+      class="flex flex-col gap-4 relative flex-1 min-w-0"
+      :class="isDragOver ? 'ring-2 ring-inset ring-[var(--color-primary-500)] rounded-xl' : ''"
+      @dragover="onDragOver"
+      @dragleave="onDragLeave"
+      @drop="onDrop"
+    >
+      <!-- 拖拽遮罩提示 -->
     <Transition
       enter-active-class="transition duration-150"
       enter-from-class="opacity-0"
@@ -272,97 +297,97 @@ onUnmounted(() => {
     <div
       class="flex items-center justify-between gap-4 p-3 rounded-sm bg-[var(--color-surface-container-low)]"
     >
-      <!-- 未选中：左侧上传/新建 -->
-      <div v-if="selectedCount === 0" class="flex items-center gap-2">
+      <div class="flex items-center gap-2">
         <FileButtonGroup :button-array="buttonArray" />
-      </div>
 
-      <!-- 选中时：左侧全选 + 批量操作 -->
-      <div v-else class="flex items-center gap-2">
-        <button
-          type="button"
-          class="size-4 rounded flex items-center justify-center transition-colors"
-          style="border: 1px solid var(--color-border-strong);"
-          :style="(isAllSelected || isIndeterminate) ? 'background-color: var(--color-primary-500); border-color: var(--color-primary-500); color: white;' : ''"
-          @click="toggleSelectAll"
-        >
-          <Check v-if="isAllSelected" :size="12" :stroke-width="3" />
-          <Minus v-else-if="isIndeterminate" :size="12" :stroke-width="3" />
-        </button>
-        <span class="text-sm text-[var(--color-text)]">
-          已选
-          <span class="font-medium tabular-nums">{{ selectedCount }}</span>
-          项
-        </span>
+        <template v-if="selectedCount > 0">
+          <div class="w-px h-4 bg-[var(--color-border)]" />
 
-        <div class="w-px h-4 bg-[var(--color-border)]" />
-
-        <BaseTooltip text="下载" position="bottom">
           <button
             type="button"
-            class="h-8 px-2 rounded-sm text-sm inline-flex items-center gap-1 text-[var(--color-text)] hover:bg-[var(--color-surface-2)]"
-            @click="onBatchDownload"
+            class="size-4 rounded flex items-center justify-center transition-colors"
+            style="border: 1px solid var(--color-border-strong);"
+            :style="(isAllSelected || isIndeterminate) ? 'background-color: var(--color-primary-500); border-color: var(--color-primary-500); color: white;' : ''"
+            @click="toggleSelectAll"
           >
-            <Download :size="16" />
-            下载
+            <Check v-if="isAllSelected" :size="12" :stroke-width="3" />
+            <Minus v-else-if="isIndeterminate" :size="12" :stroke-width="3" />
           </button>
-        </BaseTooltip>
-        <BaseTooltip text="分享" position="bottom">
-          <button
-            type="button"
-            class="h-8 px-2 rounded-sm text-sm inline-flex items-center gap-1 text-[var(--color-text)] hover:bg-[var(--color-surface-2)]"
-            @click="onBatchShare"
-          >
-            <Share2 :size="16" />
-            分享
-          </button>
-        </BaseTooltip>
-        <CopyButton round-flag size="small" />
-        <TransferButton round-flag size="small" />
-        <BaseTooltip text="删除" position="bottom">
-          <button
-            type="button"
-            class="h-8 px-2 rounded-sm text-sm inline-flex items-center gap-1 text-[var(--color-danger)] hover:bg-[var(--color-danger-bg)]/20"
-            @click="onBatchDelete"
-          >
-            <Trash2 :size="16" />
-            删除
-          </button>
-        </BaseTooltip>
-        <BasePopover v-model="moreMenuOpen" placement="bottom-start" trigger="click">
-          <template #trigger>
+          <span class="text-sm text-[var(--color-text)]">
+            已选
+            <span class="font-medium tabular-nums">{{ selectedCount }}</span>
+            项
+          </span>
+
+          <div class="w-px h-4 bg-[var(--color-border)]" />
+
+          <BaseTooltip text="下载" position="bottom">
             <button
               type="button"
               class="h-8 px-2 rounded-sm text-sm inline-flex items-center gap-1 text-[var(--color-text)] hover:bg-[var(--color-surface-2)]"
+              @click="onBatchDownload"
             >
-              <MoreHorizontal :size="16" />
-              更多
+              <Download :size="16" />
+              下载
             </button>
-          </template>
-          <div class="py-1 min-w-[120px]">
+          </BaseTooltip>
+          <BaseTooltip text="分享" position="bottom">
             <button
               type="button"
-              class="w-full px-3 py-1.5 text-sm text-left text-[var(--color-text)] hover:bg-[var(--color-surface-2)]"
-              @click="onMoreAction('rename')"
+              class="h-8 px-2 rounded-sm text-sm inline-flex items-center gap-1 text-[var(--color-text)] hover:bg-[var(--color-surface-2)]"
+              @click="onBatchShare"
             >
-              重命名
+              <Share2 :size="16" />
+              分享
             </button>
+          </BaseTooltip>
+          <CopyButton round-flag size="small" />
+          <TransferButton round-flag size="small" />
+          <BaseTooltip text="删除" position="bottom">
             <button
               type="button"
-              class="w-full px-3 py-1.5 text-sm text-left text-[var(--color-text)] hover:bg-[var(--color-surface-2)]"
-              @click="onMoreAction('favorite')"
+              class="h-8 px-2 rounded-sm text-sm inline-flex items-center gap-1 text-[var(--color-danger)] hover:bg-[var(--color-danger-bg)]/20"
+              @click="onBatchDelete"
             >
-              收藏
+              <Trash2 :size="16" />
+              删除
             </button>
-            <button
-              type="button"
-              class="w-full px-3 py-1.5 text-sm text-left text-[var(--color-text)] hover:bg-[var(--color-surface-2)]"
-              @click="onMoreAction('detail')"
-            >
-              查看详情
-            </button>
-          </div>
-        </BasePopover>
+          </BaseTooltip>
+          <BasePopover v-model="moreMenuOpen" placement="bottom-start" trigger="click">
+            <template #trigger>
+              <button
+                type="button"
+                class="h-8 px-2 rounded-sm text-sm inline-flex items-center gap-1 text-[var(--color-text)] hover:bg-[var(--color-surface-2)]"
+              >
+                <MoreHorizontal :size="16" />
+                更多
+              </button>
+            </template>
+            <div class="py-1 min-w-[120px]">
+              <button
+                type="button"
+                class="w-full px-3 py-1.5 text-sm text-left text-[var(--color-text)] hover:bg-[var(--color-surface-2)]"
+                @click="onMoreAction('rename')"
+              >
+                重命名
+              </button>
+              <button
+                type="button"
+                class="w-full px-3 py-1.5 text-sm text-left text-[var(--color-text)] hover:bg-[var(--color-surface-2)]"
+                @click="onMoreAction('favorite')"
+              >
+                收藏
+              </button>
+              <button
+                type="button"
+                class="w-full px-3 py-1.5 text-sm text-left text-[var(--color-text)] hover:bg-[var(--color-surface-2)]"
+                @click="onMoreAction('detail')"
+              >
+                查看详情
+              </button>
+            </div>
+          </BasePopover>
+        </template>
       </div>
 
       <div class="flex items-center gap-2">
@@ -397,6 +422,16 @@ onUnmounted(() => {
             </button>
           </BaseTooltip>
         </div>
+        <div class="w-px h-4 bg-[var(--color-border)]" />
+        <BaseTooltip text="刷新" position="bottom">
+          <button
+            type="button"
+            class="size-8 rounded-sm inline-flex items-center justify-center transition-colors text-[var(--color-text)] hover:bg-[var(--color-surface-2)]"
+            @click="onRefresh"
+          >
+            <RefreshCw :size="16" />
+          </button>
+        </BaseTooltip>
       </div>
     </div>
 
@@ -407,5 +442,22 @@ onUnmounted(() => {
     <FileTable ref="fileTableRef" />
   </div>
 
-  <UploadTaskPanel />
+  <Transition name="detail-mask">
+    <div
+      v-if="detailOpen"
+      class="fixed inset-0 z-30 bg-black/30"
+      @click="detailOpen = false"
+    />
+  </Transition>
+
+  <FileDetailPanel
+    :file="detailFile"
+    :open="detailOpen"
+    @update:open="(v: boolean) => detailOpen = v"
+    @close="detailOpen = false"
+    @refresh="fileStore.loadFileList()"
+  />
+</div>
+
+<UploadTaskPanel />
 </template>

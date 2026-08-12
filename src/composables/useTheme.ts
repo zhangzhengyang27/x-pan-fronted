@@ -42,7 +42,7 @@ export function useTheme() {
   watch([isDark, mode], apply)
   onMounted(apply)
 
-  return { mode, isDark, setMode, toggle }
+  return { mode, isDark, setMode, toggle, toggleTheme: toggle }
 }
 
 /**

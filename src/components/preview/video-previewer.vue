@@ -10,7 +10,9 @@ import { useVideoThumbnails } from '@/composables/useVideoThumbnails'
 
 const props = defineProps({
   fileId: { type: [String, Number], required: true },
-  title: { type: String, default: '' }
+  title: { type: String, default: '' },
+  /** 外部已解析好的预览 URL（优先于本地拼接） */
+  url: { type: String, default: '' }
 })
 
 const containerRef = ref(null)
@@ -25,7 +27,7 @@ const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4, 5]
 onMounted(async () => {
   if (!containerRef.value) return
   const { default: Artplayer } = await import('artplayer')
-  const videoUrl = getPreviewUrl(props.fileId)
+  const videoUrl = props.url || getPreviewUrl(props.fileId)
   player = new Artplayer({
     container: containerRef.value,
     url: videoUrl,

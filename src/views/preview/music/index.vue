@@ -8,7 +8,7 @@ import { Headphones, Download, Play, Pause, SkipBack, SkipForward, Music } from 
 import fileService from '@/api/file'
 import panUtil from '@/utils/common'
 import { ElMessage } from '@/composables/useToast'
-import { getDownloadUrl, getPreviewUrl } from '@/utils/preview'
+import { getDownloadUrl, getPreviewUrl, resolvePreviewUrl } from '@/utils/preview'
 import BaseButton from '@/components/base/BaseButton.vue'
 
 const route = useRoute()
@@ -30,9 +30,16 @@ function renderList(dataList) {
   }))
 }
 
-function playMusic(item, idx) {
+async function playMusic(item, idx) {
   musicName.value = item.filename
-  musicSrc.value = getPreviewUrl(item.fileId)
+  // 优先使用签名 URL（短时效、绑定 fileId），失败降级到授权 query 直链
+  let url = ''
+  try {
+    url = await resolvePreviewUrl(item.fileId)
+  } catch {
+    url = getPreviewUrl(item.fileId)
+  }
+  musicSrc.value = url
   activeIndex.value = idx
   playing.value = true
   setTimeout(() => audioRef.value?.play(), 30)

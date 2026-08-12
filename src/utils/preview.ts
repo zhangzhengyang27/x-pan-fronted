@@ -6,7 +6,18 @@ import panUtil from '@/utils/common'
 import { getToken } from '@/utils/cookie'
 
 export type PreviewKind =
-  'image' | 'video' | 'audio' | 'pdf' | 'code' | 'office' | 'markdown' | 'text' | 'unsupported'
+  | 'image'
+  | 'video'
+  | 'audio'
+  | 'pdf'
+  | 'code'
+  | 'office'
+  | 'docx'
+  | 'excel'
+  | 'pptx'
+  | 'markdown'
+  | 'text'
+  | 'unsupported'
 
 interface PreviewInput {
   name?: string
@@ -47,6 +58,20 @@ const CODE_EXTS = [
   'sql'
 ]
 const OFFICE_EXTS = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx']
+const DOCX_EXTS_OFFICE = ['doc', 'docx']
+const EXCEL_EXTS_OFFICE = ['xls', 'xlsx']
+const PPTX_EXTS_OFFICE = ['ppt', 'pptx']
+
+/**
+ * 细分 Office 类型为 docx / excel / pptx，供 @vue-office 系列组件区分渲染。
+ */
+export function resolveOfficeKind(ext = ''): 'docx' | 'excel' | 'pptx' | 'office' {
+  const e = ext.toLowerCase()
+  if (PPTX_EXTS_OFFICE.includes(e)) return 'pptx'
+  if (EXCEL_EXTS_OFFICE.includes(e)) return 'excel'
+  if (DOCX_EXTS_OFFICE.includes(e)) return 'docx'
+  return 'office'
+}
 
 function extOf(name = ''): string {
   const i = name.lastIndexOf('.')
@@ -62,7 +87,10 @@ export function resolvePreviewKind(input: PreviewInput): PreviewKind {
   if (PDF_EXTS.includes(ext)) return 'pdf'
   if (ext === 'md') return 'markdown'
   if (CODE_EXTS.includes(ext)) return 'code'
-  if (OFFICE_EXTS.includes(ext)) return 'office'
+  if (OFFICE_EXTS.includes(ext)) {
+    const officeKind = resolveOfficeKind(ext)
+    return officeKind === 'office' ? 'docx' : officeKind
+  }
   if (ext === 'txt' || ext === 'log') return 'text'
   if (input.mimeType && input.mimeType.startsWith('image/')) return 'image'
   if (input.mimeType && input.mimeType.startsWith('video/')) return 'video'
@@ -78,26 +106,33 @@ const urlCache = new Map<string | number, Promise<string>>()
 
 /**
  * 解析预览资源 URL（带缓存 + 并发去重）
- * 通过 /api/file/preview 获取真实预览地址
+ *
+ * 向后端 POST /file/preview/url 申请带短期签名 token（ptoken）的预览直链。
+ * 后端返回相对路径（如 /file/preview/stream?fileId=密文&ptoken=JWT），
+ * 这里用 getUrlPrefix() 拼接成完整 URL。该 URL 由浏览器原生标签（img/video/iframe）
+ * 直接访问，无需再携带 Authorization 请求头，避免长期登录 token 泄露到 URL/日志/Referer。
+ *
+ * 失败时降级为 getPreviewUrl 直链（authorization query 鉴权），保证可用性。
  */
 export function resolvePreviewUrl(fileId: string | number | undefined): Promise<string> {
   if (fileId === undefined) return Promise.reject(new Error('fileId is required'))
   if (urlCache.has(fileId)) {
     return urlCache.get(fileId) as Promise<string>
   }
-  const p = fetch(panUtil.getUrlPrefix() + '/file/preview', {
+  const p = fetch(`${panUtil.getUrlPrefix()}/file/preview/url?fileId=${encodeURIComponent(String(fileId))}`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
       Authorization: getToken()
-    },
-    body: JSON.stringify({ fileId })
+    }
   })
     .then((r) => r.json())
     .then((res) => {
-      if (res && res.code === 0 && res.data) return res.data
+      if (res && res.code === 0 && res.data) {
+        return panUtil.getUrlPrefix() + res.data
+      }
       throw new Error('preview url resolve failed')
     })
+    .catch(() => getPreviewUrl(fileId))
   urlCache.set(fileId, p)
   return p
 }
@@ -133,7 +168,14 @@ export function getDownloadUrl(fileId: string | number): string {
  * 判断扩展名是否为 Office 文档
  */
 export function isOffice(ext: string): boolean {
-  return resolvePreviewKind({ extension: ext }) === 'office'
+  return OFFICE_EXTS.includes(ext.toLowerCase())
+}
+
+/**
+ * 判断预览类型是否为 Office 文档（细分类型）
+ */
+export function isOfficeKind(kind: PreviewKind): boolean {
+  return kind === 'docx' || kind === 'excel' || kind === 'pptx' || kind === 'office'
 }
 
 /**

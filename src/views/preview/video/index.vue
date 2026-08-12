@@ -2,10 +2,10 @@
 /**
  * PreviewVideo —— 视频预览（ArtPlayer）
  */
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { Film, Download } from '@lucide/vue'
-import { getDownloadUrl } from '@/utils/preview'
+import { getDownloadUrl, resolvePreviewUrl } from '@/utils/preview'
 import BaseButton from '@/components/base/BaseButton.vue'
 import VideoPreviewer from '@/components/preview/video-previewer.vue'
 
@@ -13,6 +13,17 @@ const route = useRoute()
 const fileId = computed(() => route.params.fileId)
 const filename = computed(() => route.query.filename || 'video')
 const downloadUrl = computed(() => getDownloadUrl(fileId.value))
+
+// 统一走签名 URL（与 DrivePreviewModal 一致），避免长期 token 进 URL
+const previewUrl = ref('')
+watch(
+  fileId,
+  (id) => {
+    previewUrl.value = ''
+    if (id) resolvePreviewUrl(id).then((u) => (previewUrl.value = u)).catch(() => {})
+  },
+  { immediate: true }
+)
 </script>
 
 <template>
@@ -34,7 +45,7 @@ const downloadUrl = computed(() => getDownloadUrl(fileId.value))
       </a>
     </header>
     <main class="flex-1 min-h-0 flex items-center justify-center">
-      <VideoPreviewer :file-id="fileId" :filename="filename" class="w-full max-w-5xl" />
+      <VideoPreviewer :url="previewUrl || undefined" :file-id="fileId" :filename="filename" class="w-full max-w-5xl" />
     </main>
   </div>
 </template>

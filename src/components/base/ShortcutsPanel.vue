@@ -12,11 +12,11 @@ import {
   Keyboard,
   X,
   Search,
-  FileText,
-  CheckSquare,
   Edit3,
   Grid3x3,
   Download,
+  CheckSquare,
+  ArrowUpDown,
   Search as SearchIcon
 } from '@lucide/vue'
 import BaseInput from './BaseInput.vue'
@@ -37,16 +37,17 @@ onUnmounted(() => {
   window.removeEventListener('xpan:open-shortcuts', onExternalOpen)
 })
 
+// 仅展示已真实实现的快捷键（与 useShortcuts / FileTable 实际逻辑一致）
 const shortcuts = [
   {
-    group: '文件操作',
-    icon: FileText,
+    group: '列表导航',
+    icon: ArrowUpDown,
     items: [
-      { keys: ['↑', '↓'], desc: '上下选择文件' },
-      { keys: ['←', '→'], desc: '进入文件夹 / 返回上级' },
-      { keys: ['Enter'], desc: '打开文件（双击等价）' },
-      { keys: ['Delete'], desc: '删除选中文件' },
-      { keys: ['Backspace'], desc: '返回上一级（回收站时）' }
+      { keys: ['↑', '↓'], desc: '上下移动高亮' },
+      { keys: ['Enter'], desc: '打开高亮文件' },
+      { keys: ['→'], desc: '进入文件夹' },
+      { keys: ['←'], desc: '返回上一级' },
+      { keys: ['Space'], desc: '切换高亮项选中' }
     ]
   },
   {
@@ -54,8 +55,8 @@ const shortcuts = [
     icon: CheckSquare,
     items: [
       { keys: ['Ctrl', 'A'], desc: '全选 / 取消全选' },
-      { keys: ['Space'], desc: '切换选中（焦点在列表时）' },
-      { keys: ['Esc'], desc: '取消选择 / 关闭弹窗' }
+      { keys: ['Delete'], desc: '删除选中文件' },
+      { keys: ['Esc'], desc: '取消选择 / 收起面板' }
     ]
   },
   {
@@ -63,9 +64,6 @@ const shortcuts = [
     icon: Edit3,
     items: [
       { keys: ['F2'], desc: '重命名选中文件' },
-      { keys: ['Ctrl', 'C'], desc: '复制选中文件' },
-      { keys: ['Ctrl', 'X'], desc: '剪切选中文件' },
-      { keys: ['Ctrl', 'V'], desc: '粘贴到当前目录' },
       { keys: ['Ctrl', 'Shift', 'N'], desc: '新建文件夹' }
     ]
   },
@@ -103,8 +101,7 @@ const shortcuts = [
     icon: Keyboard,
     items: [
       { keys: ['?'], desc: '显示/隐藏快捷键面板（当前）' },
-      { keys: ['Ctrl', '/'], desc: '同上' },
-      { keys: ['Alt', '←'], desc: '浏览器后退' }
+      { keys: ['Ctrl', '/'], desc: '同上' }
     ]
   }
 ]
