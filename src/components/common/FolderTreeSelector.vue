@@ -141,7 +141,7 @@ const hasTree = computed(() => treeData.value.length > 0)
     @click.self="close"
   >
     <div
-      class="w-[460px] max-w-[92vw] bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] shadow-xl overflow-hidden"
+      class="w-[460px] max-w-[92vw] bg-[var(--color-surface)] rounded-sm border border-[var(--color-border)] shadow-xl overflow-hidden"
     >
       <header
         class="h-12 px-4 flex items-center justify-between border-b border-[var(--color-border)]"
@@ -149,7 +149,7 @@ const hasTree = computed(() => treeData.value.length > 0)
         <h3 class="text-sm font-semibold text-[var(--color-text)]">{{ title }}</h3>
         <button
           type="button"
-          class="size-7 rounded-md hover:bg-[var(--color-surface-2)] flex items-center justify-center text-[var(--color-text-muted)]"
+          class="size-7 rounded-sm hover:bg-[var(--color-surface-2)] flex items-center justify-center text-[var(--color-text-muted)]"
           @click="close"
         >
           <span class="i-lucide-x text-base" />
@@ -187,7 +187,7 @@ const hasTree = computed(() => treeData.value.length > 0)
           <li>
             <button
               type="button"
-              class="w-full flex items-center gap-2 py-1.5 px-2 rounded-md text-sm transition-colors"
+              class="w-full flex items-center gap-2 py-1.5 px-2 rounded-sm text-sm transition-colors"
               :class="
                 selectedId === null
                   ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)] dark:bg-[var(--color-primary-900)]/30 dark:text-[var(--color-primary-300)]'

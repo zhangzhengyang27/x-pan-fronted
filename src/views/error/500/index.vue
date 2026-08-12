@@ -62,7 +62,7 @@ const goHome = () => (window.location.href = '/')
         <!-- 重试按钮 -->
         <button
           type="button"
-          class="w-full flex items-center justify-center gap-2 py-3 px-6 rounded-lg text-sm font-medium transition-colors mb-4"
+          class="w-full flex items-center justify-center gap-2 py-3 px-6 rounded-sm text-sm font-medium transition-colors mb-4"
           :class="
             'bg-[var(--color-danger)] hover:bg-[var(--color-danger)]/80 text-white'
           "

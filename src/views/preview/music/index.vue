@@ -127,11 +127,11 @@ onBeforeUnmount(() => {
     <!-- 播放器 -->
     <main class="flex-1 flex items-center justify-center p-8">
       <div
-        class="w-full max-w-md rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-8 shadow-lg"
+        class="w-full max-w-md rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] p-8 shadow-lg"
       >
         <div class="flex items-center gap-4 mb-6">
           <div
-            class="size-20 rounded-2xl bg-gradient-to-br from-[var(--color-primary-500)] to-[var(--color-primary-700)] flex items-center justify-center shadow-md"
+            class="size-20 rounded-sm bg-gradient-to-br from-[var(--color-primary-500)] to-[var(--color-primary-700)] flex items-center justify-center shadow-md"
           >
             <Music :size="32" class="text-white" />
           </div>

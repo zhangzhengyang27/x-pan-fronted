@@ -142,7 +142,7 @@ function clearHistory() {
 <template>
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5">
     <!-- 存储历史曲线 -->
-    <div class="rounded-xl border border-[var(--color-border)] p-4 bg-[var(--color-surface-container-low)]">
+    <div class="rounded-sm border border-[var(--color-border)] p-4 bg-[var(--color-surface-container-low)]">
       <div class="flex items-center justify-between mb-3">
         <h3 class="text-sm font-semibold flex items-center gap-1.5 text-[var(--color-text)]">
           <TrendingUp :size="14" :stroke-width="2" />
@@ -164,7 +164,7 @@ function clearHistory() {
       <div v-else>
         <svg
           :viewBox="`0 0 ${chartData.w} ${chartData.h}`"
-          class="w-full rounded-md"
+          class="w-full rounded-sm"
           style="height: 140px; min-height: 120px; background-color: var(--color-surface-container-high);"
           preserveAspectRatio="none"
         >
@@ -193,7 +193,7 @@ function clearHistory() {
     </div>
 
     <!-- 分类柱状图 -->
-    <div class="rounded-xl border border-[var(--color-border)] p-4 bg-[var(--color-surface-container-low)]">
+    <div class="rounded-sm border border-[var(--color-border)] p-4 bg-[var(--color-surface-container-low)]">
       <div class="flex items-center justify-between mb-3">
         <h3 class="text-sm font-semibold flex items-center gap-1.5 text-[var(--color-text)]">
           <ChartBar :size="14" :stroke-width="2" />

@@ -89,7 +89,7 @@ function close() {
           <div class="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)]">
             <h3 class="text-base font-medium text-[var(--color-text)]">设备管理</h3>
             <button
-              class="p-1.5 rounded-md hover:bg-[var(--color-surface-container-low)] text-[var(--color-text-muted)]"
+              class="p-1.5 rounded-sm hover:bg-[var(--color-surface-container-low)] text-[var(--color-text-muted)]"
               @click="close"
             >
               <X :size="16" />
@@ -112,10 +112,10 @@ function close() {
               <div
                 v-for="d in devices"
                 :key="d.deviceId"
-                class="flex items-center gap-3 p-3 rounded-lg border border-[var(--color-border)] hover:bg-[var(--color-surface-container-low)]"
+                class="flex items-center gap-3 p-3 rounded-sm border border-[var(--color-border)] hover:bg-[var(--color-surface-container-low)]"
               >
                 <div
-                  class="size-10 rounded-lg flex items-center justify-center shrink-0"
+                  class="size-10 rounded-sm flex items-center justify-center shrink-0"
                   :style="d.isCurrent ? 'background: rgba(34, 197, 94, 0.1);' : 'background: var(--color-surface-container-low);'"
                 >
                   <component
@@ -151,7 +151,7 @@ function close() {
                 </div>
                 <button
                   v-if="!d.isCurrent"
-                  class="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 shrink-0"
+                  class="flex items-center gap-1 px-2.5 py-1.5 rounded-sm text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 shrink-0"
                   @click="logout(d)"
                 >
                   <LogOut :size="12" />

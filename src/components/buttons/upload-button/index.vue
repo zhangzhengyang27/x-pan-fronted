@@ -1,7 +1,6 @@
 <script setup lang="ts">
 /**
- * UploadButton —— 触发文件上传（仅打开文件选择器，逻辑在 useUploader）
- * 按钮 UI 与 CreateFolderButton 保持一致的绿色胶囊风格
+ * UploadButton —— 触发文件上传（夸克蓝色风格）
  */
 import { ref, computed } from 'vue'
 import { Upload } from '@lucide/vue'
@@ -12,7 +11,6 @@ const props = defineProps({
   size: { type: String, default: 'sm' }
 })
 
-// FileButtonGroup 传 size="default"，需映射为 BaseButton 支持的尺寸
 const btnSize = computed(() => (props.size === 'small' ? 'sm' : 'md'))
 
 const fileInputRef = ref(null)
@@ -25,7 +23,7 @@ function triggerPicker() {
 function onChange(e) {
   const files = e.target.files
   if (files?.length) addFiles(files)
-  e.target.value = '' // 允许同名重选
+  e.target.value = ''
 }
 
 defineExpose({ triggerPicker })
@@ -36,7 +34,7 @@ defineExpose({ triggerPicker })
     <BaseButton
       variant="secondary"
       :size="btnSize"
-      class="rounded-full !bg-[var(--color-success)] !text-white !border-transparent hover:!opacity-90"
+      class="rounded-sm !bg-[var(--color-primary-500)] !text-white !border-transparent hover:!opacity-90 transition-opacity"
       @click="triggerPicker"
     >
       <span class="inline-flex items-center gap-1.5">

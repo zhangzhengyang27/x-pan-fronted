@@ -29,7 +29,7 @@ import panUtil from '@/utils/common'
 const props = defineProps({
   file: { type: Object, required: true },
   size: { type: Number, default: 56 }, // 缩略图正方形边长
-  rounded: { type: String, default: 'rounded-xl' }
+  rounded: { type: String, default: 'rounded-sm' }
 })
 
 const imageLoaded = ref(false)

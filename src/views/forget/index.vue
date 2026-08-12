@@ -231,7 +231,7 @@ const goLoginLink = () => router.push({ name: 'Login' })
 
         <!-- Card Container -->
         <div
-          class="rounded-lg p-8 bg-[var(--color-surface)] border border-[var(--color-border)]"
+          class="rounded-sm p-8 bg-[var(--color-surface)] border border-[var(--color-border)]"
         >
           <!-- Step 1: Username -->
           <div v-if="currentStep === 0">

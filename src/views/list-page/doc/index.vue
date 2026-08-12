@@ -26,7 +26,7 @@ onMounted(() => {
         {{ fileStore.fileList?.length || 0 }} items
       </span>
     </div>
-    <div class="flex items-center justify-between gap-4 py-3 px-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-container-low)]">
+    <div class="flex items-center justify-between gap-4 py-3 px-3 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface-container-low)]">
       <FileButtonGroup :button-array="buttonArray" />
     </div>
     <FileTable />

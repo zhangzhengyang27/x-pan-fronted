@@ -26,7 +26,7 @@ function normalize(opt) {
 
 <template>
   <label
-    class="relative flex items-center w-full rounded-lg border bg-[var(--color-surface)] transition-colors duration-150"
+    class="relative flex items-center w-full rounded-sm border bg-[var(--color-surface)] transition-colors duration-150"
     :class="[
       error
         ? 'border-[var(--color-danger)]'

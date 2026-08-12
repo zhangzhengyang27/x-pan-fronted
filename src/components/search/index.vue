@@ -200,7 +200,7 @@ function clickSuggestion(item) {
   <div class="w-full relative">
     <BaseInput
       v-model="searchKey"
-      placeholder="搜索文件…（支持「上周图片」「大于100MB」「最近7天」）"
+      placeholder="搜索文件…"
       :prefix="SearchIcon"
       clearable
       @enter="doSearch"
@@ -211,7 +211,7 @@ function clickSuggestion(item) {
     <Transition name="modal">
       <div
         v-if="showSuggest && suggestions.length > 0"
-        class="absolute top-full left-0 right-0 mt-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-lg overflow-hidden z-[var(--z-dropdown)]"
+        class="absolute top-full left-0 right-0 mt-1 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] shadow-lg overflow-hidden z-[var(--z-dropdown)]"
       >
         <button
           v-for="(item, i) in suggestions"

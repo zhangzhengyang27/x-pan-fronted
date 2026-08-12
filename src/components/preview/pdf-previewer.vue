@@ -283,7 +283,7 @@ function closeSearch() {
     <!-- 搜索框 -->
     <div
       v-if="searchOpen"
-      class="sticky top-12 z-10 mx-auto mt-1 w-fit max-w-2xl flex items-center gap-1 px-2 py-1 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-md shadow-sm"
+      class="sticky top-12 z-10 mx-auto mt-1 w-fit max-w-2xl flex items-center gap-1 px-2 py-1 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-sm shadow-sm"
     >
       <Search :size="14" class="text-[var(--color-text-muted)]" />
       <BaseInput

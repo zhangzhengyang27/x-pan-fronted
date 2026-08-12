@@ -159,7 +159,7 @@ function onKeydown(e) {
         >
           <div class="flex items-center gap-2">
             <div
-              class="size-9 rounded-lg bg-gradient-to-br from-[var(--color-primary-500)] to-[var(--color-primary-700)] flex items-center justify-center text-white"
+              class="size-9 rounded-sm bg-gradient-to-br from-[var(--color-primary-500)] to-[var(--color-primary-700)] flex items-center justify-center text-white"
             >
               <Keyboard :size="18" />
             </div>
@@ -177,7 +177,7 @@ function onKeydown(e) {
           </div>
           <button
             type="button"
-            class="text-[var(--color-text-muted)] hover:text-[var(--color-text)] p-1 rounded-md hover:bg-[var(--color-surface-2)]"
+            class="text-[var(--color-text-muted)] hover:text-[var(--color-text)] p-1 rounded-sm hover:bg-[var(--color-surface-2)]"
             @click="open = false"
           >
             <X :size="18" />
@@ -208,7 +208,7 @@ function onKeydown(e) {
               <div
                 v-for="(item, ii) in group.items"
                 :key="ii"
-                class="flex items-center justify-between gap-3 px-3 py-2 rounded-lg hover:bg-[var(--color-surface-2)] transition-colors"
+                class="flex items-center justify-between gap-3 px-3 py-2 rounded-sm hover:bg-[var(--color-surface-2)] transition-colors"
               >
                 <span class="text-sm">{{ item.desc }}</span>
                 <div class="flex items-center gap-1 shrink-0">

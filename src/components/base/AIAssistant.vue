@@ -183,7 +183,7 @@ function close() {
           </div>
           <button
             type="button"
-            class="relative size-7 flex items-center justify-center rounded-md transition-colors text-[var(--color-text-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)]"
+            class="relative size-7 flex items-center justify-center rounded-sm transition-colors text-[var(--color-text-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)]"
             :title="isConfigured ? 'API Key 已配置（点击修改）' : '配置 API Key'"
             @click="openApiKeyPanel"
           >
@@ -235,7 +235,7 @@ function close() {
         <!-- 错误提示 -->
         <div
           v-if="errorMsg"
-          class="flex items-center gap-2 px-3 py-2 rounded-lg text-xs"
+          class="flex items-center gap-2 px-3 py-2 rounded-sm text-xs"
           style="background-color: rgba(239, 68, 68, 0.1); color: var(--color-danger);"
         >
           <AlertCircle :size="12" :stroke-width="2" />

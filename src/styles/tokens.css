@@ -1,114 +1,47 @@
 /* ==========================================================================
- * R-Pan Design Tokens  ——  Tailwind CSS v4 (CSS-first)
- * 单一真相源：颜色、排版、间距、圆角、阴影、动效、布局，暗色
- * 视觉风格：向夸克网盘靠拢（鲜明蓝 + 卡片化 + 深蓝黑暗色）
+ * R-Pan Design Tokens  —— 夸克网盘设计语言对齐版
+ * 基于夸克视觉风格:纯色系 + 强对比 + 轻阴影 + 快动效
  * ========================================================================== */
 
 @import "tailwindcss";
 
-/* 自定义暗色变体：使用 class="dark" 触发（v4 推荐方式） */
+/* 自定义暗色变体 */
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  /* ============= 品牌主色：夸克鲜明蓝（#00B2FF 系）============= */
-  --color-primary-50:  #e6f9ff;
-  --color-primary-100: #b3efff;
-  --color-primary-200: #80e3ff;  /* primary - 浅色文字 */
-  --color-primary-300: #4dd3ff;
-  --color-primary-400: #1ac8ff;
-  --color-primary-500: #00b2ff;  /* 核心品牌色，向夸克蓝靠拢 */
-  --color-primary-600: #0099e6;
-  --color-primary-700: #007acc;
-  --color-primary-800: #005c99;
-  --color-primary-900: #003d66;
+  /* ============= 品牌主色:夸克蓝(#00A3FF) ============= */
+  --color-primary-50:  #e6f5ff;
+  --color-primary-100: #b3e5ff;
+  --color-primary-200: #80d6ff;
+  --color-primary-300: #4dc7ff;
+  --color-primary-400: #1ab8ff;
+  --color-primary-500: #00a3ff;  /* 核心品牌色 */
+  --color-primary-600: #0088db;
+  --color-primary-700: #006db4;
+  --color-primary-800: #00538d;
+  --color-primary-900: #003a66;
 
-  /* primary-fixed 系列 */
-  --color-primary-fixed: #b3efff;
-  --color-primary-fixed-dim: #80e3ff;
-  --color-on-primary-fixed: #003d66;
-  --color-on-primary-fixed-variant: #007acc;
-
-  /* on-primary 系列 */
-  --color-on-primary: #002e4d;
-  --color-on-primary-container: #ffffff;
-
-  /* ============= 中性灰：9 阶 + 特殊表面色 ============= */
+  /* ============= 中性灰:夸克风格(无蓝调) ============= */
   --color-neutral-0:   #ffffff;
   --color-neutral-50:  #fafafa;
-  --color-neutral-100: #f5f5f5;
-  --color-neutral-200: #e5e5e5;
-  --color-neutral-300: #d4d4d4;
-  --color-neutral-400: #a3a3a3;
-  --color-neutral-500: #737373;
-  --color-neutral-600: #525252;
-  --color-neutral-700: #404040;
-  --color-neutral-800: #262626;
-  --color-neutral-900: #171717;
+  --color-neutral-100:  #f5f5f5;
+  --color-neutral-200:  #ebebeb;
+  --color-neutral-300:  #d9d9d9;
+  --color-neutral-400:  #b2b2b2;
+  --color-neutral-500:  #808080;
+  --color-neutral-600:  #595959;
+  --color-neutral-700:  #404040;
+  --color-neutral-800:  #262626;
+  --color-neutral-900:  #1a1a1a;
 
-  /* surface-container 色阶（light：带蓝灰调，对标夸克卡片层次） */
-  --color-surface-container-lowest: #ffffff;
-  --color-surface-container-low: #f7f9fc;
-  --color-surface-container: #f0f4fa;
-  --color-surface-container-high: #e8eef6;
-  --color-surface-container-highest: #dde6f0;
+  /* ============= 语义色(success/warning/danger) ============= */
+  --color-success:     #34c759;
+  --color-warning:     #ff9500;
+  --color-danger:      #ff3b30;
+  --color-info:        #00a3ff;
 
-  /* inverse 系列 */
-  --color-inverse-surface: #e0e2ed;
-  --color-inverse-on-surface: #2d3039;
-  --color-inverse-primary: #007acc;
-
-  /* outline 系列 */
-  --color-outline: #8b90a0;
-  --color-outline-variant: #414754;
-  --color-surface-tint: #80e3ff;
-
-  /* ============= 语义色（success/warning/danger/info）============= */
-  --color-success: #10b981;
-  --color-success-container: #10b981;  /* 备用 */
-  --color-warning: #f59e0b;
-  --color-warning-container: #f59e0b;  /* 备用 */
-  --color-danger: #ef4444;
-  --color-danger-container: #ef4444;   /* 备用 */
-  --color-error: #ffb4ab;
-  --color-error-container: #93000a;
-  --color-on-error: #690005;
-  --color-on-error-container: #ffdad6;
-  --color-info: #00b2ff;              /* info 跟随品牌色 */
-  --color-info-container: #00b2ff;    /* 备用 */
-
-  /* tertiary 系列 */
-  --color-tertiary: #ffb596;
-  --color-tertiary-container: #ca4e00;
-  --color-on-tertiary: #581e00;
-  --color-on-tertiary-container: #fffeff;
-  --color-tertiary-fixed: #ffdbcd;
-  --color-tertiary-fixed-dim: #ffb596;
-  --color-on-tertiary-fixed: #360f00;
-  --color-on-tertiary-fixed-variant: #7d2d00;
-
-  /* secondary 系列 */
-  --color-secondary: #c6c6c6;
-  --color-secondary-container: #474747;
-  --color-on-secondary: #303030;
-  --color-on-secondary-container: #b5b5b5;
-  --color-secondary-fixed: #e2e2e2;
-  --color-secondary-fixed-dim: #c6c6c6;
-  --color-on-secondary-fixed: #1b1b1b;
-  --color-on-secondary-fixed-variant: #474747;
-
-  /* ============= 语义令牌（语义化指向，组件优先用）============= */
-  /* Light 模式 —— 略带蓝灰调，增加层次与品牌感 */
-  --color-bg:           #f7f9fc;   /* 主背景，略带蓝灰 */
-  --color-surface:      #ffffff;    /* 卡片纯白 */
-  --color-surface-2:    #f0f4fa;    /* 次级表面，带蓝调 */
-  --color-text:         #1a2233;    /* 文字略偏蓝 */
-  --color-text-muted:   #5a6b85;    /* 次级文字 */
-  --color-border:       #e1e8f0;    /* 边框带蓝调 */
-  --color-border-strong: #c8d3e0;   /* 强边框 */
-  --color-ring:         rgba(0, 178, 255, 0.5);  /* 焦点环跟随新 primary */
-
-  /* ============= 排版（Be Vietnam Pro + JetBrains Mono）============= */
-  --font-sans: "Be Vietnam Pro", "PingFang SC", "Microsoft YaHei", "微软雅黑", "Helvetica Neue", Helvetica, ui-sans-serif, system-ui, sans-serif;
+  /* ============= 排版 ============= */
+  --font-sans: "Be Vietnam Pro", "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Helvetica, ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", "SF Mono", Menlo, Consolas, ui-monospace, monospace;
 
   --text-xs:   0.75rem;   /* 12px */
@@ -119,51 +52,41 @@
   --text-2xl:  1.5rem;    /* 24px */
   --text-3xl:  1.875rem;  /* 30px */
   --text-4xl:  2.25rem;   /* 36px */
-  --text-9xl:  12rem;     /* 用于 404/500 大字 */
 
-  --leading-tight: 1.25;
-  --leading-snug:  1.375;
-  --leading-normal: 1.5;
-  --leading-relaxed: 1.625;
-
-  /* ============= 圆角（卡片圆角加大，更圆润对标夸克）============= */
-  --radius-sm:   0.375rem;  /* 6px */
-  --radius:      0.625rem;  /* 10px - 按钮 */
-  --radius-md:   1rem;      /* 16px - 卡片（原 12px 加大） */
-  --radius-lg:   1.25rem;   /* 20px */
-  --radius-xl:   1.5rem;    /* 24px */
-  --radius-2xl:  1.75rem;   /* 28px */
+  /* ============= 圆角(夸克风格:偏小偏锐) ============= */
+  --radius-xs:   0.25rem;  /* 4px - 标签/徽章 */
+  --radius-sm:   0.375rem;  /* 6px - 小按钮 */
+  --radius:      0.5rem;    /* 8px - 按钮/输入框 */
+  --radius-md:   0.75rem;   /* 12px - 卡片(夸克核心圆角) */
+  --radius-lg:   1rem;      /* 16px - 大卡片/弹窗 */
+  --radius-xl:   1.25rem;   /* 20px */
+  --radius-2xl:  1.5rem;    /* 24px */
   --radius-full:  9999px;
 
-  /* ============= 阴影（light：带品牌蓝调，增强卡片浮起感）============= */
-  --shadow-xs: 0 1px 2px 0 rgb(0 90 200 / 0.05);
-  --shadow-sm: 0 1px 3px 0 rgb(0 90 200 / 0.08), 0 1px 2px -1px rgb(0 90 200 / 0.06);
-  --shadow:    0 4px 12px -2px rgb(0 90 200 / 0.10), 0 2px 4px -2px rgb(0 90 200 / 0.05);
-  --shadow-lg: 0 12px 32px -8px rgb(0 90 200 / 0.14), 0 4px 8px -4px rgb(0 90 200 / 0.08);
-  --shadow-xl: 0 24px 48px -12px rgb(0 90 200 / 0.18);
-  --shadow-2xl: 0 48px 96px -12px rgb(0 90 200 / 0.22);
+  /* ============= 阴影(夸克风格:轻量化,偏平面) ============= */
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-sm: 0 1px 4px 0 rgb(0 0 0 / 0.06);
+  --shadow:    0 4px 16px 0 rgb(0 0 0 / 0.08);
+  --shadow-lg: 0 8px 32px 0 rgb(0 0 0 / 0.10);
+  --shadow-xl: 0 16px 48px 0 rgb(0 0 0 / 0.12);
 
-  /* ============= 动效（引入弹性缓动，更活泼）============= */
+  /* ============= 动效(夸克风格:轻快) ============= */
   --ease:        cubic-bezier(0.4, 0, 0.2, 1);
   --ease-out:    cubic-bezier(0, 0, 0.2, 1);
   --ease-in:     cubic-bezier(0.4, 0, 1, 1);
-  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);  /* 弹性缓动，活泼感 */
-  --dur-fast:    150ms;
-  --dur-base:    220ms;    /* 原 240ms，略减更柔和 */
-  --dur-slow:    400ms;
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast:    100ms;
+  --dur-base:    200ms;    /* 夸克标准 */
+  --dur-slow:    350ms;
 
   /* ============= 布局尺寸 ============= */
-  --header-h:           64px;
-  --navbar-w:           240px;
-  --navbar-w-collapsed: 64px;
+  --header-h:           48px;   /* 夸克标准顶栏高度 */
+  --header-h-lg:        56px;
+  --navbar-w:           200px;  /* 夸克标准侧栏宽度 */
+  --navbar-w-collapsed: 56px;
   --content-max-w:      1600px;
-  --gutter:             24px;
+  --gutter:            24px;
   --container-padding:   16px;
-
-  /* ============= 缩略图尺寸（网格/画廊视图，对标夸克大卡片）============= */
-  --thumb-size-list:    40px;    /* 列表视图图标（原 32px） */
-  --thumb-size-grid:    180px;   /* 网格视图缩略图（原 120px） */
-  --thumb-size-gallery: 320px;   /* 画廊视图大图（原 240px） */
 
   /* ============= Z 轴层级 ============= */
   --z-dropdown: 1000;
@@ -174,35 +97,73 @@
   --z-tooltip:  1500;
 }
 
-/* ============= 暗色主题（深蓝黑 + surface-container 分层，对标夸克暗色）============= */
+/* ============= 语义令牌(亮色主题) — 夸克风格:纯灰系 ============= */
+:root {
+  /* 背景色系(无蓝调) */
+  --color-bg:             #f8fafc;  /* 更亮的背景 */
+  --color-surface:        #ffffff;   /* 卡片:纯白 */
+  --color-surface-2:       #f8f8f8;  /* 次级表面:极浅灰 */
+  --color-surface-3:       #f0f0f0;  /* 三级表面 */
+
+  /* 文字色系 */
+  --color-text:           #1d1d1f;   /* 夸克主文字:近黑 */
+  --color-text-secondary: #646466;    /* 次级文字 */
+  --color-text-muted:     #86868b;   /* 辅助文字 */
+  --color-text-disabled:  #b2b2b2;   /* 禁用文字 */
+
+  /* 边框色系 */
+  --color-border:         #ebebeb;   /* 夸克标准边框:浅灰 */
+  --color-border-strong:  #d9d9d9;   /* 强边框 */
+  --color-border-focus:   #00a3ff;   /* 聚焦边框 */
+
+  /* 交互态 */
+  --color-hover:          rgba(0, 0, 0, 0.04);
+  --color-active:         rgba(0, 0, 0, 0.08);
+  --color-selected:        rgba(0, 113, 227, 0.08); /* 夸克选中:极淡蓝底 */
+  --color-ring:           rgba(0, 113, 227, 0.3);  /* 夸克焦点环 */
+
+  /* 状态色 */
+  --color-success-bg:     rgba(52, 199, 89, 0.1);
+  --color-warning-bg:    rgba(255, 149, 0, 0.1);
+  --color-danger-bg:     rgba(255, 59, 48, 0.1);
+
+  /* 配额三色阈值 */
+  --color-quota-normal:   #00a3ff;
+  --color-quota-warning:  #ff9500;
+  --color-quota-danger:   #ff3b30;
+}
+
+/* ============= 暗色主题 — 夸克暗色:纯黑+灰白 ============= */
 .dark {
-  /* 语义令牌 —— 深蓝黑系，比纯黑更有层次 */
-  --color-bg:           #0a1929;   /* 深蓝黑背景（原纯黑 #000000） */
-  --color-surface:      #102a43;   /* 卡片/侧栏 */
-  --color-surface-2:    #1a3a5c;   /* hover/次级容器 */
-  --color-text:         #e6edf5;   /* 主文字 */
-  --color-text-muted:   #8ba3c0;   /* 次级文字 */
-  --color-border:       #1e3a5f;   /* 边框 */
-  --color-border-strong: #2d4a6f;  /* 强边框 */
-  --color-ring:         rgba(0, 178, 255, 0.6);  /* 暗色下焦点环略亮 */
+  /* 背景色系 */
+  --color-bg:             #111111;   /* 夸克暗色主背景:纯黑 */
+  --color-surface:        #1d1d1f;   /* 卡片:近黑 */
+  --color-surface-2:      #262629;   /* 次级表面 */
+  --color-surface-3:      #2c2c2f;   /* 三级表面 */
 
-  /* surface-container 色阶（深蓝黑系） */
-  --color-surface-container-lowest: #0a1929;
-  --color-surface-container-low: #0f2238;
-  --color-surface-container: #122a45;
-  --color-surface-container-high: #1a3a5c;
-  --color-surface-container-highest: #234a6f;
+  /* 文字色系 */
+  --color-text:           #f5f5f7;   /* 主文字:近白 */
+  --color-text-secondary: #a1a1a6;   /* 次级文字 */
+  --color-text-muted:     #86868b;   /* 辅助文字 */
+  --color-text-disabled:  #48484a;   /* 禁用文字 */
 
-  /* 暗色下品牌色略亮，保证对比度 */
-  --color-primary-400: #4dd3ff;
-  --color-primary-500: #1ac8ff;  /* 暗色下用 400 档亮度 */
+  /* 边框色系 */
+  --color-border:         #38383a;   /* 夸克暗色边框 */
+  --color-border-strong:  #48484a;   /* 强边框 */
+  --color-border-focus:   #00a3ff;
 
-  /* 暗色下阴影带蓝调，但更重以建立深度 */
-  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.4);
-  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.5), 0 1px 2px -1px rgb(0 0 0 / 0.4);
-  --shadow:    0 4px 12px -2px rgb(0 0 0 / 0.6), 0 2px 4px -2px rgb(0 0 0 / 0.4);
-  --shadow-lg: 0 12px 32px -8px rgb(0 0 0 / 0.7), 0 4px 8px -4px rgb(0 0 0 / 0.5);
-  --shadow-xl: 0 24px 48px -12px rgb(0 0 0 / 0.8);
+  /* 交互态 */
+  --color-hover:          rgba(255, 255, 255, 0.04);
+  --color-active:         rgba(255, 255, 255, 0.08);
+  --color-selected:       rgba(0, 113, 227, 0.15); /* 暗色选中:稍浓 */
+  --color-ring:           rgba(0, 113, 227, 0.4);
+
+  /* 暗色阴影(更重以建立层次感) */
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+  --shadow-sm: 0 1px 4px 0 rgb(0 0 0 / 0.4);
+  --shadow:    0 4px 16px 0 rgb(0 0 0 / 0.5);
+  --shadow-lg: 0 8px 32px 0 rgb(0 0 0 / 0.6);
+  --shadow-xl: 0 16px 48px 0 rgb(0 0 0 / 0.7);
 }
 
 /* ============= 全局基础 ============= */
@@ -221,7 +182,6 @@ html, body, #app {
 body {
   font-family: var(--font-sans);
   font-size: var(--text-sm);
-  line-height: var(--leading-normal);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -229,73 +189,56 @@ body {
   color: var(--color-text);
 }
 
-/* 数字等宽（文件大小/百分比/计数） */
+/* 数字等宽 */
 .tabular-nums {
   font-variant-numeric: tabular-nums;
 }
 
 /* 滚动条美化 */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
   background: var(--color-border-strong);
-  border-radius: 4px;
+  border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-text-muted);
+  background: var(--color-text-disabled);
 }
 
 /* 选区 */
 ::selection {
-  background: var(--color-primary-200);
-  color: var(--color-primary-900);
+  background: rgba(0, 163, 255, 0.2);
+  color: var(--color-text);
 }
 .dark ::selection {
-  background: var(--color-primary-800);
-  color: var(--color-primary-100);
+  background: rgba(0, 163, 255, 0.3);
 }
 
-/* 焦点环（键盘用户） */
+/* 焦点环 */
 a:focus-visible,
 button:focus-visible,
-[tabindex]:focus-visible,
-.rp-tooltip:focus-visible {
+[tabindex]:focus-visible {
   outline: 2px solid var(--color-ring);
   outline-offset: 2px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-xs);
 }
 
-/* 路由过渡动画 */
+/* 路由过渡 */
 .route-fade-enter-active,
 .route-fade-leave-active {
-  transition: opacity var(--dur-base) var(--ease),
-              transform var(--dur-base) var(--ease);
+  transition: opacity var(--dur-base) var(--ease);
 }
-.route-fade-enter-from {
-  opacity: 0;
-  transform: translateY(4px);
-}
+.route-fade-enter-from,
 .route-fade-leave-to {
   opacity: 0;
-  transform: translateY(-4px);
 }
 
-/* 抽屉滑入动画 */
-.drawer-enter-active,
-.drawer-leave-active {
-  transition: transform var(--dur-base) var(--ease-out);
-}
-.drawer-enter-from,
-.drawer-leave-to {
-  transform: translateX(-100%);
-}
-
-/* 弹窗缩放动画（使用弹性缓动） */
+/* 弹窗缩放动画 */
 .modal-enter-active,
 .modal-leave-active {
   transition: opacity var(--dur-base) var(--ease),
@@ -307,22 +250,30 @@ button:focus-visible,
   transform: scale(0.96);
 }
 
-/* Toast 上滑动画 */
+/* 抽屉滑入 */
+.drawer-enter-active,
+.drawer-leave-active {
+  transition: transform var(--dur-base) var(--ease-out);
+}
+.drawer-enter-from,
+.drawer-leave-to {
+  transform: translateX(-100%);
+}
+
+/* Toast */
 .toast-enter-active {
   transition: opacity var(--dur-fast) var(--ease-out),
               transform var(--dur-fast) var(--ease-spring);
 }
 .toast-leave-active {
-  transition: opacity var(--dur-fast) var(--ease-in),
-              transform var(--dur-fast) var(--ease-in);
+  transition: opacity var(--dur-fast) var(--ease-in);
 }
 .toast-enter-from {
   opacity: 0;
-  transform: translateY(-12px) scale(0.96);
+  transform: translateY(-8px) scale(0.96);
 }
 .toast-leave-to {
   opacity: 0;
-  transform: translateY(-8px) scale(0.98);
 }
 
 /* 尊重 prefers-reduced-motion */
@@ -335,19 +286,90 @@ button:focus-visible,
   }
 }
 
-/* Glass panel 效果（跟随新色系） */
-.glass-panel {
-  background: rgba(247, 249, 252, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(193, 211, 224, 0.2);
-}
-.dark .glass-panel {
-  background: rgba(10, 25, 41, 0.7);
-  border: 1px solid rgba(45, 74, 111, 0.2);
+/* ============= 夸克风格工具类 ============= */
+
+/* 夸克式卡片 */
+.quark-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border);
 }
 
-/* 存储配额三色阈值 */
-.quota-primary { color: var(--color-primary-500); }
-.quota-warning { color: var(--color-warning); }
-.quota-danger { color: var(--color-danger); }
+/* 夸克式选中行 */
+.quark-row-selected {
+  background-color: var(--color-selected) !important;
+  color: var(--color-primary-500); /* 夸克:选中行蓝色字 */
+}
+
+/* 夸克式悬停 */
+.quark-row-hover:hover {
+  background-color: var(--color-hover);
+}
+
+/* 夸克式危险按钮 */
+.quark-btn-danger {
+  background-color: var(--color-danger);
+  color: white;
+  border-radius: var(--radius);
+  transition: opacity var(--dur-fast) var(--ease);
+}
+.quark-btn-danger:hover {
+  opacity: 0.85;
+}
+
+/* 夸克式配额进度条 */
+.quark-quota-bar {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-border);
+  overflow: hidden;
+}
+.quark-quota-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width var(--dur-slow) var(--ease);
+}
+
+/* 夸克式玻璃面板 */
+.quark-glass {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+.dark .quark-glass {
+  background: rgba(29, 29, 31, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* 夸克式标签/徽章 */
+.quark-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 8px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: var(--radius-full);
+  background: var(--color-surface-2);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+}
+.quark-badge-primary {
+  background: rgba(0, 163, 255, 0.1);
+  color: var(--color-primary-500);
+  border-color: rgba(0, 163, 255, 0.2);
+}
+.quark-badge-success {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+.quark-badge-warning {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+.quark-badge-danger {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}

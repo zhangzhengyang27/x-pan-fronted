@@ -18,7 +18,7 @@
         <!-- 主题切换 -->
         <button
           type="button"
-          class="size-9 rounded-lg flex items-center justify-center transition-colors text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-2)]"
+          class="size-9 rounded-sm flex items-center justify-center transition-colors text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-2)]"
           :aria-label="theme.isDark ? '切换为浅色' : '切换为深色'"
           @click="theme.toggle"
         >

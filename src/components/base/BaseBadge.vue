@@ -29,7 +29,7 @@ const sizeClass = {
   <span
     :class="
       cn(
-        'inline-flex items-center gap-1 rounded-md font-medium',
+        'inline-flex items-center gap-1 rounded-sm font-medium',
         variantClass[variant],
         sizeClass[size]
       )

@@ -89,12 +89,12 @@ function fileTypeIcon(f: ExtractedFile) {
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
         @click.self="close"
       >
-        <div class="w-[520px] max-w-[90vw] rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-xl">
+        <div class="w-[520px] max-w-[90vw] rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] shadow-xl">
           <!-- 头部 -->
           <div class="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)]">
             <div class="flex items-center gap-3">
               <div
-                class="size-9 rounded-lg flex items-center justify-center"
+                class="size-9 rounded-sm flex items-center justify-center"
                 style="background: rgba(0, 178, 255, 0.1);"
               >
                 <FileArchive :size="18" class="text-[var(--color-primary-500)]" />
@@ -105,7 +105,7 @@ function fileTypeIcon(f: ExtractedFile) {
               </div>
             </div>
             <button
-              class="p-1.5 rounded-md hover:bg-[var(--color-surface-container-low)] text-[var(--color-text-muted)]"
+              class="p-1.5 rounded-sm hover:bg-[var(--color-surface-container-low)] text-[var(--color-text-muted)]"
               @click="close"
             >
               <X :size="16" />
@@ -133,7 +133,7 @@ function fileTypeIcon(f: ExtractedFile) {
                 <CheckCircle2 :size="16" class="text-green-500" />
                 <span class="text-sm text-[var(--color-text)]">解压完成，共 {{ files.length }} 个文件</span>
               </div>
-              <div class="max-h-[280px] overflow-y-auto rounded-lg border border-[var(--color-border)]">
+              <div class="max-h-[280px] overflow-y-auto rounded-sm border border-[var(--color-border)]">
                 <div
                   v-for="(f, i) in files"
                   :key="i"
@@ -155,13 +155,13 @@ function fileTypeIcon(f: ExtractedFile) {
           <!-- 底部操作 -->
           <div v-if="status === 'done'" class="flex justify-end gap-2 px-5 py-4 border-t border-[var(--color-border)]">
             <button
-              class="px-4 py-1.5 rounded-md text-sm text-[var(--color-text-muted)] hover:bg-[var(--color-surface-container-low)]"
+              class="px-4 py-1.5 rounded-sm text-sm text-[var(--color-text-muted)] hover:bg-[var(--color-surface-container-low)]"
               @click="close"
             >
               关闭
             </button>
             <button
-              class="px-4 py-1.5 rounded-md text-sm text-white"
+              class="px-4 py-1.5 rounded-sm text-sm text-white"
               style="background: var(--color-primary-500);"
               @click="saveAll"
             >

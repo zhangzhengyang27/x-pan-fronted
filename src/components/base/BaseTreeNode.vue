@@ -26,7 +26,7 @@ function onToggle(node) {
     <div
       :class="
         cn(
-          'flex items-center gap-1.5 py-1 px-2 rounded-md cursor-pointer text-sm transition-colors',
+          'flex items-center gap-1.5 py-1 px-2 rounded-sm cursor-pointer text-sm transition-colors',
           'hover:bg-[var(--color-surface-2)]',
           selected && 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)]',
           selected && 'dark:bg-[var(--color-primary-900)]/30 dark:text-[var(--color-primary-300)]'

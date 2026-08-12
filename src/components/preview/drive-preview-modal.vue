@@ -130,7 +130,7 @@ function handleGalleryIndex(i) {
     @update:open="(v) => !v && close()"
   >
     <div
-      class="drive-preview-body rounded-md overflow-hidden border border-[var(--color-border)]"
+      class="drive-preview-body rounded-sm overflow-hidden border border-[var(--color-border)]"
       :style="{ height: contentHeight }"
     >
       <div v-if="urlLoading" class="flex h-full items-center justify-center">

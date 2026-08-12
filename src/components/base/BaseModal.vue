@@ -1,11 +1,7 @@
 <script setup lang="ts">
 /**
- * BaseModal —— Teleport 到 body 的模态对话框
- * 设计规范：G 设计风格
- * - 基于原生 <dialog> 元素（自带焦点陷阱、ESC、滚动锁）
- * - 支持 v-model:open
- * - 支持 size: sm | md | lg | xl
- * - 支持 title、footer 插槽
+ * BaseModal —— 模态对话框（夸克风格）
+ * 基于原生 <dialog> + Teleport
  */
 import { watch, ref, nextTick } from 'vue'
 import { X } from '@lucide/vue'
@@ -28,7 +24,8 @@ const sizeClass = {
   sm: 'max-w-sm',
   md: 'max-w-md',
   lg: 'max-w-lg',
-  xl: 'max-w-2xl'
+  xl: 'max-w-2xl',
+  full: 'max-w-[92vw]'
 }
 
 watch(
@@ -51,10 +48,7 @@ function onBackdrop(e) {
 }
 
 function onCancel(e) {
-  if (!props.closeOnEsc) {
-    e.preventDefault()
-    return
-  }
+  if (!props.closeOnEsc) { e.preventDefault(); return }
   onClose()
 }
 </script>
@@ -65,10 +59,12 @@ function onCancel(e) {
       ref="dialogRef"
       :class="
         cn(
-          'm-auto p-0 rounded-2xl text-[var(--color-text)]',
+          'm-auto p-0 text-[var(--color-text)]',
+          'rounded-xl',
           'shadow-xl',
           'w-[92vw]',
           'bg-[var(--color-surface)] border border-[var(--color-border)]',
+          'overflow-visible',
           sizeClass[size]
         )
       "
@@ -76,26 +72,30 @@ function onCancel(e) {
       @cancel="onCancel"
       @close="emit('update:open', false)"
     >
+      <!-- 头部 -->
       <div
+        v-if="title || !hideClose"
         class="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)]"
       >
-        <h2 class="text-base font-semibold m-0">{{ title }}</h2>
+        <h2 class="text-sm font-semibold m-0 text-[var(--color-text)]">{{ title }}</h2>
         <button
           v-if="!hideClose"
           type="button"
-          class="rounded-md p-1 transition-colors text-[var(--color-text-muted)] hover:bg-[var(--color-surface-2)]"
+          class="size-7 rounded-sm flex items-center justify-center text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-hover)] transition-colors"
           aria-label="关闭"
           @click="onClose"
         >
-          <X :size="18" :stroke-width="2" />
+          <X :size="16" :stroke-width="2" />
         </button>
       </div>
+      <!-- 内容 -->
       <div class="px-5 py-4 max-h-[70vh] overflow-y-auto">
         <slot />
       </div>
+      <!-- 底部 -->
       <div
         v-if="$slots.footer"
-        class="px-5 py-3 flex items-center justify-end gap-2 rounded-b-2xl border-t border-[var(--color-border)] bg-[var(--color-surface-2)]"
+        class="px-5 py-3 flex items-center justify-end gap-2 rounded-b-xl border-t border-[var(--color-border)] bg-[var(--color-surface-2)]"
       >
         <slot name="footer" />
       </div>

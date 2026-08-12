@@ -1,7 +1,6 @@
 <script setup lang="ts">
 /**
- * BaseInput —— 受控输入框
- * 设计规范：G 设计风格
+ * BaseInput —— 受控输入框（夸克风格）
  */
 import { computed, ref } from 'vue'
 import { X, Eye, EyeOff } from '@lucide/vue'
@@ -38,21 +37,15 @@ const sizeClass = computed(
   () => ({
     sm: 'h-8 text-xs',
     md: 'h-9 text-sm',
-    lg: 'h-11 text-base'
+    lg: 'h-10 text-base'
   })[props.size]
 )
 
-const padClass = computed(() => {
-  const left = props.prefix || showPwBtn.value ? 'pl-3' : 'pl-3'
-  const right = props.suffix || showClearBtn.value || showPwBtn.value ? 'pr-3' : 'pr-3'
-  return `${left} ${right}`
-})
-
 const wrapperClass = computed(() => {
-  const base = 'group relative flex items-center w-full rounded-lg border bg-transparent transition-colors duration-150'
+  const base = 'group relative flex items-center w-full rounded-sm border bg-transparent transition-colors duration-100'
   const errorClass = props.error
-    ? 'border-[var(--color-danger)] focus-within:ring-2 focus-within:ring-[var(--color-danger)]'
-    : 'border-[var(--color-border)] hover:border-[var(--color-border-strong)] focus-within:border-[var(--color-primary-500)] focus-within:ring-2 focus-within:ring-[var(--color-ring)] focus-within:ring-offset-1'
+    ? 'border-[var(--color-danger)] focus-within:ring-2 focus-within:ring-[var(--color-danger)]/20'
+    : 'border-[var(--color-border)] hover:border-[var(--color-border-strong)] focus-within:border-[var(--color-border-focus)] focus-within:ring-2 focus-within:ring-[var(--color-ring)]/20'
   const disabledClass = props.disabled ? 'opacity-50 cursor-not-allowed' : ''
   return `${base} ${errorClass} ${disabledClass}`
 })
@@ -60,7 +53,9 @@ const wrapperClass = computed(() => {
 const inputClass = computed(() => {
   const base = 'flex-1 min-w-0 bg-transparent outline-none transition-colors text-[var(--color-text)] placeholder-[var(--color-text-muted)]'
   const disabledClass = props.disabled ? 'cursor-not-allowed' : ''
-  return `${base} ${sizeClass.value} ${padClass.value} ${disabledClass}`
+  const padLeft = props.prefix || showPwBtn.value ? 'pl-3' : 'pl-3'
+  const padRight = showClearBtn.value || showPwBtn.value ? 'pr-3' : 'pr-3'
+  return `${base} ${sizeClass.value} ${padLeft} ${padRight} ${disabledClass}`
 })
 
 function onInput(e) {
@@ -77,11 +72,8 @@ function onKeydown(e) {
 
 <template>
   <div :class="wrapperClass">
-    <span
-      v-if="prefix"
-      class="shrink-0 flex items-center pl-3 transition-colors"
-    >
-      <component :is="prefix" :size="18" :stroke-width="2" class="text-[var(--color-text-muted)] group-focus-within:text-[var(--color-primary-500)]" />
+    <span v-if="prefix" class="shrink-0 flex items-center pl-3 transition-colors">
+      <component :is="prefix" :size="16" :stroke-width="2" class="text-[var(--color-text-muted)]" />
     </span>
 
     <input
@@ -97,30 +89,30 @@ function onKeydown(e) {
       @keydown="onKeydown"
     />
 
-    <span v-if="showClearBtn" class="flex items-center gap-0.5 shrink-0 pr-1.5">
+    <span v-if="showClearBtn" class="shrink-0 flex items-center pr-2">
       <button
         type="button"
-        class="size-6 flex items-center justify-center rounded transition-colors text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+        class="size-5 flex items-center justify-center rounded text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
         aria-label="清除"
         @click="onClear"
       >
-        <X :size="14" :stroke-width="2" />
+        <X :size="13" :stroke-width="2" />
       </button>
     </span>
 
-    <span v-if="showPwBtn" class="flex items-center gap-0.5 shrink-0 pr-1.5">
+    <span v-else-if="showPwBtn" class="shrink-0 flex items-center pr-2">
       <button
         type="button"
-        class="size-6 flex items-center justify-center rounded transition-colors text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+        class="size-5 flex items-center justify-center rounded text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
         :aria-label="showPw ? '隐藏密码' : '显示密码'"
         @click="showPw = !showPw"
       >
-        <component :is="showPw ? EyeOff : Eye" :size="14" :stroke-width="2" />
+        <component :is="showPw ? EyeOff : Eye" :size="13" :stroke-width="2" />
       </button>
     </span>
 
     <span v-else-if="suffix" class="shrink-0 flex items-center pr-3">
-      <component :is="suffix" :size="18" :stroke-width="2" class="text-[var(--color-text-muted)]" />
+      <component :is="suffix" :size="16" :stroke-width="2" class="text-[var(--color-text-muted)]" />
     </span>
   </div>
 </template>

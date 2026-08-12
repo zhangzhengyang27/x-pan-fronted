@@ -37,7 +37,7 @@ const goBack = () => window.history.back()
 
       <!-- Glass Panel 卡片 -->
       <div
-        class="rounded-xl p-8 relative z-10 w-full max-w-md mx-auto transform hover:scale-[1.01] transition-transform duration-300"
+        class="rounded-sm p-8 relative z-10 w-full max-w-md mx-auto transform hover:scale-[1.01] transition-transform duration-300"
         style="background: var(--color-surface-container-low); border: 1px solid var(--color-border);"
       >
         <div
@@ -58,7 +58,7 @@ const goBack = () => window.history.back()
         <div class="flex flex-col sm:flex-row gap-4 justify-center">
           <button
             type="button"
-            class="flex items-center justify-center gap-2 py-3 px-6 rounded-lg text-sm font-medium transition-colors border border-[var(--color-border)] bg-[var(--color-surface-2)] text-[var(--color-text)] hover:bg-[var(--color-surface-container-high)]"
+            class="flex items-center justify-center gap-2 py-3 px-6 rounded-sm text-sm font-medium transition-colors border border-[var(--color-border)] bg-[var(--color-surface-2)] text-[var(--color-text)] hover:bg-[var(--color-surface-container-high)]"
             @click="goBack"
           >
             <ArrowLeft :size="18" :stroke-width="2" />
@@ -67,7 +67,7 @@ const goBack = () => window.history.back()
 
           <button
             type="button"
-            class="flex items-center justify-center gap-2 py-3 px-6 rounded-lg text-sm font-medium transition-colors bg-[var(--color-primary-500)] text-white hover:opacity-90"
+            class="flex items-center justify-center gap-2 py-3 px-6 rounded-sm text-sm font-medium transition-colors bg-[var(--color-primary-500)] text-white hover:opacity-90"
             @click="goHome"
           >
             <Home :size="18" :stroke-width="2" />

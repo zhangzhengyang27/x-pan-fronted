@@ -180,7 +180,7 @@ onBeforeUnmount(() => {
         <button
           v-if="items.length > 1"
           type="button"
-          class="size-9 rounded-lg hover:bg-white/10 flex items-center justify-center"
+          class="size-9 rounded-sm hover:bg-white/10 flex items-center justify-center"
           :aria-label="isPlaying ? '暂停' : '播放'"
           :title="isPlaying ? '暂停 (空格)' : '播放 (空格)'"
           @click="toggleSlideshow"
@@ -190,7 +190,7 @@ onBeforeUnmount(() => {
         </button>
         <button
           type="button"
-          class="size-9 rounded-lg hover:bg-white/10 flex items-center justify-center"
+          class="size-9 rounded-sm hover:bg-white/10 flex items-center justify-center"
           aria-label="缩小"
           @click="zoomOut"
         >
@@ -201,7 +201,7 @@ onBeforeUnmount(() => {
         >
         <button
           type="button"
-          class="size-9 rounded-lg hover:bg-white/10 flex items-center justify-center"
+          class="size-9 rounded-sm hover:bg-white/10 flex items-center justify-center"
           aria-label="放大"
           @click="zoomIn"
         >
@@ -209,7 +209,7 @@ onBeforeUnmount(() => {
         </button>
         <button
           type="button"
-          class="size-9 rounded-lg hover:bg-white/10 flex items-center justify-center"
+          class="size-9 rounded-sm hover:bg-white/10 flex items-center justify-center"
           aria-label="旋转"
           @click="rotate"
         >
@@ -217,7 +217,7 @@ onBeforeUnmount(() => {
         </button>
         <button
           type="button"
-          class="size-9 rounded-lg hover:bg-white/10 flex items-center justify-center"
+          class="size-9 rounded-sm hover:bg-white/10 flex items-center justify-center"
           aria-label="下载"
           @click="download"
         >
@@ -225,7 +225,7 @@ onBeforeUnmount(() => {
         </button>
         <button
           type="button"
-          class="size-9 rounded-lg hover:bg-white/10 flex items-center justify-center"
+          class="size-9 rounded-sm hover:bg-white/10 flex items-center justify-center"
           aria-label="关闭"
           @click="close"
         >
@@ -274,7 +274,7 @@ onBeforeUnmount(() => {
         v-for="(it, i) in items"
         :key="it.fileId"
         type="button"
-        class="shrink-0 h-20 w-20 rounded-lg overflow-hidden border-2 transition-all"
+        class="shrink-0 h-20 w-20 rounded-sm overflow-hidden border-2 transition-all"
         :class="
           i === activeIndex
             ? 'border-[var(--color-primary-400)] opacity-100 scale-105'

@@ -1,0 +1,670 @@
+<script setup lang="ts">
+/**
+ * FileDetailPanel —— 右侧文件详情面板
+ * 参考夸克/迅雷风格:
+ * - 选中文件时滑入,取消选中时滑出
+ * - 文件预览大图/图标 + 文件名
+ * - 快捷操作按钮组
+ * - 文件元信息(大小/类型/位置/创建时间/修改时间)
+ * - 标签(来自 useFileTags)
+ */
+import { computed, ref, watch } from 'vue'
+import {
+  X,
+  Download,
+  Share2,
+  Trash2,
+  Edit3,
+  Copy,
+  FolderInput,
+  History,
+  Star,
+  Tag,
+  Shield,
+  ExternalLink,
+  LoaderCircle,
+  Sparkles,
+  FileArchive,
+  File
+} from '@lucide/vue'
+import FileThumbnail from '@/components/file-table/FileThumbnail.vue'
+import BaseButton from '@/components/base/BaseButton.vue'
+import BaseTooltip from '@/components/base/BaseTooltip.vue'
+import BaseInput from '@/components/base/BaseInput.vue'
+import DrivePreviewModal from '@/components/preview/drive-preview-modal.vue'
+import FileHistoryPanel from '@/components/file-table/FileHistoryPanel.vue'
+import FolderPickerDialog from '@/components/base/FolderPickerDialog.vue'
+import ExtractDialog from '@/components/base/ExtractDialog.vue'
+import { useFileTags } from '@/composables/useFileTags'
+import { useDrivePreview } from '@/composables/useDrivePreview'
+import { useFavorites } from '@/composables/useFavorites'
+import { useRouter } from 'vue-router'
+import fileService from '@/api/file'
+import shareService from '@/api/share'
+import vaultService from '@/api/vault'
+import panUtil from '@/utils/common'
+import { getDownloadUrl } from '@/utils/preview'
+import { ElMessage, ElMessageBox } from '@/composables/useToast'
+import QRCode from 'qrcode'
+
+const props = defineProps<{
+  file: Record<string, any> | null
+  open: boolean
+}>()
+
+const emit = defineEmits<{
+  (e: 'update:open', v: boolean): void
+  (e: 'close'): void
+  (e: 'refresh'): void
+}>()
+
+const router = useRouter()
+const { isFavorite, toggle: toggleFavorite } = useFavorites()
+const { loading: tagLoading, autoTag, getTags, addTag, removeTag, userTags } = useFileTags()
+
+// ─── 文件预览 ──────────────────────────────────────────────────────────────
+const preview = useDrivePreview(() => (props.file ? [props.file] : []))
+
+function openPreview() {
+  if (!props.file || props.file.fileType === 0) return
+  const opened = preview.openPreview(props.file)
+  if (!opened) {
+    // fallback: 新窗口预览
+    const fid = panUtil.handleId(props.file.fileId)
+    const typeMap: Record<number, string> = {
+      7: '/preview/image',
+      8: '/preview/music',
+      9: '/preview/video',
+      3: '/preview/office',
+      4: '/preview/office',
+      10: '/preview/office',
+      11: '/preview/code'
+    }
+    const path = typeMap[props.file.fileType] || '/preview/iframe'
+    const { href } = router.resolve({
+      path,
+      name: `Preview${props.file.fileType === 7 ? 'Image' : props.file.fileType === 8 ? 'Music' : props.file.fileType === 9 ? 'Video' : props.file.fileType === 11 ? 'Code' : 'Office'}`,
+      params: { fileId: fid }
+    })
+    window.open(href, '_blank')
+  }
+}
+
+// ─── 下载 ──────────────────────────────────────────────────────────────────
+function download() {
+  if (!props.file) return
+  const url = getDownloadUrl(props.file.fileId)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = props.file.filename || ''
+  a.target = '_blank'
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+}
+
+// ─── 分享 ──────────────────────────────────────────────────────────────────
+const shareLoading = ref(false)
+
+async function share() {
+  if (!props.file) return
+  shareLoading.value = true
+  try {
+    await new Promise<void>((resolve, reject) => {
+      shareService.createShare(
+        { fileId: props.file!.fileId },
+        (res) => {
+          const shareId = res.data?.shareId || res.data
+          const url = window.location.origin + '/share/' + shareId
+          showQRModal(url, props.file!.filename)
+          resolve()
+        },
+        () => {
+          ElMessage.error('创建分享失败')
+          reject(new Error())
+        }
+      )
+    })
+  } finally {
+    shareLoading.value = false
+  }
+}
+
+async function showQRModal(url: string, title: string) {
+  try {
+    const qrDataUrl = await QRCode.toDataURL(url, { width: 220, margin: 2 })
+    const modal = document.createElement('div')
+    modal.style.cssText =
+      'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);'
+    modal.innerHTML = `
+      <div style="background:var(--color-surface);border-radius:20px;padding:28px;max-width:340px;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,0.25);width:90%;">
+        <p style="font-size:16px;font-weight:600;margin:0 0 4px;color:var(--color-text);">${title}</p>
+        <p style="font-size:12px;color:var(--color-text-muted);margin:0 0 20px;">扫码获取分享链接</p>
+        <img src="${qrDataUrl}" width="220" height="220" style="border-radius:12px;display:block;margin:0 auto;" />
+        <p style="font-size:11px;color:var(--color-text-muted);margin:16px 0 0;word-break:break-all;line-height:1.5;">${url}</p>
+        <button style="margin-top:20px;padding:10px 32px;background:var(--color-primary-500);color:#fff;border:none;border-radius:12px;cursor:pointer;font-size:14px;font-weight:500;">关闭</button>
+      </div>
+    `
+    modal.querySelector('button')!.onclick = () => modal.remove()
+    modal.onclick = (e) => { if (e.target === modal) modal.remove() }
+    document.body.appendChild(modal)
+  } catch {
+    ElMessage.error('二维码生成失败')
+  }
+}
+
+// ─── 重命名 ─────────────────────────────────────────────────────────────────
+async function rename() {
+  if (!props.file) return
+  const oldName = props.file.filename || ''
+  try {
+    const { value: newName } = await ElMessageBox.prompt('请输入新的文件名', '重命名', {
+      inputValue: oldName,
+      inputValidator: (val) =>
+        (val && val.trim() && val !== oldName) || '文件名不能为空或与原名相同',
+      confirmButtonText: '确认',
+      cancelButtonText: '取消'
+    })
+    if (!newName) return
+    fileService.update(
+      { fileId: props.file.fileId, filename: newName.trim() },
+      () => {
+        ElMessage.success('重命名成功')
+        emit('refresh')
+      },
+      (err) => ElMessage.error(err.message)
+    )
+  } catch {
+    // 取消
+  }
+}
+
+// ─── 删除 ───────────────────────────────────────────────────────────────────
+async function deleteFile() {
+  if (!props.file) return
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除「${props.file.filename}」吗？删除后可从回收站恢复。`,
+      '确认删除',
+      { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' }
+    )
+  } catch {
+    return
+  }
+  fileService.delete(
+    { fileIds: props.file.fileId },
+    () => {
+      ElMessage.success('已删除')
+      emit('refresh')
+      emit('close')
+    },
+    (err) => ElMessage.error(err.message)
+  )
+}
+
+// ─── 移动/复制 ──────────────────────────────────────────────────────────────
+const moveDialog = ref({ open: false, mode: 'move' as 'move' | 'copy' })
+
+function openMove() {
+  moveDialog.value = { open: true, mode: 'move' }
+}
+function openCopy() {
+  moveDialog.value = { open: true, mode: 'copy' }
+}
+
+function onMoveComplete() {
+  ElMessage.success(moveDialog.value.mode === 'move' ? '已移动' : '已复制')
+  moveDialog.value.open = false
+  if (moveDialog.value.mode === 'copy') return
+  emit('refresh')
+  emit('close')
+}
+
+// ─── 移入保险箱 ────────────────────────────────────────────────────────────
+function moveToVault() {
+  if (!props.file) return
+  vaultService.move(
+    panUtil.handleId(props.file.fileId),
+    () => {
+      ElMessage.success('已移入保险箱')
+      emit('refresh')
+      emit('close')
+    },
+    (err) => ElMessage.error((err as { message?: string })?.message || '移入保险箱失败')
+  )
+}
+
+// ─── 历史版本 ──────────────────────────────────────────────────────────────
+const historyPanel = ref({ open: false, fileId: '' })
+
+function openHistory() {
+  if (!props.file) return
+  historyPanel.value = { open: true, fileId: panUtil.handleId(props.file.fileId) }
+}
+
+// ─── 智能打标 ───────────────────────────────────────────────────────────────
+const tagInput = ref('')
+
+async function handleAddTag() {
+  if (!props.file || !tagInput.value.trim()) return
+  await addTag(props.file.fileId, tagInput.value.trim())
+  tagInput.value = ''
+}
+
+async function handleAutoTag() {
+  if (!props.file || tagLoading.value) return
+  const tags = await autoTag(props.file)
+  if (tags.length === 0) {
+    ElMessage.info('未能生成标签')
+  } else {
+    ElMessage.success(`已生成 ${tags.length} 个标签：${tags.join('、')}`)
+  }
+}
+
+const fileTags = computed(() => {
+  if (!props.file) return []
+  return getTags(props.file.fileId)
+})
+
+// ─── 在线解压 ───────────────────────────────────────────────────────────────
+const extractDialog = ref({ open: false, fileId: '', filename: '' })
+const ARCHIVE_EXTS = ['.zip', '.rar', '.7z', '.tar', '.gz', '.bz2']
+
+function isArchive(file: Record<string, any>): boolean {
+  if (!file || file.fileType === 0) return false
+  const fn = (file.filename || '').toLowerCase()
+  return ARCHIVE_EXTS.some((ext) => fn.endsWith(ext))
+}
+
+function openExtract() {
+  if (!props.file) return
+  extractDialog.value = {
+    open: true,
+    fileId: panUtil.handleId(props.file.fileId),
+    filename: props.file.filename || ''
+  }
+}
+
+// ─── 文件元信息格式化 ─────────────────────────────────────────────────────
+const fileMeta = computed(() => {
+  if (!props.file) return null
+  const f = props.file
+  const typeMap: Record<number, string> = {
+    0: '文件夹',
+    2: '压缩包',
+    3: 'Excel',
+    4: 'Word',
+    5: 'PDF',
+    6: '其他文档',
+    7: '图片',
+    8: '音频',
+    9: '视频',
+    10: '演示文稿',
+    11: '代码文件'
+  }
+  const formatDate = (d: string) => {
+    if (!d) return '-'
+    try {
+      return new Date(d).toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    } catch {
+      return d
+    }
+  }
+  return {
+    type: typeMap[f.fileType] || '未知',
+    size: f.fileSizeDesc || panUtil.translateFileSize(f.fileSize || 0) || '-',
+    location: f.parentFilename || '根目录',
+    created: formatDate(f.createTime || f.createdAt || ''),
+    modified: formatDate(f.updateTime || f.updatedAt || '')
+  }
+})
+
+// ─── 打开所在位置 ──────────────────────────────────────────────────────────
+function openLocation() {
+  if (!props.file?.parentId) return
+  router.push({
+    path: '/files',
+    query: { openFolder: panUtil.handleId(props.file.parentId) }
+  })
+}
+
+// 监听文件变化,加载标签
+watch(
+  () => props.file,
+  (f) => {
+    if (f) {
+      // 确保加载标签
+    }
+  }
+)
+</script>
+
+<template>
+  <Transition name="detail-slide">
+    <aside
+      v-if="open && file"
+      class="flex flex-col h-full border-l border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden"
+      style="width: 320px; min-width: 320px;"
+    >
+      <!-- Header -->
+      <div class="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border)]">
+        <span class="text-sm font-semibold text-[var(--color-text)]">文件详情</span>
+        <button
+          type="button"
+          class="size-7 rounded-sm flex items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-2)] transition-colors"
+          @click="emit('close')"
+        >
+          <X :size="16" />
+        </button>
+      </div>
+
+      <!-- 滚动内容 -->
+      <div class="flex-1 overflow-y-auto">
+
+        <!-- 文件预览区 -->
+        <div class="flex flex-col items-center py-6 px-4 gap-3">
+          <!-- 点击放大预览 -->
+          <div
+            class="relative cursor-pointer group"
+            :class="file.fileType !== 0 ? 'hover:opacity-90' : 'cursor-default'"
+            @click="openPreview"
+          >
+            <FileThumbnail :file="file" :size="96" rounded="rounded-sm" />
+            <!-- 图片类型遮罩播放按钮 -->
+            <div
+              v-if="file.fileType === 7 || file.fileType === 9"
+              class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-sm bg-black/30"
+            >
+              <span class="size-10 rounded-full bg-white/90 flex items-center justify-center">
+                <ExternalLink :size="18" class="text-[var(--color-text)]" />
+              </span>
+            </div>
+          </div>
+
+          <!-- 文件名 -->
+          <div class="text-center w-full">
+            <p class="text-sm font-medium text-[var(--color-text)] break-all line-clamp-2 leading-snug">
+              {{ file.filename }}
+            </p>
+            <p class="text-xs text-[var(--color-text-muted)] mt-1 tabular-nums">
+              {{ fileMeta?.size }}
+            </p>
+          </div>
+
+          <!-- 收藏状态 -->
+          <button
+            type="button"
+            class="flex items-center gap-1.5 text-xs transition-colors"
+            :class="isFavorite(file.fileId) ? 'text-amber-500' : 'text-[var(--color-text-muted)] hover:text-amber-500'"
+            @click="toggleFavorite(file)"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              :fill="isFavorite(file.fileId) ? 'currentColor' : 'none'"
+              stroke="currentColor"
+              stroke-width="2"
+              class="size-3.5"
+            >
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </svg>
+            {{ isFavorite(file.fileId) ? '已收藏' : '收藏' }}
+          </button>
+        </div>
+
+        <!-- 操作按钮组 -->
+        <div class="px-4 pb-4">
+          <div class="grid grid-cols-4 gap-2">
+            <BaseTooltip text="下载" position="top">
+              <button
+                type="button"
+                class="flex flex-col items-center gap-1 py-2.5 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface-2)] hover:bg-[var(--color-surface-container-high)] transition-colors text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+                @click="download"
+              >
+                <Download :size="18" :stroke-width="1.75" />
+                <span class="text-[10px]">下载</span>
+              </button>
+            </BaseTooltip>
+
+            <BaseTooltip text="分享" position="top">
+              <button
+                type="button"
+                class="flex flex-col items-center gap-1 py-2.5 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface-2)] hover:bg-[var(--color-surface-container-high)] transition-colors text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+                :disabled="file.fileType === 0"
+                @click="share"
+              >
+                <LoaderCircle v-if="shareLoading" :size="18" class="animate-spin" />
+                <Share2 v-else :size="18" :stroke-width="1.75" />
+                <span class="text-[10px]">分享</span>
+              </button>
+            </BaseTooltip>
+
+            <BaseTooltip text="重命名" position="top">
+              <button
+                type="button"
+                class="flex flex-col items-center gap-1 py-2.5 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface-2)] hover:bg-[var(--color-surface-container-high)] transition-colors text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+                @click="rename"
+              >
+                <Edit3 :size="18" :stroke-width="1.75" />
+                <span class="text-[10px]">重命名</span>
+              </button>
+            </BaseTooltip>
+
+            <BaseTooltip text="删除" position="top">
+              <button
+                type="button"
+                class="flex flex-col items-center gap-1 py-2.5 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface-2)] hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-[var(--color-text-muted)] hover:text-[var(--color-danger)]"
+                @click="deleteFile"
+              >
+                <Trash2 :size="18" :stroke-width="1.75" />
+                <span class="text-[10px]">删除</span>
+              </button>
+            </BaseTooltip>
+          </div>
+        </div>
+
+        <!-- 分隔线 -->
+        <div class="mx-4 border-t border-[var(--color-border)]" />
+
+        <!-- 更多操作 -->
+        <div class="px-4 py-3 space-y-1">
+          <button
+            v-if="file.fileType !== 0"
+            type="button"
+            class="w-full flex items-center gap-3 h-9 px-3 rounded-sm text-sm text-[var(--color-text-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)] transition-colors"
+            @click="openCopy"
+          >
+            <Copy :size="15" :stroke-width="1.75" />
+            复制到...
+          </button>
+          <button
+            v-if="file.fileType !== 0"
+            type="button"
+            class="w-full flex items-center gap-3 h-9 px-3 rounded-sm text-sm text-[var(--color-text-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)] transition-colors"
+            @click="openMove"
+          >
+            <FolderInput :size="15" :stroke-width="1.75" />
+            移动到...
+          </button>
+          <button
+            v-if="file.fileType !== 0"
+            type="button"
+            class="w-full flex items-center gap-3 h-9 px-3 rounded-sm text-sm text-[var(--color-text-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)] transition-colors"
+            @click="openLocation"
+          >
+            <ExternalLink :size="15" :stroke-width="1.75" />
+            打开所在位置
+          </button>
+          <button
+            v-if="file.fileType !== 0"
+            type="button"
+            class="w-full flex items-center gap-3 h-9 px-3 rounded-sm text-sm text-[var(--color-text-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)] transition-colors"
+            @click="openHistory"
+          >
+            <History :size="15" :stroke-width="1.75" />
+            历史版本
+          </button>
+          <button
+            v-if="isArchive(file)"
+            type="button"
+            class="w-full flex items-center gap-3 h-9 px-3 rounded-sm text-sm text-[var(--color-text-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)] transition-colors"
+            @click="openExtract"
+          >
+            <FileArchive :size="15" :stroke-width="1.75" />
+            在线解压
+          </button>
+          <button
+            v-if="file.fileType !== 0"
+            type="button"
+            class="w-full flex items-center gap-3 h-9 px-3 rounded-sm text-sm text-[var(--color-text-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)] transition-colors"
+            @click="moveToVault"
+          >
+            <Shield :size="15" :stroke-width="1.75" />
+            移入保险箱
+          </button>
+        </div>
+
+        <!-- 分隔线 -->
+        <div class="mx-4 border-t border-[var(--color-border)]" />
+
+        <!-- 文件信息 -->
+        <div class="px-4 py-3">
+          <p class="text-xs font-medium text-[var(--color-text-muted)] mb-3 uppercase tracking-wider">
+            文件信息
+          </p>
+          <div class="space-y-2.5">
+            <div class="flex items-start justify-between gap-2">
+              <span class="text-xs text-[var(--color-text-muted)] shrink-0">类型</span>
+              <span class="text-xs text-[var(--color-text)] text-right">{{ fileMeta?.type }}</span>
+            </div>
+            <div class="flex items-start justify-between gap-2">
+              <span class="text-xs text-[var(--color-text-muted)] shrink-0">大小</span>
+              <span class="text-xs text-[var(--color-text)] text-right tabular-nums">{{ fileMeta?.size }}</span>
+            </div>
+            <div class="flex items-start justify-between gap-2">
+              <span class="text-xs text-[var(--color-text-muted)] shrink-0">位置</span>
+              <span class="text-xs text-[var(--color-text)] text-right truncate max-w-[160px]">{{ fileMeta?.location }}</span>
+            </div>
+            <div class="flex items-start justify-between gap-2">
+              <span class="text-xs text-[var(--color-text-muted)] shrink-0">创建时间</span>
+              <span class="text-xs text-[var(--color-text)] text-right tabular-nums">{{ fileMeta?.created }}</span>
+            </div>
+            <div class="flex items-start justify-between gap-2">
+              <span class="text-xs text-[var(--color-text-muted)] shrink-0">修改时间</span>
+              <span class="text-xs text-[var(--color-text)] text-right tabular-nums">{{ fileMeta?.modified }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 分隔线 -->
+        <div class="mx-4 border-t border-[var(--color-border)]" />
+
+        <!-- 标签 -->
+        <div class="px-4 py-3">
+          <div class="flex items-center justify-between mb-3">
+            <p class="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider">
+              标签
+            </p>
+            <button
+              type="button"
+              class="flex items-center gap-1 text-[11px] text-[var(--color-primary-500)] hover:text-[var(--color-primary-600)] transition-colors"
+              :disabled="tagLoading"
+              @click="handleAutoTag"
+            >
+              <LoaderCircle v-if="tagLoading" :size="12" class="animate-spin" />
+              <Sparkles v-else :size="12" />
+              AI 打标
+            </button>
+          </div>
+          <div class="flex flex-wrap gap-1.5 mb-2">
+            <span
+              v-for="tag in fileTags"
+              :key="tag"
+              class="inline-flex items-center gap-1 h-6 px-2.5 rounded-full bg-[var(--color-surface-container-high)] text-xs text-[var(--color-text-muted)] group/tag"
+            >
+              <Tag :size="10" />
+              {{ tag }}
+              <button
+                type="button"
+                class="size-3.5 rounded-full hover:bg-[var(--color-danger)]/20 hover:text-[var(--color-danger)] transition-colors ml-0.5 opacity-0 group-hover/tag:opacity-100"
+                @click="removeTag(file.fileId, tag)"
+              >
+                <X :size="10" />
+              </button>
+            </span>
+          </div>
+          <div class="flex items-center gap-2">
+            <input
+              v-model="tagInput"
+              type="text"
+              placeholder="添加标签..."
+              class="flex-1 h-7 px-2.5 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] text-xs text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-primary-500)] transition-colors"
+              @keydown.enter="handleAddTag"
+            />
+            <button
+              type="button"
+              class="size-7 rounded-sm bg-[var(--color-primary-500)] text-white hover:bg-[var(--color-primary-600)] transition-colors flex items-center justify-center"
+              @click="handleAddTag"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="size-3.5">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 预览弹窗 -->
+      <DrivePreviewModal
+        :state="preview.state"
+        :resolve-url="preview.resolvePreviewUrl"
+        @close="preview.closePreview"
+        @download="(item: any) => { const url = getDownloadUrl(item.fileId || item.id); window.open(url, '_blank') }"
+      />
+
+      <!-- 历史版本 -->
+      <FileHistoryPanel
+        :file-id="historyPanel.fileId"
+        :open="historyPanel.open"
+        @update:open="(v) => (historyPanel.open = v)"
+        @rolled-back="emit('refresh')"
+      />
+
+      <!-- 移动/复制 -->
+      <FolderPickerDialog
+        v-if="moveDialog.open"
+        :open="moveDialog.open"
+        :mode="moveDialog.mode"
+        :row="[file]"
+        @update:open="(v) => (moveDialog.open = v)"
+        @complete="onMoveComplete"
+      />
+
+      <!-- 在线解压 -->
+      <ExtractDialog
+        v-model:open="extractDialog.open"
+        :file-id="extractDialog.fileId"
+        :filename="extractDialog.filename"
+        @extracted="emit('refresh')"
+      />
+    </aside>
+  </Transition>
+</template>
+
+<style scoped>
+.detail-slide-enter-active,
+.detail-slide-leave-active {
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.detail-slide-enter-from,
+.detail-slide-leave-to {
+  transform: translateX(100%);
+  opacity: 0;
+}
+</style>

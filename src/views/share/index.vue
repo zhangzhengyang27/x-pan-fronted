@@ -394,7 +394,7 @@ onUnmounted(() => {
     >
       <div class="flex items-center gap-2.5">
         <div
-          class="size-9 rounded-xl flex items-center justify-center shadow-sm"
+          class="size-9 rounded-sm flex items-center justify-center shadow-sm"
           style="background: linear-gradient(135deg, var(--color-primary-500) 0%, var(--color-primary-700) 100%);"
         >
           <Cloud :size="18" class="text-white" :stroke-width="2" />
@@ -446,9 +446,9 @@ onUnmounted(() => {
       <!-- 分享内容 -->
       <div v-else class="flex flex-col gap-6">
         <!-- 分享信息卡 -->
-        <div class="rounded-2xl border border-[var(--color-border)] p-6 bg-[var(--color-surface)]">
+        <div class="rounded-sm border border-[var(--color-border)] p-6 bg-[var(--color-surface)]">
           <div class="flex items-start gap-4 mb-4">
-            <div class="size-16 rounded-xl flex items-center justify-center shrink-0" style="background-color: rgba(0, 112, 243, 0.1);">
+            <div class="size-16 rounded-sm flex items-center justify-center shrink-0" style="background-color: rgba(0, 112, 243, 0.1);">
               <Folder :size="32" :stroke-width="1.5" style="color: var(--color-primary-500);" />
             </div>
             <div class="flex-1 min-w-0">
@@ -503,7 +503,7 @@ onUnmounted(() => {
         </div>
 
         <!-- 文件列表 -->
-        <div class="rounded-xl border border-[var(--color-border)] overflow-hidden bg-[var(--color-surface)]">
+        <div class="rounded-sm border border-[var(--color-border)] overflow-hidden bg-[var(--color-surface)]">
           <!-- 面包屑 -->
           <div class="px-4 py-3 flex items-center gap-1.5 text-sm border-b border-[var(--color-border)]">
             <button
@@ -598,7 +598,7 @@ onUnmounted(() => {
     <BaseModal v-model:open="shareCodeDialogVisible" size="md" :hide-close="true">
       <div class="text-center py-2">
         <div
-          class="size-14 mx-auto rounded-2xl flex items-center justify-center mb-4"
+          class="size-14 mx-auto rounded-sm flex items-center justify-center mb-4"
           style="background-color: rgba(0, 112, 243, 0.1);"
         >
           <Lock :size="28" :stroke-width="2" style="color: var(--color-primary-500);" />
@@ -644,14 +644,14 @@ onUnmounted(() => {
     <BaseModal v-model:open="qrDialogVisible" title="分享二维码" size="sm">
       <div class="text-center py-2">
         <div
-          class="w-48 h-48 mx-auto rounded-lg bg-white p-2 shadow-sm border border-[var(--color-border)]"
+          class="w-48 h-48 mx-auto rounded-sm bg-white p-2 shadow-sm border border-[var(--color-border)]"
           v-html="qrSvg"
         />
         <div class="mt-4 flex items-center gap-2">
           <input
             :value="shareUrl"
             readonly
-            class="flex-1 h-8 px-2 rounded-md border border-[var(--color-border)] text-xs font-mono text-[var(--color-text)] bg-[var(--color-surface)]"
+            class="flex-1 h-8 px-2 rounded-sm border border-[var(--color-border)] text-xs font-mono text-[var(--color-text)] bg-[var(--color-surface)]"
             @focus="$event.target.select()"
           />
           <BaseButton variant="secondary" size="sm" @click="copyShareLink">

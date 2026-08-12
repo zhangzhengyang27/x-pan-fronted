@@ -1,60 +1,52 @@
 <script setup lang="ts">
 /**
  * FileTableToolbar —— 列表上方工具栏
- * - 排序：name / size / date asc/desc
- * - 筛选：扩展名（多选）/ 大小区间 / 时间范围
+ * - 筛选：仅保留文件类型（图片/文档/视频/音乐）多选
  * - 批量：选中 N 个 → 转移/复制/删除/下载
  */
 import { computed, ref } from 'vue'
-import { storeToRefs } from 'pinia'
-import { Filter, Download, Trash2 } from '@lucide/vue'
+import { Filter, Download, Trash2, Check } from '@lucide/vue'
 import BasePopover from '@/components/base/BasePopover.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import TransferButton from '@/components/buttons/transfer-button/index.vue'
 import CopyButton from '@/components/buttons/copy-button/index.vue'
 import { ElMessage } from '@/composables/useToast'
-import { useFileStore } from '@/stores/file'
+import { FileType } from '@/types'
+
+interface TypeOption {
+  label: string
+  value: FileType
+}
+
+const typeOptions: TypeOption[] = [
+  { label: '图片', value: FileType.IMAGE },
+  { label: '文档', value: FileType.DOC },
+  { label: '视频', value: FileType.VIDEO },
+  { label: '音乐', value: FileType.AUDIO }
+]
 
 const props = defineProps({
-  selectedRows: { type: Array, default: () => [] },
-  /** 全部可用的扩展名（从当前文件列表推导） */
-  availableExtensions: { type: Array, default: () => [] }
+  selectedRows: { type: Array, default: () => [] }
 })
 
 const emit = defineEmits(['filter-change', 'batch-download', 'batch-delete'])
 
-const fileStore = useFileStore()
-const { sortProp: sortField, sortOrder } = storeToRefs(fileStore)
-
 const filterOpen = ref(false)
 const filter = ref({
-  extensions: [], // ['jpg', 'png', ...]
-  sizeMin: '', // MB
+  extensions: [] as string[],
+  fileTypes: [] as FileType[],
+  sizeMin: '',
   sizeMax: '',
-  dateFrom: '', // ISO date
+  dateFrom: '',
   dateTo: ''
 })
 
-const filterActive = computed(() => {
-  return (
-    filter.value.extensions.length > 0 ||
-    filter.value.sizeMin !== '' ||
-    filter.value.sizeMax !== '' ||
-    filter.value.dateFrom !== '' ||
-    filter.value.dateTo !== ''
-  )
-})
-
-const filterCount = computed(() => {
-  let n = 0
-  if (filter.value.extensions.length) n++
-  if (filter.value.sizeMin !== '' || filter.value.sizeMax !== '') n++
-  if (filter.value.dateFrom !== '' || filter.value.dateTo !== '') n++
-  return n
-})
+const filterActive = computed(() => filter.value.fileTypes.length > 0)
+const filterCount = computed(() => filter.value.fileTypes.length)
+const allSelected = computed(() => filter.value.fileTypes.length === 0)
 
 function clearFilter() {
-  filter.value = { extensions: [], sizeMin: '', sizeMax: '', dateFrom: '', dateTo: '' }
+  filter.value = { extensions: [], fileTypes: [], sizeMin: '', sizeMax: '', dateFrom: '', dateTo: '' }
   applyFilter()
 }
 
@@ -63,10 +55,14 @@ function applyFilter() {
   filterOpen.value = false
 }
 
-function toggleExt(ext) {
-  const idx = filter.value.extensions.indexOf(ext)
-  if (idx === -1) filter.value.extensions.push(ext)
-  else filter.value.extensions.splice(idx, 1)
+function selectAll() {
+  filter.value.fileTypes = []
+}
+
+function toggleType(type: FileType) {
+  const idx = filter.value.fileTypes.indexOf(type)
+  if (idx === -1) filter.value.fileTypes.push(type)
+  else filter.value.fileTypes.splice(idx, 1)
 }
 
 function onBatchDownload() {
@@ -93,94 +89,60 @@ const selectedCount = computed(() => props.selectedRows.length)
     class="toolbar flex items-center justify-between gap-2 px-3 py-2 border-b border-[var(--color-border)] bg-[var(--color-surface)]"
   >
     <div class="flex items-center gap-1">
-      <BasePopover v-model:open="filterOpen" placement="bottom-start" :width="320">
+      <BasePopover v-model="filterOpen" placement="bottom-start" :width="200">
         <template #trigger>
           <button
             type="button"
-            class="relative inline-flex items-center gap-1 h-7 px-2 rounded-md text-xs transition-colors"
+            class="inline-flex items-center gap-1 h-8 px-2.5 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] text-xs transition-colors"
             :class="
               filterActive
-                ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)] dark:bg-[var(--color-primary-900)]/30 dark:text-[var(--color-primary-300)]'
+                ? 'border-[var(--color-primary-500)] text-[var(--color-primary-700)] dark:text-[var(--color-primary-300)] bg-[var(--color-primary-50)] dark:bg-[var(--color-primary-900)]/30'
                 : 'text-[var(--color-text-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)]'
             "
           >
-            <Filter :size="12" />
-            筛选
-            <span
-              v-if="filterActive"
-              class="ml-1 size-4 inline-flex items-center justify-center rounded-full bg-[var(--color-primary-500)] text-white text-[10px]"
-              >{{ filterCount }}</span
-            >
+            <Filter :size="13" />
+            <span>筛选</span>
           </button>
         </template>
-        <div class="space-y-3">
-          <div>
-            <p class="text-xs font-medium text-[var(--color-text)] mb-2">文件类型</p>
-            <div
-              v-if="availableExtensions.length === 0"
-              class="text-xs text-[var(--color-text-muted)]"
-            >
-              暂无数据
-            </div>
-            <div v-else class="flex flex-wrap gap-1.5 max-h-32 overflow-auto">
-              <button
-                v-for="ext in availableExtensions"
-                :key="ext"
-                type="button"
-                class="inline-flex items-center gap-1 h-6 px-2 rounded border text-xs transition-colors"
-                :class="
-                  filter.extensions.includes(ext)
-                    ? 'bg-[var(--color-primary-500)] border-[var(--color-primary-500)] text-white'
-                    : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-primary-500)] hover:text-[var(--color-primary-700)]'
-                "
-                @click="toggleExt(ext)"
-              >
-                .{{ ext }}
-              </button>
-            </div>
-          </div>
-
-          <div>
-            <p class="text-xs font-medium text-[var(--color-text)] mb-2">大小（MB）</p>
-            <div class="flex items-center gap-2">
-              <input
-                v-model="filter.sizeMin"
-                type="number"
-                min="0"
-                placeholder="不限"
-                class="flex-1 h-7 px-2 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] text-xs"
-              />
-              <span class="text-xs text-[var(--color-text-muted)]">—</span>
-              <input
-                v-model="filter.sizeMax"
-                type="number"
-                min="0"
-                placeholder="不限"
-                class="flex-1 h-7 px-2 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] text-xs"
-              />
-            </div>
-          </div>
-
-          <div>
-            <p class="text-xs font-medium text-[var(--color-text)] mb-2">修改时间</p>
-            <div class="flex items-center gap-2">
-              <input
-                v-model="filter.dateFrom"
-                type="date"
-                class="flex-1 h-7 px-2 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] text-xs"
-              />
-              <span class="text-xs text-[var(--color-text-muted)]">—</span>
-              <input
-                v-model="filter.dateTo"
-                type="date"
-                class="flex-1 h-7 px-2 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] text-xs"
-              />
-            </div>
-          </div>
-
-          <div
-            class="flex items-center justify-end gap-2 pt-2 border-t border-[var(--color-border)]"
+        <div class="py-1 min-w-[160px]">
+          <button
+            type="button"
+            class="w-full flex items-center justify-between px-4 py-2 text-sm transition-colors"
+            :class="
+              allSelected
+                ? 'text-[var(--color-primary-500)]'
+                : 'text-[var(--color-text)] hover:bg-[var(--color-surface-2)]'
+            "
+            @click="selectAll"
           >
+            <span>全部文件</span>
+            <Check v-if="allSelected" :size="14" />
+          </button>
+
+          <div class="my-1 border-t border-[var(--color-border)]" />
+
+          <button
+            v-for="opt in typeOptions"
+            :key="opt.value"
+            type="button"
+            class="w-full flex items-center justify-between px-4 py-2 text-sm transition-colors"
+            :class="
+              filter.fileTypes.includes(opt.value)
+                ? 'text-[var(--color-primary-500)]'
+                : 'text-[var(--color-text)] hover:bg-[var(--color-surface-2)]'
+            "
+            @click="toggleType(opt.value)"
+          >
+            <span>{{ opt.label }}</span>
+            <Check
+              v-if="filter.fileTypes.includes(opt.value)"
+              :size="14"
+            />
+          </button>
+
+          <div class="my-1 border-t border-[var(--color-border)]" />
+
+          <div class="flex items-center justify-end gap-2 px-4 py-2">
             <button
               type="button"
               class="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
@@ -202,7 +164,7 @@ const selectedCount = computed(() => props.selectedRows.length)
       >
       <button
         type="button"
-        class="h-7 px-2 rounded-md text-xs inline-flex items-center gap-1 text-[var(--color-text-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)]"
+        class="h-7 px-2 rounded-sm text-xs inline-flex items-center gap-1 text-[var(--color-text-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)]"
         @click="onBatchDownload"
       >
         <Download :size="12" />
@@ -212,7 +174,7 @@ const selectedCount = computed(() => props.selectedRows.length)
       <CopyButton roundFlag size="small" />
       <button
         type="button"
-        class="h-7 px-2 rounded-md text-xs inline-flex items-center gap-1 text-[var(--color-danger)] hover:bg-[var(--color-danger-bg)]/20"
+        class="h-7 px-2 rounded-sm text-xs inline-flex items-center gap-1 text-[var(--color-danger)] hover:bg-[var(--color-danger-bg)]/20"
         @click="onBatchDelete"
       >
         <Trash2 :size="12" />

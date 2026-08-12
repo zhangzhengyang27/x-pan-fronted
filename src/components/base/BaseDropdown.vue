@@ -29,7 +29,7 @@ function onToggle() {
       <slot name="trigger" />
     </summary>
     <div
-      class="absolute right-0 top-full mt-2 z-[var(--z-dropdown)] min-w-[180px] rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-lg py-1.5 overflow-hidden"
+      class="absolute right-0 top-full mt-2 z-[var(--z-dropdown)] min-w-[180px] rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] shadow-lg py-1.5 overflow-hidden"
       role="menu"
     >
       <slot />

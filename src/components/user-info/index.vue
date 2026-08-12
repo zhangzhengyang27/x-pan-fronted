@@ -129,7 +129,7 @@ onMounted(initUserInfoIfNecessary)
       <template #trigger>
         <button
           type="button"
-          class="flex items-center gap-2 px-2.5 h-9 rounded-lg hover:bg-[var(--color-surface-2)] transition-colors text-sm"
+          class="flex items-center gap-2 px-2.5 h-9 rounded-sm hover:bg-[var(--color-surface-2)] transition-colors text-sm"
         >
           <span
             class="size-7 rounded-full bg-[var(--color-primary-100)] dark:bg-[var(--color-primary-900)]/40 flex items-center justify-center text-[var(--color-primary-700)] dark:text-[var(--color-primary-300)]"

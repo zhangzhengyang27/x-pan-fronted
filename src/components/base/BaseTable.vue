@@ -59,7 +59,7 @@ function rowClass(row) {
   return cn(
     'transition-colors duration-150 cursor-pointer',
     'hover:bg-[var(--color-surface-2)]',
-    isSelected(row) && 'bg-[rgba(0,112,243,0.1)]'
+    isSelected(row) && 'quark-row-selected'
   )
 }
 
@@ -80,9 +80,10 @@ function handleSort(col) {
     class="w-full overflow-x-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]"
   >
     <table class="w-full text-sm border-collapse">
-      <thead class="sticky top-0 z-10 bg-[var(--color-surface-2)] text-[var(--color-text-muted)]">
+      <!-- 夸克标准:粘性表头 + 40px列头 -->
+      <thead class="sticky top-0 z-10 bg-[var(--color-surface-2)]">
         <tr class="border-b border-[var(--color-border)]">
-          <th v-if="selectable" class="w-12 px-4 py-3 text-left">
+          <th v-if="selectable" class="w-12 px-3 py-2.5 text-left">
             <button
               type="button"
               class="size-4 rounded flex items-center justify-center transition-colors"
@@ -103,20 +104,16 @@ function handleSort(col) {
           <th
             v-for="col in columns"
             :key="col.key"
-            class="px-4 py-3 font-medium select-none"
+            class="px-3 py-2.5 select-none text-xs font-normal tracking-wide"
+            :style="{ color: 'var(--color-text-muted)', ...(col.width ? { width: typeof col.width === 'number' ? `${col.width}px` : col.width } : {}) }"
             :class="[
               col.align === 'right'
                 ? 'text-right'
                 : col.align === 'center'
                   ? 'text-center'
                   : 'text-left',
-              col.sortable && 'cursor-pointer hover:bg-[var(--color-surface-container-high)] transition-colors'
+              col.sortable && 'cursor-pointer hover:bg-[var(--color-hover)] transition-colors'
             ]"
-            :style="
-              col.width
-                ? { width: typeof col.width === 'number' ? `${col.width}px` : col.width }
-                : {}
-            "
             @click="handleSort(col)"
           >
             <div class="inline-flex items-center gap-1">
@@ -124,7 +121,7 @@ function handleSort(col) {
               <template v-if="col.sortable">
                 <component
                   :is="getSortIcon(col)"
-                  :size="12"
+                  :size="11"
                   :stroke-width="2"
                   :style="sortField === col.key ? 'color: var(--color-primary-500);' : 'color: var(--color-text-muted); opacity: 0.5;'"
                 />
@@ -133,23 +130,24 @@ function handleSort(col) {
           </th>
         </tr>
       </thead>
+      <!-- 夸克标准:48px固定行高 -->
       <tbody v-if="loading || skeleton">
         <tr
           v-for="i in skeletonRows"
           :key="i"
           class="border-b border-[var(--color-border)]"
         >
-          <td v-if="selectable" class="w-12 px-4 py-3">
+          <td v-if="selectable" class="w-12 px-3 py-2.5">
             <span class="block size-4 rounded animate-pulse" style="background-color: var(--color-surface-container-low);" />
           </td>
-          <td v-for="col in columns" :key="col.key" class="px-4 py-3">
+          <td v-for="col in columns" :key="col.key" class="px-3 py-2.5">
             <span
               class="inline-block h-3 rounded animate-pulse"
               style="background-color: var(--color-surface-container-low);"
               :style="{
                 width: `${50 + ((i * 13) % 40)}%`,
                 maxWidth:
-                  col.width && typeof col.width === 'number' ? `${col.width - 32}px` : '100%'
+                  col.width && typeof col.width === 'number' ? `${col.width - 24}px` : '100%'
               }"
             />
           </td>
@@ -159,7 +157,7 @@ function handleSort(col) {
         <tr>
           <td
             :colspan="columns.length + (selectable ? 1 : 0)"
-            class="px-4 py-16 text-center"
+            class="px-3 py-12 text-center"
             style="color: var(--color-danger);"
           >
             加载失败：{{ typeof error === 'string' ? error : error?.message }}
@@ -168,7 +166,7 @@ function handleSort(col) {
       </tbody>
       <tbody v-else-if="data.length === 0">
         <tr>
-          <td :colspan="columns.length + (selectable ? 1 : 0)" class="px-4 py-10 text-center">
+          <td :colspan="columns.length + (selectable ? 1 : 0)" class="px-3 py-10 text-center">
             <slot v-if="$slots.empty" name="empty" />
             <span v-else class="text-sm" style="color: var(--color-text-muted);">{{ emptyText }}</span>
           </td>
@@ -178,13 +176,14 @@ function handleSort(col) {
         <tr
           v-for="(row, idx) in data"
           :key="getRowKey(row, idx)"
-          :class="rowClass(row)"
           class="border-b border-[var(--color-border)]"
+          :class="rowClass(row)"
+          style="height: 48px;"
           @click="emit('rowClick', row, idx)"
           @dblclick="emit('rowDblclick', row, idx)"
           @contextmenu="emit('rowContextmenu', $event, row)"
         >
-          <td v-if="selectable" class="w-12 px-4 py-3" @click.stop>
+          <td v-if="selectable" class="w-12 px-3 py-2.5" @click.stop>
             <button
               type="button"
               class="size-4 rounded flex items-center justify-center transition-colors"
@@ -200,7 +199,7 @@ function handleSort(col) {
           <td
             v-for="col in columns"
             :key="col.key"
-            class="px-4 py-3"
+            class="px-3 py-2.5"
             :class="
               col.align === 'right'
                 ? 'text-right'

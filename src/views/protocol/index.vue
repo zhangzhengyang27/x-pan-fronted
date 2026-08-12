@@ -140,7 +140,7 @@ const goBack = () => window.history.back()
       <div class="mt-6 flex flex-col sm:flex-row gap-4 justify-center">
         <button
           type="button"
-          class="flex items-center justify-center gap-2 py-2.5 px-6 rounded-lg text-sm font-medium transition-colors border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] hover:bg-[var(--color-surface-2)]"
+          class="flex items-center justify-center gap-2 py-2.5 px-6 rounded-sm text-sm font-medium transition-colors border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] hover:bg-[var(--color-surface-2)]"
           @click="goBack"
         >
           <ArrowLeft :size="18" :stroke-width="2" />
@@ -148,7 +148,7 @@ const goBack = () => window.history.back()
         </button>
         <button
           type="button"
-          class="flex items-center justify-center gap-2 py-2.5 px-6 rounded-lg text-sm font-medium transition-colors bg-[var(--color-primary-500)] text-white hover:opacity-90"
+          class="flex items-center justify-center gap-2 py-2.5 px-6 rounded-sm text-sm font-medium transition-colors bg-[var(--color-primary-500)] text-white hover:opacity-90"
           @click="goHome"
         >
           <Home :size="18" :stroke-width="2" />

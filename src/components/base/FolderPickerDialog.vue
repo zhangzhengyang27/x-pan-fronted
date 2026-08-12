@@ -164,7 +164,7 @@ watch(
         <!-- 根目录 -->
         <button
           type="button"
-          class="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-md text-sm transition-colors"
+          class="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-sm text-sm transition-colors"
           :class="
             selectedId === null
               ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)] font-medium'
@@ -194,7 +194,7 @@ watch(
             </button>
             <button
               type="button"
-              class="flex-1 flex items-center gap-1.5 px-2 py-1.5 rounded-md text-sm transition-colors"
+              class="flex-1 flex items-center gap-1.5 px-2 py-1.5 rounded-sm text-sm transition-colors"
               :class="
                 selectedId === node.id
                   ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)] font-medium'
@@ -217,7 +217,7 @@ watch(
               <div class="size-6" />
               <button
                 type="button"
-                class="flex-1 flex items-center gap-1.5 px-2 py-1.5 rounded-md text-sm transition-colors"
+                class="flex-1 flex items-center gap-1.5 px-2 py-1.5 rounded-sm text-sm transition-colors"
                 :class="
                   selectedId === child.id
                     ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)] font-medium'

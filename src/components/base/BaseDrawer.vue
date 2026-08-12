@@ -75,7 +75,7 @@ const sizeStyle = computed(() =>
           <h2 class="text-base font-semibold m-0">{{ title }}</h2>
           <button
             type="button"
-            class="text-[var(--color-text-muted)] hover:text-[var(--color-text)] rounded-md p-1 hover:bg-[var(--color-surface-2)]"
+            class="text-[var(--color-text-muted)] hover:text-[var(--color-text)] rounded-sm p-1 hover:bg-[var(--color-surface-2)]"
             aria-label="关闭"
             @click="onClose"
           >

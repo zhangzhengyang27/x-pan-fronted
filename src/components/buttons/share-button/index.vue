@@ -329,7 +329,7 @@ function onClose() {
             >提取码</label
           >
           <div
-            class="px-4 py-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] text-center tracking-[0.5em] text-xl font-mono font-semibold text-[var(--color-primary-600)] dark:text-[var(--color-primary-400)]"
+            class="px-4 py-3 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface-2)] text-center tracking-[0.5em] text-xl font-mono font-semibold text-[var(--color-primary-600)] dark:text-[var(--color-primary-400)]"
           >
             {{ result.shareCode }}
           </div>
@@ -346,7 +346,7 @@ function onClose() {
           </button>
           <div
             v-if="showQR"
-            class="mt-3 w-40 h-40 mx-auto rounded-lg bg-white p-2 shadow-sm border border-[var(--color-border)]"
+            class="mt-3 w-40 h-40 mx-auto rounded-sm bg-white p-2 shadow-sm border border-[var(--color-border)]"
             v-html="qrSvg"
           />
         </div>

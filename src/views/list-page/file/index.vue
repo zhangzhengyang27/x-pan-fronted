@@ -15,6 +15,8 @@ import { LayoutGrid, List, CloudUpload } from '@lucide/vue'
 import FileButtonGroup from '@/components/file-button-group/index.vue'
 import BreadCrumb from '@/components/breadcrumb/index.vue'
 import FileTable from '@/components/file-table/index.vue'
+import SortMenu from '@/components/file-table/SortMenu.vue'
+import FilterMenu from '@/components/file-table/FilterMenu.vue'
 import UploadTaskPanel from '@/components/upload-task-panel/index.vue'
 import BaseTooltip from '@/components/base/BaseTooltip.vue'
 import { useFileStore } from '@/stores/file'
@@ -48,6 +50,31 @@ const view = ref('list')
 const isDragOver = ref(false)
 const fileTableRef = ref(null)
 const { addFiles } = useUploader()
+
+// 排序 / 筛选状态（与 FileTable 共享）
+const sortOpen = ref(false)
+const filterOpen = ref(false)
+const availableExtensions = ref<string[]>([])
+
+// 监听 fileList 变化，推导可用扩展名
+watch(fileList, (list) => {
+  const set = new Set<string>()
+  list.forEach((r) => {
+    const fn = r.filename || r.name || ''
+    const idx = fn.lastIndexOf('.')
+    if (idx > 0 && idx < fn.length - 1) {
+      set.add(fn.slice(idx + 1).toLowerCase())
+    }
+  })
+  availableExtensions.value = Array.from(set).sort()
+})
+
+function onFilterChange(filter: any) {
+  // 透传给 file-table，内部通过 watch filter 生效
+  if (fileTableRef.value) {
+    fileTableRef.value.applyFilter(filter)
+  }
+}
 
 // 视图切换：通过 setView 同步到 FileTable 内部状态（而非 :key 强制重挂载）
 watch(view, (v) => {
@@ -142,11 +169,20 @@ onUnmounted(() => {
 
     <!-- 工具条 -->
     <div
-      class="flex items-center justify-between gap-4 p-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-container-low)]"
+      class="flex items-center justify-between gap-4 p-3 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface-container-low)]"
     >
-      <FileButtonGroup :button-array="buttonArray" />
+      <div class="flex items-center gap-2">
+        <FileButtonGroup :button-array="buttonArray" />
+        <div class="w-px h-5 bg-[var(--color-border)]" />
+        <SortMenu v-model:open="sortOpen" />
+        <FilterMenu
+          v-model:open="filterOpen"
+          :available-extensions="availableExtensions"
+          @filter-change="onFilterChange"
+        />
+      </div>
       <div
-        class="flex items-center rounded-lg overflow-hidden bg-[var(--color-surface)] border border-[var(--color-border)]"
+        class="flex items-center rounded-sm overflow-hidden bg-[var(--color-surface)] border border-[var(--color-border)]"
       >
         <BaseTooltip text="列表视图" position="bottom">
           <button

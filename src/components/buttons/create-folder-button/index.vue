@@ -4,19 +4,19 @@
       v-if="showRound"
       variant="secondary"
       :size="btnSize"
-      class="rounded-full !bg-[var(--color-success)] !text-white !border-transparent hover:!opacity-90"
+      class="rounded-sm !bg-[var(--color-primary-500)] !text-white !border-transparent hover:!opacity-90 transition-opacity"
       @click="createFolderDialogVisible = true"
     >
       <span class="inline-flex items-center gap-1.5">
-        新建文件夹
         <FolderPlus :size="14" />
+        新建文件夹
       </span>
     </BaseButton>
     <BaseButton
       v-if="circleFlag"
       variant="secondary"
       :size="btnSize"
-      class="rounded-full !px-0 !w-8 !h-8 justify-center !bg-[var(--color-success)] !text-white !border-transparent hover:!opacity-90"
+      class="rounded-sm !px-0 !w-8 !h-8 justify-center !bg-[var(--color-primary-500)] !text-white !border-transparent hover:!opacity-90 transition-opacity"
       @click="createFolderDialogVisible = true"
     >
       <FolderPlus :size="14" />

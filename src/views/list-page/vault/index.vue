@@ -224,7 +224,7 @@ onMounted(() => {
             v-model="password"
             :type="showPassword ? 'text' : 'password'"
             placeholder="请输入保险箱密码"
-            class="w-full pl-10 pr-10 py-2.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm text-[var(--color-text)] focus:outline-none focus:border-[var(--color-primary-500)]"
+            class="w-full pl-10 pr-10 py-2.5 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] text-sm text-[var(--color-text)] focus:outline-none focus:border-[var(--color-primary-500)]"
             @keyup.enter="setup"
           />
           <button
@@ -240,12 +240,12 @@ onMounted(() => {
             v-model="confirmPassword"
             :type="showPassword ? 'text' : 'password'"
             placeholder="请再次输入密码"
-            class="w-full pl-10 pr-10 py-2.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm text-[var(--color-text)] focus:outline-none focus:border-[var(--color-primary-500)]"
+            class="w-full pl-10 pr-10 py-2.5 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] text-sm text-[var(--color-text)] focus:outline-none focus:border-[var(--color-primary-500)]"
             @keyup.enter="setup"
           />
         </div>
         <button
-          class="w-full py-2.5 rounded-lg text-sm font-medium text-white flex items-center justify-center gap-2 disabled:opacity-60"
+          class="w-full py-2.5 rounded-sm text-sm font-medium text-white flex items-center justify-center gap-2 disabled:opacity-60"
           style="background: var(--color-primary-500);"
           :disabled="submitting"
           @click="setup"
@@ -276,7 +276,7 @@ onMounted(() => {
             v-model="password"
             :type="showPassword ? 'text' : 'password'"
             placeholder="请输入保险箱密码"
-            class="w-full pl-10 pr-10 py-2.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm text-[var(--color-text)] focus:outline-none focus:border-[var(--color-primary-500)]"
+            class="w-full pl-10 pr-10 py-2.5 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] text-sm text-[var(--color-text)] focus:outline-none focus:border-[var(--color-primary-500)]"
             @keyup.enter="unlock"
           />
           <button
@@ -287,7 +287,7 @@ onMounted(() => {
           </button>
         </div>
         <button
-          class="w-full py-2.5 rounded-lg text-sm font-medium text-white flex items-center justify-center gap-2 disabled:opacity-60"
+          class="w-full py-2.5 rounded-sm text-sm font-medium text-white flex items-center justify-center gap-2 disabled:opacity-60"
           style="background: var(--color-primary-500);"
           :disabled="submitting"
           @click="unlock"
@@ -309,7 +309,7 @@ onMounted(() => {
           </span>
         </div>
         <button
-          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-[var(--color-text-muted)] hover:bg-[var(--color-surface-container-low)]"
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-sm text-[var(--color-text-muted)] hover:bg-[var(--color-surface-container-low)]"
           @click="lock"
         >
           <LogOut :size="14" />
@@ -317,7 +317,7 @@ onMounted(() => {
         </button>
       </div>
 
-      <div class="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-container-low)]">
+      <div class="rounded-sm border border-[var(--color-border)] bg-[var(--color-surface-container-low)]">
         <!-- 加载中 -->
         <div v-if="loading" class="flex items-center justify-center py-20">
           <LoaderCircle :size="24" class="animate-spin text-[var(--color-primary-500)]" />
@@ -344,14 +344,14 @@ onMounted(() => {
             <span class="text-xs text-[var(--color-text-muted)] shrink-0 hidden sm:inline">{{ f.updateTime }}</span>
             <div class="flex items-center gap-1 shrink-0">
               <button
-                class="p-1.5 rounded-md hover:bg-[var(--color-surface)] text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+                class="p-1.5 rounded-sm hover:bg-[var(--color-surface)] text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
                 title="移出保险箱"
                 @click="moveOut(f)"
               >
                 <Download :size="14" />
               </button>
               <button
-                class="p-1.5 rounded-md hover:bg-[var(--color-surface)] text-red-400 hover:text-red-500"
+                class="p-1.5 rounded-sm hover:bg-[var(--color-surface)] text-red-400 hover:text-red-500"
                 title="永久删除"
                 @click="destroy(f)"
               >
