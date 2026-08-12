@@ -53,6 +53,16 @@ const routes: RouteRecordRaw[] = [
         path: '/offline',
         name: 'Offline',
         component: () => import('@/views/list-page/offline/index.vue')
+      },
+      {
+        path: '/vault',
+        name: 'Vault',
+        component: () => import('@/views/list-page/vault/index.vue')
+      },
+      {
+        path: '/stats',
+        name: 'Stats',
+        component: () => import('@/views/list-page/stats/index.vue')
       }
     ]
   },

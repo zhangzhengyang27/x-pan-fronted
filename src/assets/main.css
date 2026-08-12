@@ -1,7 +1,4 @@
 @import "./base.css";
 
-body {
-    background: #FAFCFF;
-    font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", Arial, sans-serif;
-}
+/* body 样式由 tokens.css 统一管理（--color-bg / --font-sans），此处不再硬编码，避免覆盖暗色主题 */
 

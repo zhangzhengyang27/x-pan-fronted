@@ -13,7 +13,7 @@ const COLORS: Record<ToastLevel, ToastColors> = {
   success: { bg: '#22c55e', icon: '✓' },
   error: { bg: '#ef4444', icon: '✕' },
   warning: { bg: '#f59e0b', icon: '!' },
-  info: { bg: '#3b82f6', icon: 'i' }
+  info: { bg: '#00b2ff', icon: 'i' }
 }
 
 function fmt(args: unknown[]): string {
