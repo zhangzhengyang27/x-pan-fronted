@@ -168,12 +168,9 @@ function handleSort(col) {
       </tbody>
       <tbody v-else-if="data.length === 0">
         <tr>
-          <td
-            :colspan="columns.length + (selectable ? 1 : 0)"
-            class="px-4 py-16 text-center"
-            style="color: var(--color-text-muted);"
-          >
-            {{ emptyText }}
+          <td :colspan="columns.length + (selectable ? 1 : 0)" class="px-4 py-10 text-center">
+            <slot v-if="$slots.empty" name="empty" />
+            <span v-else class="text-sm" style="color: var(--color-text-muted);">{{ emptyText }}</span>
           </td>
         </tr>
       </tbody>

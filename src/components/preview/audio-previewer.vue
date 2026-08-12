@@ -29,7 +29,7 @@ onMounted(async () => {
     ],
     autoplay: true,
     lrcType: 0,
-    theme: '#6366f1'
+    theme: '#00b2ff'
   })
 })
 
