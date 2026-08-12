@@ -11,3 +11,6 @@ package-lock.ep.json
 
 stitch-prompts/
 stitch_document_driven_page_design/
+
+# TypeScript 增量编译产物
+*.tsbuildinfo
