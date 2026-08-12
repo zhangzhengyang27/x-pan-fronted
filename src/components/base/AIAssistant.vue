@@ -1,27 +1,38 @@
 <script setup lang="ts">
 /**
- * AIAssistant —— AI 助手对话框（P1.18）
+ * AIAssistant —— AI 助手对话框（P1-10 接入真实 LLM）
  *
- * 能力：
- * - 自然语言搜索（"找上周的图片"）
- * - 文件摘要（"总结这些 PDF"）
- * - 智能分类建议
+ * 能力（DeepSeek 驱动）：
+ * - 自然语言搜索（"找上周的图片" → LLM 解析为参数 → 调 fileService.search）
+ * - 文件摘要（选中文件 → 基于文件名分类整理建议）
+ * - 智能重命名建议（选中文件 → LLM 建议规范名称）
+ * - 闲聊问答（通用对话，流式输出）
  *
- * 当前实现：模拟响应（演示 UI/UX）
- * 接入真实 LLM：替换 fetchAI 函数调用 OpenAI/通义千问/Ollama
+ * API Key 配置：点击齿轮按钮，输入 DeepSeek API Key，存 localStorage
+ * 切换 LLM：修改 src/composables/useLLM.ts
  */
-import { nextTick, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import {
   Sparkles,
   Send,
   User as UserIcon,
   LoaderCircle,
   FileText,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Settings,
+  Search as SearchIcon,
+  Wand2,
+  MessageCircle,
+  AlertCircle,
+  Check
 } from '@lucide/vue'
 import BaseModal from './BaseModal.vue'
 import BaseButton from './BaseButton.vue'
 import BaseInput from './BaseInput.vue'
+import { useAIAssistant } from '@/composables/useAIAssistant'
+import { useLLM, type LLMMessage } from '@/composables/useLLM'
+import { useFileStore } from '@/stores/file'
+import { storeToRefs } from 'pinia'
 
 defineProps({
   open: { type: Boolean, default: false }
@@ -29,23 +40,40 @@ defineProps({
 
 const emit = defineEmits(['update:open'])
 
-const messages = ref([
+const fileStore = useFileStore()
+const { multipleSelection } = storeToRefs(fileStore)
+const { run, isConfigured } = useAIAssistant()
+const { setApiKey } = useLLM()
+
+interface ChatMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+const messages = ref<ChatMessage[]>([
   {
     role: 'assistant',
     content:
-      '你好，我是 X-Pan AI 助手 ✨\n\n我可以帮你：\n• 智能搜索文件（"找上周的图片"）\n• 总结 PDF/文档\n• 整理文件夹\n\n试试问我点什么吧～'
+      '你好，我是 X-Pan AI 助手 ✨\n\n我可以帮你：\n• 智能搜索文件（"找上周的图片"）\n• 整理选中文件（选中后说"总结"）\n• 建议重命名（选中后说"改名"）\n• 闲聊问答\n\n试试问我点什么吧～'
   }
 ])
 const input = ref('')
 const loading = ref(false)
-const scrollRef = ref(null)
+const scrollRef = ref<HTMLElement | null>(null)
+const errorMsg = ref('')
+
+// API Key 配置面板
+const showApiKeyPanel = ref(false)
+const apiKeyInput = ref('')
+const apiKeySaved = ref(false)
+const currentFolder = computed(() => fileStore.defaultParentFilename || '根目录')
 
 // 快捷指令
 const quickPrompts = [
-  { label: '本周上传的文件', icon: FileText },
-  { label: '最大的 5 个文件', icon: FileText },
-  { label: '所有图片分类', icon: ImageIcon },
-  { label: 'PDF 文件总结', icon: FileText }
+  { label: '本周上传的文件', icon: SearchIcon, text: '找本周上传的文件' },
+  { label: '最大的 5 个文件', icon: FileText, text: '找出最大的 5 个文件' },
+  { label: '所有图片', icon: ImageIcon, text: '找所有图片' },
+  { label: '闲聊', icon: MessageCircle, text: '你能做什么？' }
 ]
 
 function scrollBottom() {
@@ -57,36 +85,80 @@ function scrollBottom() {
 }
 
 watch(() => messages.value.length, scrollBottom)
+watch(
+  () => messages.value[messages.value.length - 1]?.content,
+  scrollBottom
+)
 
-async function send(prompt) {
+function openApiKeyPanel() {
+  apiKeyInput.value = localStorage.getItem('xpan_ai_apikey') || ''
+  apiKeySaved.value = false
+  showApiKeyPanel.value = true
+}
+
+function saveApiKey() {
+  setApiKey(apiKeyInput.value)
+  apiKeySaved.value = true
+  setTimeout(() => {
+    showApiKeyPanel.value = false
+    apiKeySaved.value = false
+  }, 800)
+}
+
+async function send(prompt?: string) {
   const text = (prompt ?? input.value).trim()
   if (!text || loading.value) return
+
+  if (!isConfigured.value) {
+    errorMsg.value = '请先配置 DeepSeek API Key（点击齿轮按钮）'
+    openApiKeyPanel()
+    return
+  }
+
+  errorMsg.value = ''
   messages.value.push({ role: 'user', content: text })
   input.value = ''
   loading.value = true
   scrollBottom()
 
-  // 模拟 AI 响应（生产：替换为真实 LLM API）
-  setTimeout(() => {
-    const reply = simulateAI(text)
-    messages.value.push({ role: 'assistant', content: reply })
+  // 预占一条 assistant 消息，流式拼接
+  const assistantIdx = messages.value.length
+  messages.value.push({ role: 'assistant', content: '' })
+
+  // 构造历史上下文（不含刚 push 的 user 和空 assistant）
+  const history: LLMMessage[] = messages.value
+    .slice(0, -2)
+    .map((m) => ({ role: m.role, content: m.content }))
+
+  const ctx = {
+    selectedFiles: multipleSelection.value,
+    currentFolder: currentFolder.value
+  }
+
+  try {
+    await run(
+      text,
+      ctx,
+      history,
+      (delta: string) => {
+        // 流式拼接到最后一条 assistant 消息
+        messages.value[assistantIdx].content += delta
+      }
+    )
+    // 若 LLM 未输出内容（如纯搜索意图靠 onChunk 已填充），兜底
+    if (!messages.value[assistantIdx].content) {
+      messages.value[assistantIdx].content = '（无回复内容）'
+    }
+  } catch (e: unknown) {
+    const err = e as Error
+    messages.value[assistantIdx].content = `⚠️ ${err.message || 'AI 调用失败'}`
+    if (err.message?.includes('API Key')) {
+      errorMsg.value = err.message
+    }
+  } finally {
     loading.value = false
     scrollBottom()
-  }, 800)
-}
-
-function simulateAI(prompt) {
-  const lower = prompt.toLowerCase()
-  if (lower.includes('图片') || lower.includes('image')) {
-    return '我找到 47 张图片，按时间排序：\n\n• 2026-08-09  screenshot.png (1.2 MB)\n• 2026-08-08  头像.jpg (256 KB)\n• ...\n\n（演示响应 · 真实 LLM 待接入）'
   }
-  if (lower.includes('总结') || lower.includes('summary')) {
-    return '📄 文档摘要：\n\n1. **项目计划** — 8 月启动，10 月上线\n2. **架构设计** — 微服务 + 容器化部署\n3. **风险评估** — 中等，关键节点需 review\n\n（演示响应 · 真实 LLM 待接入）'
-  }
-  if (lower.includes('最大') || lower.includes('大')) {
-    return '📊 最大的 5 个文件：\n\n1. backup-2026-08.tar.gz  ·  2.3 GB\n2. docker-image.tar  ·  1.8 GB\n3. video-tutorial.mp4  ·  1.2 GB\n4. database-dump.sql  ·  956 MB\n5. design.fig  ·  512 MB\n\n（演示响应 · 真实 LLM 待接入）'
-  }
-  return '🤔 收到你的指令。\n\n这是一个演示响应。\n\n生产环境接入 LLM：\n```js\nconst res = await fetch("/api/ai/chat", {\n  method: "POST",\n  body: JSON.stringify({prompt, context: {userId}})\n})\n```\n\n支持 OpenAI / 通义千问 / Ollama / Claude 等。'
 }
 
 function close() {
@@ -97,75 +169,140 @@ function close() {
 <template>
   <BaseModal :open="open" @update:open="(v) => emit('update:open', v)" title="AI 助手" size="md">
     <div class="flex flex-col gap-3 h-[60vh] min-h-[400px]">
-      <!-- 消息列表 -->
-      <div ref="scrollRef" class="flex-1 overflow-y-auto pr-1 space-y-3">
+      <!-- 视图切换：API Key 配置 / 对话 -->
+      <template v-if="!showApiKeyPanel">
+        <!-- 顶部状态栏：选中文件提示 + API Key 配置 -->
+        <div class="flex items-center justify-between gap-2 pb-2 border-b border-[var(--color-border)]">
+          <div class="text-xs text-[var(--color-text-muted)] truncate flex-1">
+            <template v-if="multipleSelection.length > 0">
+              已选中 {{ multipleSelection.length }} 个文件 · 当前目录：{{ currentFolder }}
+            </template>
+            <template v-else>
+              当前目录：{{ currentFolder }}（选中文件可解锁摘要/重命名能力）
+            </template>
+          </div>
+          <button
+            type="button"
+            class="relative size-7 flex items-center justify-center rounded-md transition-colors text-[var(--color-text-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)]"
+            :title="isConfigured ? 'API Key 已配置（点击修改）' : '配置 API Key'"
+            @click="openApiKeyPanel"
+          >
+            <Settings :size="14" :stroke-width="2" />
+            <span
+              v-if="isConfigured"
+              class="absolute top-0 right-0 size-1.5 rounded-full bg-emerald-500"
+            />
+          </button>
+        </div>
+
+        <!-- 消息列表 -->
+        <div ref="scrollRef" class="flex-1 overflow-y-auto pr-1 space-y-3">
+          <div
+            v-for="(m, i) in messages"
+            :key="i"
+            class="flex items-start gap-2"
+            :class="m.role === 'user' ? 'flex-row-reverse' : ''"
+          >
+            <div
+              class="size-8 shrink-0 rounded-full flex items-center justify-center"
+              :class="
+                m.role === 'user'
+                  ? 'bg-[var(--color-primary-500)] text-white'
+                  : 'bg-gradient-to-br from-amber-400 to-pink-500 text-white'
+              "
+            >
+              <UserIcon v-if="m.role === 'user'" :size="14" />
+              <Sparkles v-else :size="14" />
+            </div>
+            <div
+              class="max-w-[80%] px-3 py-2 rounded-2xl text-sm whitespace-pre-line break-words"
+              :class="
+                m.role === 'user'
+                  ? 'bg-[var(--color-primary-500)] text-white rounded-tr-sm'
+                  : 'bg-[var(--color-surface-2)] rounded-tl-sm'
+              "
+            >
+              {{ m.content }}
+              <LoaderCircle
+                v-if="loading && i === messages.length - 1 && m.role === 'assistant' && !m.content"
+                :size="12"
+                class="animate-spin inline-block"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- 错误提示 -->
         <div
-          v-for="(m, i) in messages"
-          :key="i"
-          class="flex items-start gap-2"
-          :class="m.role === 'user' ? 'flex-row-reverse' : ''"
+          v-if="errorMsg"
+          class="flex items-center gap-2 px-3 py-2 rounded-lg text-xs"
+          style="background-color: rgba(239, 68, 68, 0.1); color: var(--color-danger);"
         >
-          <div
-            class="size-8 shrink-0 rounded-full flex items-center justify-center"
-            :class="
-              m.role === 'user'
-                ? 'bg-[var(--color-primary-500)] text-white'
-                : 'bg-gradient-to-br from-amber-400 to-pink-500 text-white'
-            "
-          >
-            <UserIcon v-if="m.role === 'user'" :size="14" />
-            <Sparkles v-else :size="14" />
-          </div>
-          <div
-            class="max-w-[80%] px-3 py-2 rounded-2xl text-sm whitespace-pre-line"
-            :class="
-              m.role === 'user'
-                ? 'bg-[var(--color-primary-500)] text-white rounded-tr-sm'
-                : 'bg-[var(--color-surface-2)] rounded-tl-sm'
-            "
-          >
-            {{ m.content }}
-          </div>
+          <AlertCircle :size="12" :stroke-width="2" />
+          {{ errorMsg }}
         </div>
-        <div v-if="loading" class="flex items-start gap-2">
-          <div
-            class="size-8 shrink-0 rounded-full bg-gradient-to-br from-amber-400 to-pink-500 text-white flex items-center justify-center"
-          >
-            <Sparkles :size="14" />
-          </div>
-          <div class="px-3 py-2 rounded-2xl bg-[var(--color-surface-2)] text-sm">
-            <LoaderCircle :size="14" class="animate-spin" />
-          </div>
-        </div>
-      </div>
 
-      <!-- 快捷指令 -->
-      <div v-if="messages.length <= 1" class="flex flex-wrap gap-1.5">
-        <button
-          v-for="(p, i) in quickPrompts"
-          :key="i"
-          type="button"
-          class="px-2.5 py-1.5 text-xs rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-2)] transition-colors flex items-center gap-1.5"
-          @click="send(p.label)"
-        >
-          <component :is="p.icon" :size="11" />
-          {{ p.label }}
-        </button>
-      </div>
-
-      <!-- 输入框 -->
-      <div class="flex items-end gap-2 pt-2 border-t border-[var(--color-border)]">
-        <div class="flex-1">
-          <BaseInput ref="inputRef" v-model="input" placeholder="问点什么..." @enter="send()" />
+        <!-- 快捷指令 -->
+        <div v-if="messages.length <= 1" class="flex flex-wrap gap-1.5">
+          <button
+            v-for="(p, i) in quickPrompts"
+            :key="i"
+            type="button"
+            class="px-2.5 py-1.5 text-xs rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-2)] transition-colors flex items-center gap-1.5"
+            @click="send(p.text)"
+          >
+            <component :is="p.icon" :size="11" />
+            {{ p.label }}
+          </button>
         </div>
-        <BaseButton variant="primary" :disabled="!input.trim()" @click="send()">
-          <Send :size="14" />
-        </BaseButton>
-      </div>
+
+        <!-- 输入框 -->
+        <div class="flex items-end gap-2 pt-2 border-t border-[var(--color-border)]">
+          <div class="flex-1">
+            <BaseInput v-model="input" placeholder="问点什么..." @enter="send()" />
+          </div>
+          <BaseButton variant="primary" :disabled="!input.trim() || loading" @click="send()">
+            <Send :size="14" />
+          </BaseButton>
+        </div>
+      </template>
+
+      <!-- API Key 配置视图 -->
+      <template v-else>
+        <div class="flex-1 flex flex-col justify-center gap-4 py-4">
+          <div class="flex items-center gap-2">
+            <Wand2 :size="18" class="text-[var(--color-primary-500)]" />
+            <h3 class="text-base font-semibold text-[var(--color-text)]">配置 DeepSeek API Key</h3>
+          </div>
+          <p class="text-xs text-[var(--color-text-muted)] leading-relaxed">
+            前往
+            <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener" class="text-[var(--color-primary-500)] underline">platform.deepseek.com</a>
+            创建 API Key，粘贴到下方。Key 仅存本地 localStorage，不会上传服务器。
+          </p>
+          <BaseInput
+            v-model="apiKeyInput"
+            type="password"
+            placeholder="sk-..."
+            :prefix="Wand2"
+            @enter="saveApiKey"
+          />
+          <div v-if="apiKeySaved" class="flex items-center gap-1.5 text-xs text-emerald-600">
+            <Check :size="12" :stroke-width="2" />
+            API Key 已保存
+          </div>
+          <div class="flex items-center justify-end gap-2 pt-2">
+            <BaseButton variant="ghost" size="sm" @click="showApiKeyPanel = false">返回</BaseButton>
+            <BaseButton variant="primary" size="sm" :disabled="!apiKeyInput.trim()" @click="saveApiKey">
+              保存
+            </BaseButton>
+          </div>
+        </div>
+      </template>
     </div>
+
     <template #footer>
       <span class="text-xs text-[var(--color-text-muted)]">
-        AI 回复为演示数据，生产环境需接入 LLM API
+        Powered by DeepSeek · {{ isConfigured ? '已连接' : '未配置 API Key' }}
       </span>
       <BaseButton variant="ghost" size="sm" @click="close">关闭</BaseButton>
     </template>
