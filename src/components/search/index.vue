@@ -198,14 +198,30 @@ function clickSuggestion(item) {
 
 <template>
   <div class="w-full relative">
-    <BaseInput
-      v-model="searchKey"
-      placeholder="搜索文件…"
-      :prefix="SearchIcon"
-      clearable
-      @enter="doSearch"
-      @focus="showSuggest = suggestions.length > 0"
-    />
+    <form
+      autocomplete="off"
+      data-form-type="other"
+      data-lpignore="true"
+      data-1p-ignore="true"
+      class="block w-full m-0 p-0"
+      @submit.prevent="doSearch"
+    >
+      <BaseInput
+        v-model="searchKey"
+        type="search"
+        placeholder="搜索文件…"
+        :prefix="SearchIcon"
+        name="xpan-search"
+        autocomplete="off"
+        input-mode="search"
+        autocorrect="off"
+        autocapitalize="off"
+        spellcheck="false"
+        clearable
+        @enter="doSearch"
+        @focus="showSuggest = suggestions.length > 0"
+      />
+    </form>
 
     <!-- 搜索建议下拉（P1-5 Fuse.js 本地模糊匹配） -->
     <Transition name="modal">

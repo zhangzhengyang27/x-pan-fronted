@@ -17,7 +17,11 @@ const props = defineProps({
   suffix: { type: [Object, Function], default: null },
   error: { type: Boolean, default: false },
   id: { type: String, default: '' },
-  showPassword: { type: Boolean, default: false }
+  showPassword: { type: Boolean, default: false },
+  // 新增:阻止浏览器/密码管理器把搜索框/普通输入误识别为登录凭据
+  autocomplete: { type: String, default: 'off' },
+  name: { type: String, default: '' },
+  inputMode: { type: String, default: undefined }
 })
 
 const emit = defineEmits(['update:modelValue', 'clear', 'enter'])
@@ -84,7 +88,16 @@ function onKeydown(e) {
       :disabled="disabled"
       :readonly="readonly"
       :class="inputClass"
+      :autocomplete="autocomplete"
+      :name="name"
+      :inputmode="inputMode"
+      autocorrect="off"
+      autocapitalize="off"
+      spellcheck="false"
       :aria-invalid="error || undefined"
+      data-form-type="other"
+      data-lpignore="true"
+      data-1p-ignore="true"
       @input="onInput"
       @keydown="onKeydown"
     />

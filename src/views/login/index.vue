@@ -2,8 +2,8 @@
 /**
  * LoginPage —— 登录页（夸克风格重设计）
  */
-import { onMounted, reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { onMounted, reactive, ref, nextTick } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { Cloud, User, KeyRound, LogIn, Eye, EyeOff } from '@lucide/vue'
 import { ElMessage } from '@/composables/useToast'
 import userService from '@/api/user'
@@ -12,6 +12,7 @@ import { useFileStore } from '@/stores/file'
 import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
+const route = useRoute()
 const loading = ref(false)
 const showPassword = ref(false)
 
@@ -20,6 +21,16 @@ const fileStore = useFileStore()
 const userStore = useUserStore()
 const { setParentId, setDefaultParentId, setDefaultParentFilename } = fileStore
 const { setUsername } = userStore
+const usernameRef = ref<HTMLInputElement | null>(null)
+
+function resolveRedirect(): { name: string } | { path: string } {
+  // 支持 query.redirect / query.redirect_uri，安全:仅放行站内相对路径(防开放重定向)
+  const raw = (route.query.redirect as string) || ''
+  if (raw && raw.startsWith('/') && !raw.startsWith('//')) {
+    return { path: raw }
+  }
+  return { name: 'Index' }
+}
 
 function doLogin() {
   if (!loginForm.username) return ElMessage.error('请输入用户名')
@@ -30,22 +41,25 @@ function doLogin() {
     (res) => {
       setToken(res.data)
       userService.info(
-        (res) => {
-          setParentId(res.data.rootFileId)
-          setDefaultParentId(res.data.rootFileId)
-          setDefaultParentFilename(res.data.rootFilename)
-          setUsername(res.data.username)
+        (infoRes) => {
+          setParentId(infoRes.data.rootFileId)
+          setDefaultParentId(infoRes.data.rootFileId)
+          setDefaultParentFilename(infoRes.data.rootFilename)
+          setUsername(infoRes.data.username)
           loading.value = false
-          router.push({ name: 'Index' })
+          // 登录成功:跳回 redirect 指定的来源页,仅接受站内相对路径
+          router.replace(resolveRedirect())
         },
-        () => {
-          ElMessage.error('获取用户信息失败')
+        (errRes) => {
+          // 用户信息获取失败:token 已写入,清掉避免进入死循环
+          setToken('')
+          ElMessage.error(errRes?.message || '获取用户信息失败')
           loading.value = false
         }
       )
     },
-    (res) => {
-      ElMessage.error(res.message)
+    (errRes) => {
+      ElMessage.error(errRes?.message || '登录失败')
       loading.value = false
     }
   )
@@ -54,9 +68,9 @@ function doLogin() {
 const goForget = () => router.push({ name: 'Forget' })
 const goRegister = () => router.push({ name: 'Register' })
 
-onMounted(() => {
-  const input = document.querySelector('input[placeholder="输入您的账号"]') as HTMLInputElement
-  input?.focus()
+onMounted(async () => {
+  await nextTick()
+  usernameRef.value?.focus()
 })
 </script>
 
@@ -95,10 +109,15 @@ onMounted(() => {
                 <User :size="16" :stroke-width="2" />
               </div>
               <input
+                ref="usernameRef"
                 v-model="loginForm.username"
                 type="text"
+                name="username"
                 placeholder="输入您的账号"
                 autocomplete="username"
+                autocapitalize="off"
+                autocorrect="off"
+                spellcheck="false"
                 class="w-full pl-10 pr-3.5 py-2.5 text-sm rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] placeholder-[var(--color-text-muted)] transition-colors duration-150 focus:outline-none focus:border-[var(--color-border-focus)] focus:ring-2 focus:ring-[var(--color-ring)]"
               />
             </div>
@@ -123,8 +142,12 @@ onMounted(() => {
               <input
                 v-model="loginForm.password"
                 :type="showPassword ? 'text' : 'password'"
+                name="password"
                 placeholder="输入您的密码"
                 autocomplete="current-password"
+                autocapitalize="off"
+                autocorrect="off"
+                spellcheck="false"
                 class="w-full pl-10 pr-10 py-2.5 text-sm rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] placeholder-[var(--color-text-muted)] transition-colors duration-150 focus:outline-none focus:border-[var(--color-border-focus)] focus:ring-2 focus:ring-[var(--color-ring)]"
               />
               <button

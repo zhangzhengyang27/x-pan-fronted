@@ -7,7 +7,6 @@
 import { onMounted, onUnmounted, ref } from 'vue'
 import AppHeader from '@/components/header/index.vue'
 import AppNavbar from '@/components/navbar/index.vue'
-import AppFooter from '@/components/footer/index.vue'
 import { useUploader } from '@/composables/useUploader'
 
 const { addFiles } = useUploader()
@@ -80,7 +79,6 @@ onUnmounted(() => {
             </RouterView>
           </div>
         </div>
-        <AppFooter />
       </main>
     </div>
 

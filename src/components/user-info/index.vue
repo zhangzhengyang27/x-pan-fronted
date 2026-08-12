@@ -3,11 +3,12 @@
  * AppUserInfo —— 用户菜单 + 修改密码弹窗
  * 使用 BaseDropdown + BaseModal + BaseField + BaseInput + BaseButton
  */
-import { reactive, ref, onMounted } from 'vue'
+import { reactive, ref, onMounted, computed } from 'vue'
 import { storeToRefs } from 'pinia'
-import { ChevronDown, LogOut, KeyRound, User, Monitor } from '@lucide/vue'
+import { useRouter } from 'vue-router'
+import { ChevronDown, LogOut, KeyRound, User, Monitor, Info } from '@lucide/vue'
 import userService from '@/api/user'
-import { clearToken } from '@/utils/cookie'
+import { clearToken, getToken } from '@/utils/cookie'
 import { useUserStore } from '@/stores/user'
 import { useBreadcrumbStore } from '@/stores/breadcrumb'
 import { useFileStore } from '@/stores/file'
@@ -28,11 +29,25 @@ const breadcrumbStore = useBreadcrumbStore()
 const fileStore = useFileStore()
 const navbarStore = useNavbarStore()
 const taskStore = useTaskStore()
+const router = useRouter()
+
+// 未登录时点击触发跳转登录页
+function goLogin() {
+  router.push({ path: '/login', query: { redirect: router.currentRoute.value.fullPath } })
+}
+// 已登录判定：username 存在 或 Cookie 中存在 token（即"已登录但信息未取到"也按已登录处理）
+const isLoggedIn = computed(() => !!userStore.username || !!getToken())
 
 const open = ref(false)
 const changePasswordDialogVisible = ref(false)
 const deviceManagerVisible = ref(false)
+const profileVisible = ref(false)
 const loading = ref(false)
+const profile = reactive<{
+  username: string
+  rootFileId: string
+  rootFilename: string
+}>({ username: '', rootFileId: '', rootFilename: '' })
 
 const changePasswordForm = reactive({
   password: '',
@@ -66,6 +81,26 @@ function openChangePassword() {
 function openDeviceManager() {
   open.value = false
   deviceManagerVisible.value = true
+}
+
+function openProfile() {
+  open.value = false
+  // 用最新值填充弹窗
+  profile.username = username.value || userStore.username || ''
+  if (fileStore.parentId) profile.rootFileId = fileStore.parentId
+  if (fileStore.defaultParentFilename) profile.rootFilename = fileStore.defaultParentFilename
+  // 若信息不全，异步拉一次
+  if (!profile.username || !profile.rootFileId) {
+    userService.info(
+      (res) => {
+        profile.username = res.data.username || profile.username
+        profile.rootFileId = res.data.rootFileId || profile.rootFileId
+        profile.rootFilename = res.data.rootFilename || profile.rootFilename
+      },
+      () => {}
+    )
+  }
+  profileVisible.value = true
 }
 
 function resetChangePasswordForm() {
@@ -125,7 +160,23 @@ onMounted(initUserInfoIfNecessary)
 
 <template>
   <div>
-    <BaseDropdown v-model="open">
+    <!-- 未登录：点击直接跳转登录页，不展开下拉菜单 -->
+    <button
+      v-if="!isLoggedIn"
+      type="button"
+      class="flex items-center gap-2 px-2.5 h-9 rounded-sm hover:bg-[var(--color-surface-2)] transition-colors text-sm"
+      @click="goLogin"
+    >
+      <span
+        class="size-7 rounded-full bg-[var(--color-primary-100)] dark:bg-[var(--color-primary-900)]/40 flex items-center justify-center text-[var(--color-primary-700)] dark:text-[var(--color-primary-300)]"
+      >
+        <User :size="14" />
+      </span>
+      <span class="hidden sm:inline text-[var(--color-text)] max-w-[120px] truncate">未登录</span>
+      <LogOut :size="14" class="text-[var(--color-text-muted)]" />
+    </button>
+
+    <BaseDropdown v-else v-model="open">
       <template #trigger>
         <button
           type="button"
@@ -137,11 +188,19 @@ onMounted(initUserInfoIfNecessary)
             <User :size="14" />
           </span>
           <span class="hidden sm:inline text-[var(--color-text)] max-w-[120px] truncate">{{
-            username || '未登录'
+            username || '已登录'
           }}</span>
           <ChevronDown :size="14" class="text-[var(--color-text-muted)]" />
         </button>
       </template>
+      <button
+        type="button"
+        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-surface-2)] transition-colors text-left"
+        @click="openProfile"
+      >
+        <Info :size="14" />
+        查看用户信息
+      </button>
       <button
         type="button"
         class="w-full flex items-center gap-2 px-3 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-surface-2)] transition-colors text-left"
@@ -208,6 +267,37 @@ onMounted(initUserInfoIfNecessary)
           >取消</BaseButton
         >
         <BaseButton variant="primary" :loading="loading" @click="doChangePassword">确定</BaseButton>
+      </template>
+    </BaseModal>
+
+    <!-- 用户信息弹窗 -->
+    <BaseModal
+      v-model:open="profileVisible"
+      title="用户信息"
+      size="sm"
+    >
+      <div class="flex flex-col gap-3 text-sm">
+        <div class="flex items-center justify-between py-2 border-b border-[var(--color-border)]">
+          <span class="text-[var(--color-text-muted)]">用户名</span>
+          <span class="font-medium text-[var(--color-text)] truncate max-w-[60%]">{{
+            profile.username || '-'
+          }}</span>
+        </div>
+        <div class="flex items-center justify-between py-2 border-b border-[var(--color-border)]">
+          <span class="text-[var(--color-text-muted)]">根目录 ID</span>
+          <span class="font-mono text-xs text-[var(--color-text)] truncate max-w-[60%]">{{
+            profile.rootFileId || '-'
+          }}</span>
+        </div>
+        <div class="flex items-center justify-between py-2">
+          <span class="text-[var(--color-text-muted)]">根目录名</span>
+          <span class="text-[var(--color-text)] truncate max-w-[60%]">{{
+            profile.rootFilename || '-'
+          }}</span>
+        </div>
+      </div>
+      <template #footer>
+        <BaseButton variant="primary" @click="profileVisible = false">知道了</BaseButton>
       </template>
     </BaseModal>
   </div>

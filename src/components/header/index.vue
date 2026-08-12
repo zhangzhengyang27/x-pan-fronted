@@ -74,11 +74,11 @@ function openAI() {
         </span>
       </router-link>
 
-      <!-- 主搜索（夸克风格:紧凑192px搜索框） -->
-      <div v-if="showSearch" class="flex-1 max-w-48 min-w-0 mr-2">
+      <!-- 主搜索(靠右贴合右侧按钮组,搜索框左侧留白由父容器自然吸收) -->
+      <div v-if="showSearch" class="ml-auto min-w-0 max-w-sm mr-2">
         <PanSearch />
       </div>
-      <div v-else class="flex-1" />
+      <div v-else class="ml-auto" />
 
       <!-- 右侧操作按钮组(夸克风格:灰调 icon button) -->
       <div class="flex items-center gap-0.5 sm:gap-1 shrink-0">

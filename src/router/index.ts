@@ -2,7 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
 import 'nprogress/nprogress.css'
 import NProgress from 'nprogress'
-import { getToken } from '@/utils/cookie'
+import { getToken, clearToken } from '@/utils/cookie'
 import userService from '@/api/user'
 import { useUserStore } from '@/stores/user'
 import { useFileStore } from '@/stores/file'
@@ -197,9 +197,13 @@ router.beforeEach((to, from, next) => {
         window.clearTimeout(timeoutId)
         // 区分「用户取消登录」与「真实错误」：取消时停留在当前页，不强制跳转
         if (res && (res.code === 10 || res.code === 401)) {
+          clearToken()
+          userStore.clear()
           next({ name: 'Login', query: { redirect: to.fullPath } })
           NProgress.done()
         } else {
+          // 其它异常:Toast 提示一次并放行;若 token 实际已失效,
+          // 下次进入路由仍会再次 info,避免阻塞用户当前操作
           ElMessage.error(res?.message || '获取用户信息失败')
           finishNext()
         }
