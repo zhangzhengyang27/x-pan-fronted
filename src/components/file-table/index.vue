@@ -16,13 +16,13 @@ import BaseTooltip from '@/components/base/BaseTooltip.vue'
 import BaseEmpty from '@/components/base/BaseEmpty.vue'
 import ContextMenu from '@/components/base/ContextMenu.vue'
 import FolderPickerDialog from '@/components/base/FolderPickerDialog.vue'
-import FileTableToolbar from './FileTableToolbar.vue'
 import FileThumbnail from './FileThumbnail.vue'
 import { useFavorites } from '@/composables/useFavorites'
 import { useRecent } from '@/composables/useRecent'
 import { useMediaQuery } from '@/composables/useMediaQuery'
 import { useFileTags } from '@/composables/useFileTags'
 import { getDownloadUrl } from '@/utils/preview'
+import { useUploader } from '@/composables/useUploader'
 import {
   LoaderCircle,
   Download,
@@ -36,7 +36,6 @@ import {
   Share2,
   QrCode
 } from '@lucide/vue'
-import QRCode from 'qrcode'
 import shareService from '@/api/share'
 import vaultService from '@/api/vault'
 import { FileType } from '@/types'
@@ -100,8 +99,88 @@ function applyFilter(f: typeof filter.value) {
   filter.value = { ...f }
 }
 
-// 暴露方法给父组件
-defineExpose({ applyFilter, setView: (v: string) => { currentView.value = v } })
+// ─── 快捷键派发的文件操作 ─────────────────────────────────────────────────────
+// 上传：转发到全局上传器
+const { addFiles: uploadAddFiles } = useUploader()
+
+function triggerUpload() {
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.multiple = true
+  input.style.display = 'none'
+  input.onchange = () => {
+    if (input.files?.length) uploadAddFiles(input.files)
+    input.remove()
+  }
+  document.body.appendChild(input)
+  input.click()
+}
+
+function downloadSelected() {
+  if (!selectedRows.value.length) {
+    ElMessage.warning('请先选择要下载的文件')
+    return
+  }
+  if (selectedRows.value.some((r) => r.fileType === 0)) {
+    ElMessage.error('文件夹暂不支持下载')
+    return
+  }
+  batchDownload(selectedRows.value)
+}
+
+function renameSelected() {
+  if (!selectedRows.value.length) {
+    ElMessage.error('请先选择要重命名的文件')
+    return
+  }
+  if (selectedRows.value.length > 1) batchRename(selectedRows.value)
+  else promptRename(selectedRows.value[0])
+}
+
+function refreshList() {
+  fileStore.loadFileList()
+}
+
+async function createFolder() {
+  try {
+    const { value: name } = await ElMessageBox.prompt('请输入文件夹名称', '新建文件夹', {
+      inputValidator: (val) => (val && val.trim()) || '名称不能为空',
+      confirmButtonText: '确定',
+      cancelButtonText: '取消'
+    })
+    if (!name) return
+    fileService.createFolder(
+      { parentId: fileStore.parentId, folderName: name.trim() },
+      () => {
+        ElMessage.success('新建成功')
+        fileStore.loadFileList()
+      },
+      (err) => ElMessage.error(err.message)
+    )
+  } catch {
+    // 取消
+  }
+}
+
+// 暴露方法给父组件（列表/网格视图切换、筛选、快捷键操作、批量选择）
+defineExpose({
+  applyFilter,
+  setView: (v: string) => { currentView.value = v },
+  download: downloadSelected,
+  rename: renameSelected,
+  refresh: refreshList,
+  createFolder,
+  triggerUpload,
+  selectedRows,
+  selectedCount,
+  batchDownload,
+  batchDelete,
+  batchRename,
+  shareWithQRCode,
+  toggleFavorite,
+  selectAll,
+  clearSelection
+})
 
 const selectedRows = computed(() =>
   filteredList.value.filter((r) => selected.value.includes(r.fileId))
@@ -124,6 +203,16 @@ function handleSelectionChange(keys: string[]) {
   selected.value = keys
   const rows = fileList.value.filter((r) => keys.includes(r.fileId))
   fileStore.setMultipleSelection(rows)
+}
+
+function selectAll() {
+  selected.value = filteredList.value.map((r) => r.fileId)
+  handleSelectionChange([...selected.value])
+}
+
+function clearSelection() {
+  selected.value = []
+  handleSelectionChange([])
 }
 
 // ─── 点击文件名 ────────────────────────────────────────────────────────────
@@ -168,14 +257,14 @@ function clickFilename(row: Record<string, any>) {
   }
 }
 
-// ─── 行点击(单选) ─────────────────────────────────────────────────────────
-function onRowClick(row: Record<string, any>) {
+// ─── 行点击 ────────────────────────────────────────────────────────────────
+function onRowClick(row: Record<string, any>, e?: MouseEvent) {
   const id = row.fileId
-  const idx = selected.value.indexOf(id)
-  if (idx === -1) {
-    selected.value = [id]
+  if (e && (e.ctrlKey || e.metaKey)) {
+    const idx = selected.value.indexOf(id)
+    selected.value = idx === -1 ? [...selected.value, id] : selected.value.filter((k) => k !== id)
   } else {
-    selected.value = []
+    selected.value = [id]
   }
   handleSelectionChange([...selected.value])
 }
@@ -239,12 +328,86 @@ function batchDelete(rows: Record<string, any>[]) {
   )
 }
 
-// ─── 快捷键 ────────────────────────────────────────────────────────────────
+// ─── 键盘行导航（↑↓ 选择 / Enter→ 打开 / ← 返回 / Space 多选 / Esc 取消） ──────
+const activeIndex = ref(-1)
+const activeRow = computed(() =>
+  activeIndex.value >= 0 && activeIndex.value < filteredList.value.length
+    ? filteredList.value[activeIndex.value]
+    : null
+)
+const activeKey = computed(() => activeRow.value?.fileId ?? '')
+
+// 高亮行自动滚动入视区
+function scrollActiveIntoView() {
+  if (!activeKey.value) return
+  nextTick(() => {
+    const el = document.querySelector(
+      `[data-active="true"], [data-file-id="${activeKey.value}"]`
+    ) as HTMLElement | null
+    if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  })
+}
+watch(activeIndex, scrollActiveIntoView)
+
+function ensureActive() {
+  if (activeIndex.value < 0 && filteredList.value.length) activeIndex.value = 0
+}
+
+function goUp() {
+  const list = breadcrumbStore.breadcrumbList
+  if (list.length >= 2) {
+    const parent = list[list.length - 2]
+    goInFolder(panUtil.handleId(parent.id))
+  }
+}
+
 function onKeyDown(e: KeyboardEvent) {
   const tag = (e.target as HTMLElement)?.tagName?.toLowerCase()
   if (tag === 'input' || tag === 'textarea' || (e.target as HTMLElement)?.isContentEditable) return
+  const len = filteredList.value.length
+  if (len === 0) return
 
-  if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+  // 方向键：移动高亮行
+  if (e.key === 'ArrowDown') {
+    e.preventDefault()
+    ensureActive()
+    activeIndex.value = Math.min(activeIndex.value + 1, len - 1)
+    return
+  }
+  if (e.key === 'ArrowUp') {
+    e.preventDefault()
+    ensureActive()
+    activeIndex.value = Math.max(activeIndex.value - 1, 0)
+    return
+  }
+  // Enter / → 打开高亮行
+  if ((e.key === 'Enter' || e.key === 'ArrowRight') && activeRow.value) {
+    e.preventDefault()
+    clickFilename(activeRow.value)
+    return
+  }
+  // ← 返回上一级目录
+  if (e.key === 'ArrowLeft') {
+    e.preventDefault()
+    goUp()
+    return
+  }
+  // Space 切换高亮行选中
+  if (e.key === ' ' && activeRow.value) {
+    e.preventDefault()
+    const id = activeRow.value.fileId
+    const idx = selected.value.indexOf(id)
+    selected.value = idx === -1 ? [...selected.value, id] : selected.value.filter((k) => k !== id)
+    handleSelectionChange([...selected.value])
+    return
+  }
+  if (e.key === 'Escape') {
+    selected.value = []
+    activeIndex.value = -1
+    handleSelectionChange([])
+    return
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
     e.preventDefault()
     selected.value = filteredList.value.map((r) => r.fileId)
     handleSelectionChange([...selected.value])
@@ -254,10 +417,6 @@ function onKeyDown(e: KeyboardEvent) {
     e.preventDefault()
     batchDelete(selectedRows.value)
     return
-  }
-  if (e.key === 'Escape') {
-    selected.value = []
-    handleSelectionChange([])
   }
 }
 
@@ -553,13 +712,15 @@ async function batchRename(rows: Record<string, any>[]) {
 
 // ─── 分享 ──────────────────────────────────────────────────────────────────
 async function shareWithQRCode(row: any) {
+  const target = row || selectedRows.value[0]
+  if (!target) return
   try {
     shareService.createShare(
-      { fileId: row.fileId },
+      { fileId: target.fileId },
       (res) => {
         const shareId = res.data?.shareId || res.data
         const url = window.location.origin + '/share/' + shareId
-        showQRModal(url, row.filename || row.name || '分享')
+        showQRModal(url, target.filename || target.name || '分享')
       },
       () => ElMessage.error('创建分享失败')
     )
@@ -570,7 +731,8 @@ async function shareWithQRCode(row: any) {
 
 async function showQRModal(url: string, title: string) {
   try {
-    const qrDataUrl = await QRCode.toDataURL(url, { width: 220, margin: 2 })
+    const { toDataURL } = await import('qrcode')
+    const qrDataUrl = await toDataURL(url, { width: 220, margin: 2 })
     const modal = document.createElement('div')
     modal.style.cssText =
       'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);'
@@ -600,18 +762,11 @@ onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeyDown)
   teardownIntersectionObserver()
 })
+
 </script>
 
 <template>
   <div class="h-full flex flex-col">
-
-    <!-- 工具栏:批量操作(列表视图上方) -->
-    <FileTableToolbar
-      v-if="selectedCount > 0"
-      :selected-rows="selectedRows"
-      @batch-download="batchDownload"
-      @batch-delete="batchDelete"
-    />
 
     <!-- 列表视图 -->
     <BaseTable
@@ -622,12 +777,13 @@ onBeforeUnmount(() => {
       :skeleton="tableLoading && filteredList.length === 0"
       selectable
       row-key="fileId"
+      :active-key="activeKey"
       :selected="selected"
       empty-text="该文件夹为空，试试上传文件"
       :sort-field="sortProp"
       :sort-order="sortOrder"
       @update:selected="(v: string[]) => handleSelectionChange(v)"
-      @rowClick="onRowClick"
+      @rowClick="(row: any, idx: number, e: MouseEvent) => onRowClick(row, e)"
       @rowDblclick="onRowDblclick"
       @rowContextmenu="(e: MouseEvent, row: any) => onContextMenu(e, row)"
     >
@@ -714,9 +870,12 @@ onBeforeUnmount(() => {
           :data-file-id="row.fileId"
           class="group relative aspect-square rounded-sm border transition-all p-3 flex flex-col items-center justify-center text-center"
           :class="
-            selected.includes(row.fileId)
-              ? 'border-[var(--color-primary-500)] ring-2 ring-[var(--color-primary-500)]/20 bg-[var(--color-primary-500)]/5'
-              : 'border-[var(--color-border)] hover:border-[var(--color-primary-400)] hover:shadow-sm bg-[var(--color-surface)]'
+            [
+              selected.includes(row.fileId)
+                ? 'border-[var(--color-primary-500)] ring-2 ring-[var(--color-primary-500)]/20 bg-[var(--color-primary-500)]/5'
+                : 'border-[var(--color-border)] hover:border-[var(--color-primary-400)] hover:shadow-sm bg-[var(--color-surface)]',
+              activeKey === row.fileId ? 'outline outline-2 outline-[var(--color-primary-500)]' : ''
+            ]
           "
           @click="onRowClick(row)"
           @dblclick="onRowDblclick(row)"

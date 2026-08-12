@@ -9,24 +9,38 @@
  * - FileTable（列表/网格双视图）
  * - 拖拽上传反馈
  */
-import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { onMounted, onUnmounted, ref, watch, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { LayoutGrid, List, CloudUpload } from '@lucide/vue'
+import {
+  LayoutGrid,
+  List,
+  CloudUpload,
+  Download,
+  Share2,
+  Trash2,
+  MoreHorizontal,
+  Check,
+  Minus
+} from '@lucide/vue'
 import FileButtonGroup from '@/components/file-button-group/index.vue'
 import BreadCrumb from '@/components/breadcrumb/index.vue'
 import FileTable from '@/components/file-table/index.vue'
 import SortMenu from '@/components/file-table/SortMenu.vue'
 import FilterMenu from '@/components/file-table/FilterMenu.vue'
+import TransferButton from '@/components/buttons/transfer-button/index.vue'
+import CopyButton from '@/components/buttons/copy-button/index.vue'
 import UploadTaskPanel from '@/components/upload-task-panel/index.vue'
 import BaseTooltip from '@/components/base/BaseTooltip.vue'
+import BasePopover from '@/components/base/BasePopover.vue'
 import { useFileStore } from '@/stores/file'
 import { useBreadcrumbStore } from '@/stores/breadcrumb'
 import { useUploader } from '@/composables/useUploader'
 import { storeToRefs } from 'pinia'
+import { ElMessage } from '@/composables/useToast'
 
 const fileStore = useFileStore()
 const breadcrumbStore = useBreadcrumbStore()
-const { searchFlag, defaultParentId, defaultParentFilename, fileList } = storeToRefs(fileStore)
+const { searchFlag, defaultParentId, defaultParentFilename, fileList, multipleSelection } = storeToRefs(fileStore)
 const route = useRoute()
 
 // P2-8: query.type → fileTypes 映射（与 file-type-filter 保持一致）
@@ -51,6 +65,39 @@ const isDragOver = ref(false)
 const fileTableRef = ref(null)
 const { addFiles } = useUploader()
 
+// ─── 全局快捷键（来自 useShortcuts 派发） ───────────────────────────────────
+function onShortcut(e: Event) {
+  const name = (e as CustomEvent).detail?.name
+  const table = fileTableRef.value as any
+  switch (name) {
+    case 'upload':
+      table?.triggerUpload?.()
+      break
+    case 'createFolder':
+      table?.createFolder?.()
+      break
+    case 'download':
+      table?.download?.()
+      break
+    case 'rename':
+      table?.rename?.()
+      break
+    case 'refresh':
+      table?.refresh?.()
+      break
+    case 'view-list':
+      view.value = 'list'
+      table?.setView?.('list')
+      break
+    case 'view-grid':
+      view.value = 'grid'
+      table?.setView?.('grid')
+      break
+  }
+}
+onMounted(() => window.addEventListener('xpan:shortcut', onShortcut))
+onUnmounted(() => window.removeEventListener('xpan:shortcut', onShortcut))
+
 // 排序 / 筛选状态（与 FileTable 共享）
 const sortOpen = ref(false)
 const filterOpen = ref(false)
@@ -67,10 +114,78 @@ watch(view, (v) => {
   fileTableRef.value?.setView(v)
 })
 
-const buttonArray = ref([
-  'upload',
-  'createFolder'
-])
+const buttonArray = ref(['upload', 'createFolder'])
+const selectedCount = computed(() => multipleSelection.value.length)
+const isAllSelected = computed(() => {
+  if (!fileList.value.length) return false
+  return fileList.value.every((r) => multipleSelection.value.some((s) => s.fileId === r.fileId))
+})
+const isIndeterminate = computed(() => {
+  return selectedCount.value > 0 && !isAllSelected.value
+})
+const moreMenuOpen = ref(false)
+
+function toggleSelectAll() {
+  const table = fileTableRef.value as any
+  if (isAllSelected.value) {
+    table?.clearSelection?.()
+  } else {
+    table?.selectAll?.()
+  }
+}
+
+function onBatchDownload() {
+  const table = fileTableRef.value as any
+  if (!table?.selectedRows?.length) {
+    ElMessage.warning('请先选择文件')
+    return
+  }
+  table.batchDownload?.(table.selectedRows)
+}
+
+function onBatchDelete() {
+  const table = fileTableRef.value as any
+  if (!table?.selectedRows?.length) {
+    ElMessage.warning('请先选择文件')
+    return
+  }
+  table.batchDelete?.(table.selectedRows)
+}
+
+function onBatchRename() {
+  const table = fileTableRef.value as any
+  if (!table?.selectedRows?.length) {
+    ElMessage.warning('请先选择文件')
+    return
+  }
+  table.batchRename?.(table.selectedRows)
+}
+
+function onBatchShare() {
+  const table = fileTableRef.value as any
+  if (!table?.selectedRows?.length) {
+    ElMessage.warning('请先选择文件')
+    return
+  }
+  table.shareWithQRCode?.()
+}
+
+function onMoreAction(key: string) {
+  moreMenuOpen.value = false
+  switch (key) {
+    case 'rename':
+      onBatchRename()
+      break
+    case 'favorite': {
+      const table = fileTableRef.value as any
+      if (table?.selectedRows?.length) table?.toggleFavorite?.(table.selectedRows[0])
+      break
+    }
+    case 'detail':
+      ElMessage.info('文件详情')
+      break
+  }
+}
 
 function onDragOver(e) {
   e.preventDefault()
@@ -157,9 +272,99 @@ onUnmounted(() => {
     <div
       class="flex items-center justify-between gap-4 p-3 rounded-sm bg-[var(--color-surface-container-low)]"
     >
-      <div class="flex items-center gap-2">
+      <!-- 未选中：左侧上传/新建 -->
+      <div v-if="selectedCount === 0" class="flex items-center gap-2">
         <FileButtonGroup :button-array="buttonArray" />
       </div>
+
+      <!-- 选中时：左侧全选 + 批量操作 -->
+      <div v-else class="flex items-center gap-2">
+        <button
+          type="button"
+          class="size-4 rounded flex items-center justify-center transition-colors"
+          style="border: 1px solid var(--color-border-strong);"
+          :style="(isAllSelected || isIndeterminate) ? 'background-color: var(--color-primary-500); border-color: var(--color-primary-500); color: white;' : ''"
+          @click="toggleSelectAll"
+        >
+          <Check v-if="isAllSelected" :size="12" :stroke-width="3" />
+          <Minus v-else-if="isIndeterminate" :size="12" :stroke-width="3" />
+        </button>
+        <span class="text-sm text-[var(--color-text)]">
+          已选
+          <span class="font-medium tabular-nums">{{ selectedCount }}</span>
+          项
+        </span>
+
+        <div class="w-px h-4 bg-[var(--color-border)]" />
+
+        <BaseTooltip text="下载" position="bottom">
+          <button
+            type="button"
+            class="h-8 px-2 rounded-sm text-sm inline-flex items-center gap-1 text-[var(--color-text)] hover:bg-[var(--color-surface-2)]"
+            @click="onBatchDownload"
+          >
+            <Download :size="16" />
+            下载
+          </button>
+        </BaseTooltip>
+        <BaseTooltip text="分享" position="bottom">
+          <button
+            type="button"
+            class="h-8 px-2 rounded-sm text-sm inline-flex items-center gap-1 text-[var(--color-text)] hover:bg-[var(--color-surface-2)]"
+            @click="onBatchShare"
+          >
+            <Share2 :size="16" />
+            分享
+          </button>
+        </BaseTooltip>
+        <CopyButton round-flag size="small" />
+        <TransferButton round-flag size="small" />
+        <BaseTooltip text="删除" position="bottom">
+          <button
+            type="button"
+            class="h-8 px-2 rounded-sm text-sm inline-flex items-center gap-1 text-[var(--color-danger)] hover:bg-[var(--color-danger-bg)]/20"
+            @click="onBatchDelete"
+          >
+            <Trash2 :size="16" />
+            删除
+          </button>
+        </BaseTooltip>
+        <BasePopover v-model="moreMenuOpen" placement="bottom-start" trigger="click">
+          <template #trigger>
+            <button
+              type="button"
+              class="h-8 px-2 rounded-sm text-sm inline-flex items-center gap-1 text-[var(--color-text)] hover:bg-[var(--color-surface-2)]"
+            >
+              <MoreHorizontal :size="16" />
+              更多
+            </button>
+          </template>
+          <div class="py-1 min-w-[120px]">
+            <button
+              type="button"
+              class="w-full px-3 py-1.5 text-sm text-left text-[var(--color-text)] hover:bg-[var(--color-surface-2)]"
+              @click="onMoreAction('rename')"
+            >
+              重命名
+            </button>
+            <button
+              type="button"
+              class="w-full px-3 py-1.5 text-sm text-left text-[var(--color-text)] hover:bg-[var(--color-surface-2)]"
+              @click="onMoreAction('favorite')"
+            >
+              收藏
+            </button>
+            <button
+              type="button"
+              class="w-full px-3 py-1.5 text-sm text-left text-[var(--color-text)] hover:bg-[var(--color-surface-2)]"
+              @click="onMoreAction('detail')"
+            >
+              查看详情
+            </button>
+          </div>
+        </BasePopover>
+      </div>
+
       <div class="flex items-center gap-2">
         <SortMenu v-model:open="sortOpen" />
         <FilterMenu

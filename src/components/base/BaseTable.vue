@@ -21,6 +21,7 @@ const props = defineProps({
   rowKey: { type: String, default: 'id' },
   selectable: { type: Boolean, default: false },
   selected: { type: Array, default: () => [] },
+  activeKey: { type: [String, Number], default: '' },
   emptyText: { type: String, default: '暂无数据' },
   skeletonRows: { type: Number, default: 5 },
   sortField: { type: String, default: '' },
@@ -59,7 +60,8 @@ function rowClass(row) {
   return cn(
     'transition-colors duration-150 cursor-pointer',
     'hover:bg-[var(--color-surface-2)]',
-    isSelected(row) && 'quark-row-selected'
+    isSelected(row) && 'bg-[var(--color-primary-500)]/5',
+    getRowKey(row) === props.activeKey && 'outline outline-2 outline-[var(--color-primary-500)]'
   )
 }
 
@@ -83,7 +85,7 @@ function handleSort(col) {
       <!-- 夸克标准:粘性表头 + 40px列头 -->
       <thead class="sticky top-0 z-10 bg-[var(--color-surface-2)]">
         <tr class="border-b border-[var(--color-border)]">
-          <th v-if="selectable" class="w-12 px-3 py-2.5 text-left">
+          <th v-if="selectable" class="w-10 px-3 py-2.5 text-left">
             <button
               type="button"
               class="size-4 rounded flex items-center justify-center transition-colors"
@@ -137,7 +139,7 @@ function handleSort(col) {
           :key="i"
           class="border-b border-[var(--color-border)]"
         >
-          <td v-if="selectable" class="w-12 px-3 py-2.5">
+          <td v-if="selectable" class="w-10 px-3 py-2.5">
             <span class="block size-4 rounded animate-pulse" style="background-color: var(--color-surface-container-low);" />
           </td>
           <td v-for="col in columns" :key="col.key" class="px-3 py-2.5">
@@ -178,12 +180,13 @@ function handleSort(col) {
           :key="getRowKey(row, idx)"
           class="border-b border-[var(--color-border)]"
           :class="rowClass(row)"
+          :data-active="getRowKey(row) === props.activeKey ? 'true' : undefined"
           style="height: 48px;"
-          @click="emit('rowClick', row, idx)"
+          @click="emit('rowClick', row, idx, $event)"
           @dblclick="emit('rowDblclick', row, idx)"
           @contextmenu="emit('rowContextmenu', $event, row)"
         >
-          <td v-if="selectable" class="w-12 px-3 py-2.5" @click.stop>
+          <td v-if="selectable" class="w-10 px-3 py-2.5" @click.stop>
             <button
               type="button"
               class="size-4 rounded flex items-center justify-center transition-colors"
