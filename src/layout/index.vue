@@ -71,7 +71,7 @@ onUnmounted(() => {
       <AppNavbar ref="navbarRef" />
       <main class="flex-1 min-w-0 flex flex-col">
         <div class="flex-1 min-h-0 overflow-y-auto">
-          <div class="px-3 sm:px-4 md:px-6 pb-6 pt-2 mx-auto w-full max-w-[1600px]">
+          <div class="px-3 sm:px-4 md:px-6 pb-6 pt-2 mx-auto w-full max-w-[1600px] h-full">
             <RouterView v-slot="{ Component, route }">
               <Transition name="route-fade" mode="out-in">
                 <component :is="Component" :key="route.path" />

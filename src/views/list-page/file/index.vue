@@ -64,6 +64,7 @@ function applyTypeQuery(typeQuery: unknown) {
 const showDashboard = ref(true)
 const view = ref('list')
 const isDragOver = ref(false)
+const dragEnterCount = ref(0)
 const fileTableRef = ref(null)
 const { addFiles } = useUploader()
 
@@ -211,24 +212,45 @@ function onRefresh() {
   ElMessage.success('已刷新')
 }
 
-function onDragOver(e) {
+function onDragEnter(e: DragEvent) {
   e.preventDefault()
+  e.stopPropagation()
+  dragEnterCount.value++
   isDragOver.value = true
 }
 
-function onDragLeave(e) {
-  if (e.target === e.currentTarget) isDragOver.value = false
+function onDragOver(e: DragEvent) {
+  e.preventDefault()
+  e.stopPropagation()
 }
 
-function onDrop(e) {
+function onDragLeave(e: DragEvent) {
   e.preventDefault()
+  e.stopPropagation()
+  dragEnterCount.value--
+  if (dragEnterCount.value <= 0) {
+    dragEnterCount.value = 0
+    isDragOver.value = false
+  }
+}
+
+function onDrop(e: DragEvent) {
+  e.preventDefault()
+  e.stopPropagation()
+  dragEnterCount.value = 0
   isDragOver.value = false
   const files = e.dataTransfer?.files
   if (files?.length) addFiles(files)
 }
 
-function onWindowDragOver(e) {
+function onWindowDragOver(e: DragEvent) {
   e.preventDefault()
+}
+
+function onWindowDrop(e: DragEvent) {
+  e.preventDefault()
+  dragEnterCount.value = 0
+  isDragOver.value = false
 }
 
 onMounted(() => {
@@ -241,7 +263,7 @@ onMounted(() => {
     applyTypeQuery(route.query.type)
   }
   window.addEventListener('dragover', onWindowDragOver)
-  window.addEventListener('drop', onWindowDragOver)
+  window.addEventListener('drop', onWindowDrop)
 })
 
 // P2-8: query.type 变化时切换类型筛选，保留当前目录上下文（不 refreshParentId）
@@ -256,16 +278,18 @@ watch(
 
 onUnmounted(() => {
   window.removeEventListener('dragover', onWindowDragOver)
-  window.removeEventListener('drop', onWindowDragOver)
+  window.removeEventListener('drop', onWindowDrop)
 })
 </script>
 
 <template>
-  <div class="flex flex-1 gap-4 min-h-0">
+  <div class="h-full flex flex-col">
+    <div class="flex flex-1 gap-4 min-h-0">
     <!-- 拖拽上传区域 -->
     <div
-      class="flex flex-col gap-4 relative flex-1 min-w-0"
+      class="flex flex-col gap-4 relative flex-1 min-w-0 h-full"
       :class="isDragOver ? 'ring-2 ring-inset ring-[var(--color-primary-500)] rounded-xl' : ''"
+      @dragenter="onDragEnter"
       @dragover="onDragOver"
       @dragleave="onDragLeave"
       @drop="onDrop"
@@ -284,19 +308,24 @@ onUnmounted(() => {
         class="pointer-events-none absolute inset-0 z-30 flex items-center justify-center backdrop-blur-sm rounded-xl m-4 border-2 border-dashed"
         style="border-color: var(--color-primary-500); background-color: rgba(0, 112, 243, 0.05);"
       >
-        <div class="flex flex-col items-center gap-4" style="color: var(--color-primary-500);">
-          <CloudUpload :size="64" :stroke-width="1.5" />
-          <div class="text-base font-medium">
-            松开以上传到当前文件夹
+        <div class="flex flex-col items-center gap-3" style="color: var(--color-primary-500);">
+          <CloudUpload :size="56" :stroke-width="1.5" />
+          <div class="text-lg font-medium">
+            释放鼠标以上传文件
+          </div>
+          <div class="text-sm opacity-80">
+            支持多文件批量上传 · 自动分片 · 秒传
           </div>
         </div>
       </div>
     </Transition>
 
-    <!-- 工具条 -->
-    <div
-      class="flex items-center justify-between gap-4 p-3 rounded-sm bg-[var(--color-surface-container-low)]"
-    >
+    <!-- 固定头部：工具条 + 面包屑 -->
+    <div class="sticky top-0 z-20 bg-[var(--color-bg)] pb-4 flex flex-col gap-4">
+      <!-- 工具条 -->
+      <div
+        class="flex items-center justify-between gap-4 p-3 rounded-sm bg-[var(--color-surface-container-low)]"
+      >
       <div class="flex items-center gap-2">
         <FileButtonGroup :button-array="buttonArray" />
 
@@ -435,11 +464,32 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- 面包屑 -->
-    <BreadCrumb />
+      <!-- 面包屑 -->
+      <BreadCrumb />
+    </div>
 
     <!-- 文件表格 -->
-    <FileTable ref="fileTableRef" />
+    <FileTable ref="fileTableRef" class="flex-1 min-h-0" />
+
+    <!-- 空白处上传提示 -->
+    <div
+      class="mt-4 py-6 rounded-xl border border-dashed text-center flex-none"
+      style="border-color: var(--color-border-strong);"
+    >
+      <p class="text-sm text-[var(--color-text-muted)]">
+        点击
+        <button
+          type="button"
+          class="text-[var(--color-primary-500)] hover:underline"
+          @click="fileTableRef?.triggerUpload?.()"
+        >
+          上传文件
+        </button>
+        or
+        <span class="text-[var(--color-primary-500)]">拖拽/粘贴</span>
+        到空白处上传文件
+      </p>
+    </div>
   </div>
 
   <Transition name="detail-mask">
@@ -460,4 +510,5 @@ onUnmounted(() => {
 </div>
 
 <UploadTaskPanel />
+  </div>
 </template>

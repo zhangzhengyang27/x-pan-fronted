@@ -65,8 +65,16 @@ function clearAll() {
   window.location.reload()
 }
 
-function doExit() {
-  if (!window.confirm('确定要退出登录吗？')) return
+async function doExit() {
+  try {
+    await ElMessageBox.confirm('确定要退出登录吗？', '退出登录', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+  } catch {
+    return
+  }
   userService.exit(
     () => clearAll(),
     (res) => ElMessage.error(res.message)
@@ -149,6 +157,10 @@ function initUserInfoIfNecessary() {
         fileStore.setDefaultParentId(res.data.rootFileId)
         fileStore.setDefaultParentFilename(res.data.rootFilename)
         userStore.setUsername(res.data.username)
+        // 同步存储空间数据
+        if (res.data.usedSpace !== undefined && res.data.totalSpace !== undefined) {
+          userStore.setQuota(res.data.usedSpace, res.data.totalSpace)
+        }
       },
       (res) => ElMessage.error(res.message)
     )

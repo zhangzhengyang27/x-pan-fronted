@@ -34,6 +34,10 @@ export interface IUserInfo {
   rootFilename: string
   avatar?: string
   email?: string
+  /** 已使用空间（字节） */
+  usedSpace: number
+  /** 总空间容量（字节） */
+  totalSpace: number
 }
 
 export interface ILoginReq {

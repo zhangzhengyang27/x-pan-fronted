@@ -83,7 +83,6 @@
   --header-h:           48px;   /* 夸克标准顶栏高度 */
   --header-h-lg:        56px;
   --navbar-w:           200px;  /* 夸克标准侧栏宽度 */
-  --navbar-w-collapsed: 56px;
   --content-max-w:      1600px;
   --gutter:            24px;
   --container-padding:   16px;
@@ -100,7 +99,7 @@
 /* ============= 语义令牌(亮色主题) — 夸克风格:纯灰系 ============= */
 :root {
   /* 背景色系(无蓝调) */
-  --color-bg:             #f8fafc;  /* 更亮的背景 */
+  --color-bg:             #ffffff;  /* 页面背景:纯白 */
   --color-surface:        #ffffff;   /* 卡片:纯白 */
   --color-surface-2:       #f8f8f8;  /* 次级表面:极浅灰 */
   --color-surface-3:       #f0f0f0;  /* 三级表面 */

@@ -215,8 +215,16 @@ function login() {
   loginDialogVisible.value = true
 }
 
-function exit() {
-  if (!window.confirm('确定要退出登录吗？')) return
+async function exit() {
+  try {
+    await ElMessageBox.confirm('确定要退出登录吗？', '退出登录', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+  } catch {
+    return
+  }
   userService.exit(
     () => {
       clearToken()

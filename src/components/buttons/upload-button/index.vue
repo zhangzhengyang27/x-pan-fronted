@@ -1,47 +1,49 @@
 <script setup lang="ts">
 /**
- * UploadButton —— 触发文件上传（夸克蓝色风格）
+ * UploadButton —— 触发文件上传
+ * 原生 button + 隐藏 file input，最通用兼容模式
  */
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { Upload } from '@lucide/vue'
 import { useUploader } from '@/composables/useUploader'
-import BaseButton from '@/components/base/BaseButton.vue'
 
-const props = defineProps({
-  size: { type: String, default: 'sm' }
-})
+withDefaults(defineProps<{ size?: string }>(), { size: 'default' })
 
-const btnSize = computed(() => (props.size === 'small' ? 'sm' : 'md'))
-
-const fileInputRef = ref(null)
+const fileInputRef = ref<HTMLInputElement | null>(null)
 const { addFiles } = useUploader()
+
+function onChange(e: Event) {
+  const target = e.target as HTMLInputElement
+  const files = target.files
+  if (files?.length) addFiles(files)
+  target.value = ''
+}
 
 function triggerPicker() {
   fileInputRef.value?.click()
-}
-
-function onChange(e) {
-  const files = e.target.files
-  if (files?.length) addFiles(files)
-  e.target.value = ''
 }
 
 defineExpose({ triggerPicker })
 </script>
 
 <template>
-  <div class="inline-block">
-    <BaseButton
-      variant="secondary"
-      :size="btnSize"
-      class="rounded-sm !bg-[var(--color-primary-500)] !text-white !border-transparent hover:!opacity-90 transition-opacity"
+  <div class="inline-block relative">
+    <button
+      type="button"
+      class="inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-sm text-sm font-medium cursor-pointer select-none whitespace-nowrap bg-[var(--color-primary-500)] text-white border border-transparent hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)] focus:ring-offset-1"
       @click="triggerPicker"
     >
-      <span class="inline-flex items-center gap-1.5">
-        <Upload :size="14" />
-        上传
-      </span>
-    </BaseButton>
-    <input ref="fileInputRef" type="file" multiple class="hidden" @change="onChange" />
+      <Upload :size="14" :stroke-width="2" />
+      上传
+    </button>
+    <input
+      ref="fileInputRef"
+      type="file"
+      multiple
+      class="absolute opacity-0 w-px h-px -z-10"
+      aria-hidden="true"
+      tabindex="-1"
+      @change="onChange"
+    />
   </div>
 </template>

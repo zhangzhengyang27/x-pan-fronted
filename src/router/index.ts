@@ -15,6 +15,10 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/layout/index.vue'),
     children: [
       {
+        path: '',
+        redirect: '/files'
+      },
+      {
         path: '/docs',
         name: 'Docs',
         component: () => import('@/views/list-page/doc/index.vue')

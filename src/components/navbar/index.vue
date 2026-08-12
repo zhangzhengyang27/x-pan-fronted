@@ -1,15 +1,12 @@
 <script setup lang="ts">
 /**
- * AppNavbar —— 左侧导航栏 (夸克风格重设计)
- * - 三层语义:快速访问 → 文件分类 → 工具
- * - 220px 宽度,64px 折叠态
- * - 夸克风格:灰调选中、极简 hover、轻配额卡片
+ * AppNavbar —— 左侧导航栏
+ * - 两层语义：文件分类 → 工具
+ * - 固定展开，不再支持收起/快速访问
  */
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useNavbarStore } from '@/stores/navbar'
-import { useFileStore } from '@/stores/file'
-import { useBreadcrumbStore } from '@/stores/breadcrumb'
 import { storeToRefs } from 'pinia'
 import {
   Files,
@@ -20,82 +17,32 @@ import {
   Share2,
   Trash2,
   PanelLeftClose,
-  PanelLeftOpen,
   GripVertical,
   Download as DownloadIcon,
-  Cloud,
-  Clock,
-  File as FileGeneric,
-  Folder,
   Shield,
   BarChart3,
-  ChevronRight
+  HardDrive
 } from '@lucide/vue'
-import BaseTooltip from '@/components/base/BaseTooltip.vue'
 import { useResizable } from '@/composables/useResizable'
 import { useUserStore } from '@/stores/user'
-import { storeToRefs as toRefs } from 'pinia'
 import { useMediaQuery } from '@/composables/useMediaQuery'
-import { useFavorites } from '@/composables/useFavorites'
-import { useRecent } from '@/composables/useRecent'
-import fileService from '@/api/file'
-import panUtil from '@/utils/common'
 
 const store = useNavbarStore()
 const userStore = useUserStore()
-const fileStore = useFileStore()
-const breadcrumbStore = useBreadcrumbStore()
 const route = useRoute()
 const router = useRouter()
 
 const { active } = storeToRefs(store)
-const { usedSpace, totalSpace, usedPercent } = toRefs(userStore)
+const { usedSpace, totalSpace, usedPercent } = storeToRefs(userStore)
 const { change } = store
-const collapsed = ref(false)
 const isMobile = useMediaQuery('(max-width: 768px)').matches
 const mobileOpen = ref(false)
-
-// ─── 快速访问 ──────────────────────────────────────────────────────────────
-const { favorites } = useFavorites()
-const { recent } = useRecent()
-
-const recentItems = computed(() =>
-  (recent.value || []).slice(0, 5).map((r) => ({
-    key: `recent-${r.fileId}`,
-    label: r.filename,
-    icon: Clock,
-    fileId: r.fileId,
-    fileType: r.fileType,
-    parentId: r.parentId,
-    kind: 'recent' as const
-  }))
-)
-
-const favoriteItems = computed(() =>
-  (favorites.value || []).slice(0, 10).map((f) => ({
-    key: `fav-${f.fileId}`,
-    label: f.filename || f.name || '未命名',
-    icon: f.fileType === 0 ? Folder : FileGeneric,
-    fileId: f.fileId,
-    fileType: f.fileType,
-    kind: 'favorite' as const
-  }))
-)
-
-const quickAccessItems = computed(() => [...recentItems.value, ...favoriteItems.value])
-
-function navigate(item) {
-  active.value = item.key
-  router.push({ path: item.path, query: item.query || {} })
-  mobileOpen.value = false
-}
 
 watch(
   () => route.path,
   () => { mobileOpen.value = false }
 )
 
-// P2-8: 路由变化同步 active 高亮
 watch(
   () => [route.name, route.query.type],
   () => { syncActive() },
@@ -112,10 +59,6 @@ const { width, startDrag } = useResizable('x-pan.navbar.width', {
 
 // ─── 导航分组 ──────────────────────────────────────────────────────────────
 const groups = computed(() => [
-  {
-    title: '快速访问',
-    items: quickAccessItems.value
-  },
   {
     title: '文件',
     items: [
@@ -151,7 +94,7 @@ const goMap = {
   Stats: { path: '/stats' }
 }
 
-function go(key) {
+function go(key: string) {
   change(key)
   router.push(goMap[key] || { path: '/files' })
 }
@@ -172,51 +115,14 @@ function syncActive() {
   }
 }
 
-// ─── 快速访问项点击 ──────────────────────────────────────────────────────
-function handleQuickNav(item) {
+function navigate(item: any) {
+  active.value = item.key
+  router.push({ path: item.path, query: item.query || {} })
   mobileOpen.value = false
-  const fid = panUtil.handleId(item.fileId)
-  if (item.fileType === 0) {
-    fileService.getBreadcrumbs(
-      { fileId: fid },
-      (res) => {
-        fileStore.setSearchFlag(false)
-        breadcrumbStore.clear()
-        breadcrumbStore.reset(res.data)
-        fileStore.setParentId(fid)
-        fileStore.loadFileList()
-        change('Files')
-        router.push('/files')
-      },
-      () => { /* noop */ }
-    )
-    return
-  }
-  const typeMap: Record<number, { path: string; name: string }> = {
-    3: { path: '/preview/office', name: 'PreviewOffice' },
-    4: { path: '/preview/office', name: 'PreviewOffice' },
-    10: { path: '/preview/office', name: 'PreviewOffice' },
-    5: { path: '/preview/iframe', name: 'PreviewIframe' },
-    6: { path: '/preview/iframe', name: 'PreviewIframe' },
-    7: { path: '/preview/image', name: 'PreviewImage' },
-    8: { path: '/preview/music', name: 'PreviewMusic' },
-    9: { path: '/preview/video', name: 'PreviewVideo' },
-    11: { path: '/preview/code', name: 'PreviewCode' }
-  }
-  const target = typeMap[item.fileType]
-  if (target) {
-    const { href } = router.resolve({
-      path: target.path,
-      name: target.name,
-      params: { fileId: fid },
-      query: { filename: item.label }
-    })
-    window.open(href, '_blank')
-  }
 }
 
 // ─── 配额格式化 ───────────────────────────────────────────────────────────
-function formatSize(bytes) {
+function formatSize(bytes: number) {
   if (!bytes || bytes < 0) return '0 B'
   const units = ['B', 'KB', 'MB', 'GB', 'TB']
   let i = 0
@@ -248,6 +154,7 @@ const quotaColor = computed(() => {
               <button
                 type="button"
                 class="size-8 rounded-sm flex items-center justify-center text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-hover)] transition-colors"
+                aria-label="关闭导航"
                 @click="mobileOpen = false"
               >
                 <PanelLeftClose :size="16" :stroke-width="2" />
@@ -263,54 +170,63 @@ const quotaColor = computed(() => {
                 >
                   {{ group.title }}
                 </p>
-                <template v-if="group.title === '快速访问'">
-                  <button
-                    v-for="item in group.items"
-                    :key="item.key"
-                    type="button"
-                    class="flex items-center gap-3 h-9 px-3 rounded-sm text-sm transition-all text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-hover)]"
-                    @click="handleQuickNav(item)"
-                  >
-                    <component :is="item.icon" :size="16" :stroke-width="2" class="text-[var(--color-text-muted)] shrink-0" />
-                    <span class="truncate">{{ item.label }}</span>
-                  </button>
-                  <p
-                    v-if="group.items.length === 0"
-                    class="px-3 py-2 text-xs text-[var(--color-text-disabled)]"
-                  >
-                    暂无快速访问
-                  </p>
-                </template>
-                <template v-else>
-                  <button
-                    v-for="item in group.items"
-                    :key="item.key"
-                    type="button"
-                    class="flex items-center gap-3 h-9 px-3 rounded-sm text-sm transition-all"
-                    :class="active === item.key
-                      ? 'text-[var(--color-primary-500)] bg-[var(--color-selected)] font-medium'
-                      : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-hover)]'"
-                    @click="navigate(item)"
-                  >
-                    <component :is="item.icon" :size="16" :stroke-width="2" class="shrink-0" />
-                    <span class="truncate">{{ item.label }}</span>
-                  </button>
-                </template>
+                <button
+                  v-for="item in group.items"
+                  :key="item.key"
+                  type="button"
+                  class="flex items-center gap-3 h-9 px-3 rounded-sm text-sm transition-all"
+                  :class="active === item.key
+                    ? 'text-[var(--color-primary-500)] bg-[var(--color-selected)] font-medium'
+                    : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-hover)]'"
+                  @click="navigate(item)"
+                >
+                  <component :is="item.icon" :size="16" :stroke-width="2" class="shrink-0" />
+                  <span class="truncate">{{ item.label }}</span>
+                </button>
               </div>
             </template>
 
-            <!-- 配额卡片 -->
-            <div class="mt-auto mx-2 mb-2 rounded-sm p-3 bg-[var(--color-surface-2)] border border-[var(--color-border)]">
-              <div class="flex items-center justify-between text-xs mb-1.5 text-[var(--color-text-secondary)]">
-                <span>存储空间</span>
-                <span class="tabular-nums font-medium" :style="{ color: quotaColor }">{{ Math.round(usedPercent) }}%</span>
+            <!-- 存储空间卡片 -->
+            <div class="mt-auto mx-2 mb-2 rounded-xl p-3 bg-gradient-to-br from-[var(--color-surface-2)] to-[var(--color-surface-container-low)] border border-[var(--color-border)]/60 shadow-sm">
+              <!-- 顶部：图标 + 百分比 -->
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-1.5">
+                  <div
+                    class="size-6 rounded-md flex items-center justify-center"
+                    :style="{ backgroundColor: `${quotaColor}15`, color: quotaColor }"
+                  >
+                    <HardDrive :size="13" :stroke-width="2" />
+                  </div>
+                  <span class="text-xs font-medium text-[var(--color-text-secondary)]">存储空间</span>
+                </div>
+                <span
+                  class="text-sm font-bold tabular-nums leading-none"
+                  :style="{ color: quotaColor }"
+                >{{ Math.round(usedPercent) }}<span class="text-xs font-normal opacity-70">%</span></span>
               </div>
-              <div class="quark-quota-bar">
-                <div class="quark-quota-fill" :style="{ width: Math.min(100, usedPercent) + '%', backgroundColor: quotaColor }" />
+
+              <!-- 进度条 -->
+              <div class="relative h-1.5 rounded-full bg-[var(--color-surface)] overflow-hidden mb-2">
+                <div
+                  class="absolute inset-y-0 left-0 rounded-full transition-all duration-500 ease-out"
+                  :style="{ width: Math.min(100, usedPercent) + '%', backgroundColor: quotaColor }"
+                >
+                  <div class="absolute inset-0 rounded-full bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                </div>
+                <div
+                  v-if="usedPercent > 5 && usedPercent < 95"
+                  class="absolute top-1/2 -translate-y-1/2 size-2.5 rounded-full shadow-lg transition-all duration-500 ease-out"
+                  :style="{ left: `calc(${Math.min(100, usedPercent)}% - 5px)`, backgroundColor: quotaColor, boxShadow: `0 0 8px ${quotaColor}80` }"
+                />
               </div>
-              <p class="mt-1.5 text-[11px] tabular-nums text-[var(--color-text-muted)]">
-                {{ formatSize(usedSpace) }} / {{ formatSize(totalSpace) }}
-              </p>
+
+              <!-- 底部容量数值 -->
+              <div class="flex items-center justify-between text-[11px]">
+                <span class="tabular-nums font-medium text-[var(--color-text)]">{{ formatSize(usedSpace) }}</span>
+                <span class="text-[var(--color-text-muted)]">/</span>
+                <span class="tabular-nums text-[var(--color-text-muted)]">{{ formatSize(totalSpace) }}</span>
+                <span class="ml-auto text-[var(--color-text-muted)]">剩余 {{ formatSize(Math.max(0, totalSpace - usedSpace)) }}</span>
+              </div>
             </div>
           </div>
         </aside>
@@ -321,128 +237,84 @@ const quotaColor = computed(() => {
   <!-- 桌面端固定侧栏 -->
   <aside
     v-if="!isMobile"
-    class="relative shrink-0 border-r border-[var(--color-border)] bg-[var(--color-surface)] transition-all duration-200 ease-in-out overflow-hidden"
-    :style="{ width: collapsed ? '64px' : `${width}px` }"
+    class="relative shrink-0 border-r border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden"
+    :style="{ width: `${width}px` }"
   >
-    <div class="h-full flex flex-col overflow-y-auto">
-
-      <!-- 折叠按钮(夸克风格:更小更轻) -->
-      <div class="px-2 pt-2 pb-1 flex justify-end">
-        <BaseTooltip :text="collapsed ? '展开侧边栏' : '收起侧边栏'" position="right">
-          <button
-            type="button"
-            class="size-7 rounded-sm flex items-center justify-center transition-colors text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-hover)]"
-            :aria-label="collapsed ? '展开侧边栏' : '收起侧边栏'"
-            @click="collapsed = !collapsed"
-          >
-          <PanelLeftClose v-if="!collapsed" :size="12" :stroke-width="2" />
-          <PanelLeftOpen v-else :size="12" :stroke-width="2" />
-          </button>
-        </BaseTooltip>
-      </div>
-
-      <!-- 导航分组 -->
+    <div class="h-full flex flex-col overflow-y-auto pt-2">
       <template v-for="(group, gi) in groups" :key="gi">
-        <template v-if="collapsed && group.title === '快速访问'">
-          <!-- 折叠时隐藏快速访问 -->
-        </template>
-        <template v-else>
-          <!-- 分组标题 -->
-          <p
-            v-if="!collapsed && group.items.length > 0"
-            class="px-4 pt-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]"
+        <!-- 分组标题 -->
+        <p
+          v-if="group.items.length > 0"
+          class="px-4 pt-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]"
+        >
+          {{ group.title }}
+        </p>
+
+        <div class="flex flex-col gap-0.5 px-2">
+          <button
+            v-for="item in group.items"
+            :key="item.key"
+            type="button"
+            class="flex items-center gap-2.5 h-8 px-2 rounded-sm text-sm transition-all w-full"
+            :class="active === item.key
+              ? 'text-[var(--color-primary-500)] bg-[var(--color-selected)] font-medium'
+              : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-hover)]'"
+            @click="go(item.key)"
           >
-            {{ group.title }}
-          </p>
-
-          <div class="flex flex-col gap-0.5 px-2">
-
-            <!-- 快速访问 -->
-            <template v-if="group.title === '快速访问'">
-              <BaseTooltip
-                v-for="item in group.items"
-                :key="item.key"
-                :text="collapsed ? item.label : ''"
-                position="right"
-              >
-                <button
-                  type="button"
-                    class="flex items-center gap-2.5 h-8 px-2 rounded-sm text-sm transition-all w-full text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-hover)]"
-                    @click="handleQuickNav(item)"
-                  >
-                    <component :is="item.icon" :size="14" :stroke-width="1.75" class="text-[var(--color-text-muted)] shrink-0" />
-                  <span v-if="!collapsed" class="truncate">{{ item.label }}</span>
-                </button>
-              </BaseTooltip>
-              <p
-                v-if="!collapsed && group.items.length === 0"
-                class="px-2 py-1.5 text-xs text-[var(--color-text-disabled)]"
-              >
-                暂无快速访问
-              </p>
-            </template>
-
-            <!-- 文件/工具分组 -->
-            <template v-else>
-              <BaseTooltip
-                v-for="item in group.items"
-                :key="item.key"
-                :text="collapsed ? item.label : ''"
-                position="right"
-              >
-                <button
-                  type="button"
-                  class="flex items-center gap-2.5 h-8 px-2 rounded-sm text-sm transition-all w-full"
-                  :class="active === item.key
-                    ? 'text-[var(--color-primary-500)] bg-[var(--color-selected)] font-medium'
-                    : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-hover)]'"
-                  @click="go(item.key)"
-                >
-                  <component :is="item.icon" :size="14" :stroke-width="1.75" class="shrink-0" />
-                  <span v-if="!collapsed" class="truncate">{{ item.label }}</span>
-                </button>
-              </BaseTooltip>
-            </template>
-
-          </div>
-        </template>
+            <component :is="item.icon" :size="14" :stroke-width="1.75" class="shrink-0" />
+            <span class="truncate">{{ item.label }}</span>
+          </button>
+        </div>
       </template>
 
-      <!-- 配额卡片(夸克风格:极简无边框) -->
-      <div
-        v-if="!collapsed"
-        class="mt-auto mx-2 mb-2 rounded-sm p-3 bg-[var(--color-surface-2)]"
-      >
-        <div class="flex items-center justify-between text-xs mb-1.5 text-[var(--color-text-secondary)]">
-          <span>存储空间</span>
-          <span class="tabular-nums font-semibold" :style="{ color: quotaColor }">{{ Math.round(usedPercent) }}%</span>
+      <!-- 存储空间卡片 -->
+      <div class="mt-auto mx-2 mb-2 rounded-xl p-3 bg-gradient-to-br from-[var(--color-surface-2)] to-[var(--color-surface-container-low)] border border-[var(--color-border)]/60 shadow-sm">
+        <!-- 顶部：图标 + 百分比 -->
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-1.5">
+            <div
+              class="size-6 rounded-md flex items-center justify-center"
+              :style="{ backgroundColor: `${quotaColor}15`, color: quotaColor }"
+            >
+              <HardDrive :size="13" :stroke-width="2" />
+            </div>
+            <span class="text-xs font-medium text-[var(--color-text-secondary)]">存储空间</span>
+          </div>
+          <span
+            class="text-sm font-bold tabular-nums leading-none"
+            :style="{ color: quotaColor }"
+          >{{ Math.round(usedPercent) }}<span class="text-xs font-normal opacity-70">%</span></span>
         </div>
-        <!-- 夸克式细进度条 -->
-        <div class="quark-quota-bar">
-          <div class="quark-quota-fill" :style="{ width: Math.min(100, usedPercent) + '%', backgroundColor: quotaColor }" />
-        </div>
-        <p class="mt-1.5 text-[11px] tabular-nums text-[var(--color-text-muted)]">
-          {{ formatSize(usedSpace) }} / {{ formatSize(totalSpace) }}
-        </p>
-      </div>
 
-      <!-- 配额卡片折叠态 -->
-      <div v-if="collapsed" class="mt-auto mb-2 flex justify-center">
-        <BaseTooltip text="存储空间" position="right">
-          <button
-            type="button"
-            class="size-8 flex flex-col items-center justify-center rounded-sm text-[var(--color-text-muted)] hover:bg-[var(--color-hover)] transition-colors"
+        <!-- 进度条 -->
+        <div class="relative h-1.5 rounded-full bg-[var(--color-surface)] overflow-hidden mb-2">
+          <div
+            class="absolute inset-y-0 left-0 rounded-full transition-all duration-500 ease-out"
+            :style="{ width: Math.min(100, usedPercent) + '%', backgroundColor: quotaColor }"
           >
-            <Cloud :size="16" :stroke-width="1.75" />
-            <span class="text-[9px] tabular-nums mt-0.5" :style="{ color: quotaColor }">{{ Math.round(usedPercent) }}%</span>
-          </button>
-        </BaseTooltip>
+            <!-- 光泽效果 -->
+            <div class="absolute inset-0 rounded-full bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+          </div>
+          <!-- 发光点 -->
+          <div
+            v-if="usedPercent > 5 && usedPercent < 95"
+            class="absolute top-1/2 -translate-y-1/2 size-2.5 rounded-full shadow-lg transition-all duration-500 ease-out"
+            :style="{ left: `calc(${Math.min(100, usedPercent)}% - 5px)`, backgroundColor: quotaColor, boxShadow: `0 0 8px ${quotaColor}80` }"
+          />
+        </div>
+
+        <!-- 底部容量数值 -->
+        <div class="flex items-center justify-between text-[11px]">
+          <span class="tabular-nums font-medium text-[var(--color-text)]">{{ formatSize(usedSpace) }}</span>
+          <span class="text-[var(--color-text-muted)]">/</span>
+          <span class="tabular-nums text-[var(--color-text-muted)]">{{ formatSize(totalSpace) }}</span>
+          <span class="ml-auto text-[var(--color-text-muted)]">剩余 {{ formatSize(Math.max(0, totalSpace - usedSpace)) }}</span>
+        </div>
       </div>
     </div>
 
     <!-- 拖拽手柄 -->
     <div
-      v-if="!collapsed"
       class="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize flex items-center justify-center transition-colors hover:bg-[var(--color-primary-500)]/20"
       role="separator"
       aria-orientation="vertical"

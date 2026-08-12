@@ -58,9 +58,9 @@ function toggleRow(row, idx) {
 }
 function rowClass(row) {
   return cn(
-    'transition-colors duration-150 cursor-pointer',
-    'hover:bg-[var(--color-surface-2)]',
-    isSelected(row) && 'bg-[var(--color-primary-500)]/5',
+    'group transition-colors duration-200 cursor-pointer',
+    'hover:bg-[var(--color-hover)]',
+    isSelected(row) && 'bg-[var(--color-selected)]',
     getRowKey(row) === props.activeKey && 'outline outline-2 outline-[var(--color-primary-500)]'
   )
 }
@@ -78,17 +78,15 @@ function handleSort(col) {
 </script>
 
 <template>
-  <div
-    class="w-full overflow-x-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]"
-  >
-    <table class="w-full text-sm border-collapse">
-      <!-- 夸克标准:粘性表头 + 40px列头 -->
-      <thead class="sticky top-0 z-10 bg-[var(--color-surface-2)]">
-        <tr class="border-b border-[var(--color-border)]">
-          <th v-if="selectable" class="w-10 px-3 py-2.5 text-left">
+  <div class="w-full">
+    <table class="w-full text-sm">
+      <!-- 粘性表头 -->
+      <thead class="sticky top-0 z-10 bg-[var(--color-bg)]">
+        <tr>
+          <th v-if="selectable" class="w-12 px-4 py-3 text-left">
             <button
               type="button"
-              class="size-4 rounded flex items-center justify-center transition-colors"
+              class="size-[18px] rounded-[4px] flex items-center justify-center transition-all duration-200 shadow-sm"
               style="border: 1px solid var(--color-border-strong);"
               :style="
                 (allSelected || partialSelected)
@@ -106,8 +104,8 @@ function handleSort(col) {
           <th
             v-for="col in columns"
             :key="col.key"
-            class="px-3 py-2.5 select-none text-xs font-normal tracking-wide"
-            :style="{ color: 'var(--color-text-muted)', ...(col.width ? { width: typeof col.width === 'number' ? `${col.width}px` : col.width } : {}) }"
+            class="px-3 py-3 select-none text-xs font-medium"
+            :style="{ color: 'var(--color-text)', ...(col.width ? { width: typeof col.width === 'number' ? `${col.width}px` : col.width } : {}) }"
             :class="[
               col.align === 'right'
                 ? 'text-right'
@@ -137,14 +135,13 @@ function handleSort(col) {
         <tr
           v-for="i in skeletonRows"
           :key="i"
-          class="border-b border-[var(--color-border)]"
         >
-          <td v-if="selectable" class="w-10 px-3 py-2.5">
-            <span class="block size-4 rounded animate-pulse" style="background-color: var(--color-surface-container-low);" />
+          <td v-if="selectable" class="w-12 px-4 py-3">
+            <span class="block size-[18px] rounded-[4px] animate-pulse" style="background-color: var(--color-surface-container-low);" />
           </td>
-          <td v-for="col in columns" :key="col.key" class="px-3 py-2.5">
+          <td v-for="col in columns" :key="col.key" class="px-3 py-3.5">
             <span
-              class="inline-block h-3 rounded animate-pulse"
+              class="inline-block h-3 rounded-full animate-pulse"
               style="background-color: var(--color-surface-container-low);"
               :style="{
                 width: `${50 + ((i * 13) % 40)}%`,
@@ -178,19 +175,19 @@ function handleSort(col) {
         <tr
           v-for="(row, idx) in data"
           :key="getRowKey(row, idx)"
-          class="border-b border-[var(--color-border)]"
           :class="rowClass(row)"
           :data-active="getRowKey(row) === props.activeKey ? 'true' : undefined"
-          style="height: 48px;"
+          style="height: 52px;"
           @click="emit('rowClick', row, idx, $event)"
           @dblclick="emit('rowDblclick', row, idx)"
           @contextmenu="emit('rowContextmenu', $event, row)"
         >
-          <td v-if="selectable" class="w-10 px-3 py-2.5" @click.stop>
+          <td v-if="selectable" class="w-12 px-4 py-3" @click.stop>
             <button
               type="button"
-              class="size-4 rounded flex items-center justify-center transition-colors"
+              class="size-[18px] rounded-[4px] flex items-center justify-center transition-all duration-200 shadow-sm opacity-0 group-hover:opacity-100"
               style="border: 1px solid var(--color-border-strong);"
+              :class="isSelected(row) ? 'opacity-100' : ''"
               :style="isSelected(row) ? 'background-color: var(--color-primary-500); border-color: var(--color-primary-500); color: white;' : ''"
               :aria-checked="isSelected(row) ? 'true' : 'false'"
               role="checkbox"
@@ -202,7 +199,7 @@ function handleSort(col) {
           <td
             v-for="col in columns"
             :key="col.key"
-            class="px-3 py-2.5"
+            class="px-3 py-3.5"
             :class="
               col.align === 'right'
                 ? 'text-right'

@@ -20,6 +20,7 @@ export interface UploadTask {
 export const useTaskStore = defineStore('task', () => {
   const uploadTaskList = ref<UploadTask[]>([])
   const viewFlag = ref(false)
+  const panelVisible = ref(true)
 
   // 唯一 key：优先用文件内容 hash，避免同名文件同时上传时串扰；filename 兜底
   // 查找/去重统一以文件名为基准（所有调用方传入的 key 均为文件名），
@@ -73,15 +74,31 @@ export const useTaskStore = defineStore('task', () => {
     viewFlag.value = flag
   }
 
+  const togglePanel = () => {
+    panelVisible.value = !panelVisible.value
+  }
+
+  const showPanel = () => {
+    panelVisible.value = true
+  }
+
+  const hidePanel = () => {
+    panelVisible.value = false
+  }
+
   return {
     uploadTaskList,
     viewFlag,
+    panelVisible,
     add,
     remove,
     getUploadTask,
     updateStatus,
     updateProcess,
     clear,
-    updateViewFlag
+    updateViewFlag,
+    togglePanel,
+    showPanel,
+    hidePanel
   }
 })

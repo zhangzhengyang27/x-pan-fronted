@@ -173,11 +173,23 @@ const columns = computed(() => {
   if (searchFlag.value)
     base.push({ key: 'parentFilename', title: '位置', width: 140, align: 'center' })
   base.push(
-    { key: 'fileSizeDesc', title: '大小', width: 120, align: 'right' },
-    { key: 'updateTime', title: '修改日期', width: 200, align: 'center' }
+    { key: 'fileSizeDesc', title: '大小', width: 110, align: 'right' },
+    { key: 'fileType', title: '类型', width: 96, align: 'center' },
+    { key: 'updateTime', title: '修改时间', width: 172, align: 'center' }
   )
   return base
 })
+
+function getFileTypeLabel(row: any) {
+  const type = row.fileType
+  if (type === 0 || row.folderFlag === 1) return '文件夹'
+  if (type === 7) return '图片'
+  if (type === 9) return '视频'
+  if (type === 8) return '音乐'
+  if (type === 11) return '代码'
+  if ([3, 4, 10].includes(type)) return '文档'
+  return '其他'
+}
 
 function handleSelectionChange(keys: string[]) {
   selected.value = keys
@@ -780,8 +792,8 @@ onBeforeUnmount(() => {
   <div class="h-full flex flex-col">
 
     <!-- 列表视图 -->
+    <div v-if="currentView === 'list'" class="flex-1 min-h-0 overflow-y-auto">
     <BaseTable
-      v-if="currentView === 'list'"
       :columns="columns"
       :data="filteredList"
       :loading="tableLoading"
@@ -802,13 +814,18 @@ onBeforeUnmount(() => {
         <BaseTooltip :text="row.filename" position="top">
           <button
             type="button"
-            class="group flex items-center gap-3 text-left w-full min-w-0"
+            class="group flex items-center gap-3.5 text-left w-full min-w-0"
             @click.stop="onRowClick(row)"
             @dblclick.stop="clickFilename(row)"
           >
-            <FileThumbnail :file="row" :size="32" rounded="rounded-sm" />
+            <FileThumbnail
+              :file="row"
+              :size="38"
+              rounded="rounded-md"
+              class="ring-1 ring-[var(--color-border)]/60"
+            />
             <span
-              class="truncate text-sm text-[var(--color-text)] group-hover:text-[var(--color-primary-600)] transition-colors"
+              class="truncate text-[13.5px] font-medium text-[var(--color-text)] group-hover:text-[var(--color-primary-600)] transition-colors"
             >
               {{ row.filename }}
             </span>
@@ -826,6 +843,27 @@ onBeforeUnmount(() => {
         </button>
       </template>
 
+      <template #cell-fileType="{ row }">
+        <span
+          class="inline-flex items-center px-2 h-6 rounded-full text-[11px] font-medium"
+          style="background-color: var(--color-surface-2); color: var(--color-text-secondary);"
+        >
+          {{ getFileTypeLabel(row) }}
+        </span>
+      </template>
+
+      <template #cell-fileSizeDesc="{ row }">
+        <span class="text-[13px] text-[var(--color-text-secondary)] tabular-nums">
+          {{ row.fileSizeDesc }}
+        </span>
+      </template>
+
+      <template #cell-updateTime="{ row }">
+        <span class="text-[13px] text-[var(--color-text-muted)] tabular-nums">
+          {{ row.updateTime }}
+        </span>
+      </template>
+
       <template #empty>
         <BaseEmpty
           :icon="filterActive ? SearchX : FolderOpen"
@@ -834,6 +872,7 @@ onBeforeUnmount(() => {
         />
       </template>
     </BaseTable>
+    </div>
 
     <!-- 网格视图 -->
     <div v-else class="flex-1 min-h-0 overflow-y-auto px-1 pb-4">
@@ -895,7 +934,7 @@ onBeforeUnmount(() => {
           <!-- 选中指示 -->
           <div
             v-if="selected.includes(row.fileId)"
-            class="absolute top-2 right-2 size-5 rounded-full bg-[var(--color-primary-500)] flex items-center justify-center"
+            class="absolute top-2 right-2 size-[18px] rounded-[4px] bg-[var(--color-primary-500)] flex items-center justify-center shadow-sm"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" class="size-3">
               <polyline points="20 6 9 17 4 12" />

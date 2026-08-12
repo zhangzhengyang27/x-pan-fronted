@@ -11,9 +11,9 @@ import { useTaskStore } from '@/stores/task'
 import { computed } from 'vue'
 
 const taskStore = useTaskStore()
-const { uploadTaskList: taskList } = storeToRefs(taskStore)
+const { uploadTaskList: taskList, panelVisible } = storeToRefs(taskStore)
 
-const visible = computed(() => taskList.value.length > 0)
+const visible = computed(() => taskList.value.length > 0 && panelVisible.value)
 
 function remove(filename) {
   taskStore.cancel(filename)
@@ -23,6 +23,10 @@ function clearFinished() {
   taskList.value
     .filter((t) => t.status !== 0 && t.status !== 1 && t.status !== 3) // 非解析/非上传中
     .forEach((t) => taskStore.remove(t.filename))
+}
+
+function closePanel() {
+  taskStore.hidePanel()
 }
 </script>
 
@@ -46,13 +50,23 @@ function clearFinished() {
           class="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-2.5"
         >
           <span class="text-sm font-medium text-[var(--color-text)]">上传任务</span>
-          <button
-            type="button"
-            class="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-colors"
-            @click="clearFinished"
-          >
-            清除已完成
-          </button>
+          <div class="flex items-center gap-3">
+            <button
+              type="button"
+              class="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-colors"
+              @click="clearFinished"
+            >
+              清除已完成
+            </button>
+            <button
+              type="button"
+              class="text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+              aria-label="关闭上传任务面板"
+              @click="closePanel"
+            >
+              <X :size="14" />
+            </button>
+          </div>
         </div>
         <div class="max-h-64 space-y-3 overflow-y-auto p-4">
           <div v-for="task in taskList" :key="task.filename">
