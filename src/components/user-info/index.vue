@@ -5,7 +5,7 @@
  */
 import { reactive, ref, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
-import { ChevronDown, LogOut, KeyRound, User } from '@lucide/vue'
+import { ChevronDown, LogOut, KeyRound, User, Monitor } from '@lucide/vue'
 import userService from '@/api/user'
 import { clearToken } from '@/utils/cookie'
 import { useUserStore } from '@/stores/user'
@@ -20,6 +20,7 @@ import BaseModal from '@/components/base/BaseModal.vue'
 import BaseField from '@/components/base/BaseField.vue'
 import BaseInput from '@/components/base/BaseInput.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
+import DeviceManagerDialog from '@/components/base/DeviceManagerDialog.vue'
 
 const userStore = useUserStore()
 const { username } = storeToRefs(userStore)
@@ -30,6 +31,7 @@ const taskStore = useTaskStore()
 
 const open = ref(false)
 const changePasswordDialogVisible = ref(false)
+const deviceManagerVisible = ref(false)
 const loading = ref(false)
 
 const changePasswordForm = reactive({
@@ -59,6 +61,11 @@ function doExit() {
 function openChangePassword() {
   open.value = false
   changePasswordDialogVisible.value = true
+}
+
+function openDeviceManager() {
+  open.value = false
+  deviceManagerVisible.value = true
 }
 
 function resetChangePasswordForm() {
@@ -145,6 +152,14 @@ onMounted(initUserInfoIfNecessary)
       </button>
       <button
         type="button"
+        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-surface-2)] transition-colors text-left"
+        @click="openDeviceManager"
+      >
+        <Monitor :size="14" />
+        设备管理
+      </button>
+      <button
+        type="button"
         class="w-full flex items-center gap-2 px-3 py-2 text-sm text-[var(--color-danger)] hover:bg-[var(--color-surface-2)] transition-colors text-left"
         @click="doExit"
       >
@@ -152,6 +167,9 @@ onMounted(initUserInfoIfNecessary)
         退出登录
       </button>
     </BaseDropdown>
+
+    <!-- P3-5 设备管理弹窗 -->
+    <DeviceManagerDialog v-model:open="deviceManagerVisible" />
 
     <BaseModal
       v-model:open="changePasswordDialogVisible"
