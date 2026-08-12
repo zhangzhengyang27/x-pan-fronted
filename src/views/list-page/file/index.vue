@@ -155,42 +155,43 @@ onUnmounted(() => {
 
     <!-- 工具条 -->
     <div
-      class="flex items-center justify-between gap-4 p-3 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface-container-low)]"
+      class="flex items-center justify-between gap-4 p-3 rounded-sm bg-[var(--color-surface-container-low)]"
     >
       <div class="flex items-center gap-2">
         <FileButtonGroup :button-array="buttonArray" />
-        <div class="w-px h-5 bg-[var(--color-border)]" />
+      </div>
+      <div class="flex items-center gap-2">
         <SortMenu v-model:open="sortOpen" />
         <FilterMenu
           v-model:open="filterOpen"
           @filter-change="onFilterChange"
         />
-      </div>
-      <div
-        class="flex items-center rounded-sm overflow-hidden bg-[var(--color-surface)] border border-[var(--color-border)]"
-      >
-        <BaseTooltip text="列表视图" position="bottom">
-          <button
-            type="button"
-            class="size-8 flex items-center justify-center transition-colors"
-            :style="view === 'list' ? 'background-color: var(--color-primary-500); color: white;' : 'color: var(--color-text-muted);'"
-            aria-label="列表视图"
-            @click="view = 'list'"
-          >
-            <List :size="16" :stroke-width="2" />
-          </button>
-        </BaseTooltip>
-        <BaseTooltip text="网格视图" position="bottom">
-          <button
-            type="button"
-            class="size-8 flex items-center justify-center transition-colors"
-            :style="view === 'grid' ? 'background-color: var(--color-primary-500); color: white;' : 'color: var(--color-text-muted);'"
-            aria-label="网格视图"
-            @click="view = 'grid'"
-          >
-            <LayoutGrid :size="16" :stroke-width="2" />
-          </button>
-        </BaseTooltip>
+        <div
+          class="flex items-center rounded-sm overflow-hidden bg-[var(--color-surface)] border border-[var(--color-border)]"
+        >
+          <BaseTooltip text="列表视图" position="bottom">
+            <button
+              type="button"
+              class="size-8 flex items-center justify-center transition-colors"
+              :style="view === 'list' ? 'background-color: var(--color-primary-500); color: white;' : 'color: var(--color-text-muted);'"
+              aria-label="列表视图"
+              @click="view = 'list'"
+            >
+              <List :size="16" :stroke-width="2" />
+            </button>
+          </BaseTooltip>
+          <BaseTooltip text="网格视图" position="bottom">
+            <button
+              type="button"
+              class="size-8 flex items-center justify-center transition-colors"
+              :style="view === 'grid' ? 'background-color: var(--color-primary-500); color: white;' : 'color: var(--color-text-muted);'"
+              aria-label="网格视图"
+              @click="view = 'grid'"
+            >
+              <LayoutGrid :size="16" :stroke-width="2" />
+            </button>
+          </BaseTooltip>
+        </div>
       </div>
     </div>
 

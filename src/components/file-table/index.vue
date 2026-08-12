@@ -107,14 +107,15 @@ const selectedRows = computed(() =>
   filteredList.value.filter((r) => selected.value.includes(r.fileId))
 )
 
+const selectedCount = computed(() => selected.value.length)
+
 const columns = computed(() => {
   const base = [{ key: 'filename', title: '文件名', width: 'auto' }]
   if (searchFlag.value)
     base.push({ key: 'parentFilename', title: '位置', width: 140, align: 'center' })
   base.push(
     { key: 'fileSizeDesc', title: '大小', width: 120, align: 'right' },
-    { key: 'updateTime', title: '修改日期', width: 200, align: 'center' },
-    { key: 'actions', title: '操作', width: 80, align: 'right' }
+    { key: 'updateTime', title: '修改日期', width: 200, align: 'center' }
   )
   return base
 })
@@ -604,10 +605,10 @@ onBeforeUnmount(() => {
 <template>
   <div class="h-full flex flex-col">
 
-    <!-- 工具栏:筛选+批量操作(列表视图上方) -->
+    <!-- 工具栏:批量操作(列表视图上方) -->
     <FileTableToolbar
+      v-if="selectedCount > 0"
       :selected-rows="selectedRows"
-      @filter-change="(f: any) => (filter = f)"
       @batch-download="batchDownload"
       @batch-delete="batchDelete"
     />
@@ -656,30 +657,6 @@ onBeforeUnmount(() => {
         >
           {{ row.parentFilename }}
         </button>
-      </template>
-
-      <template #cell-actions="{ row }">
-        <div
-          class="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity"
-        >
-          <button
-            type="button"
-            class="size-6 rounded-sm flex items-center justify-center transition-colors"
-            :class="isFavorite(row.fileId) ? 'text-amber-500' : 'text-[var(--color-text-muted)] hover:bg-[var(--color-surface-2)]'"
-            :title="isFavorite(row.fileId) ? '取消收藏' : '收藏'"
-            @click="toggleFavorite(row)"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              :fill="isFavorite(row.fileId) ? 'currentColor' : 'none'"
-              stroke="currentColor"
-              stroke-width="2"
-              class="size-3.5"
-            >
-              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-            </svg>
-          </button>
-        </div>
       </template>
 
       <template #empty>
