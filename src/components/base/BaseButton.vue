@@ -39,7 +39,14 @@ const sizeClass = computed(
       sm: 'h-8 px-3 text-xs gap-1.5 rounded-sm',
       md: 'h-9 px-4 text-sm gap-2 rounded-sm',
       lg: 'h-10 px-5 text-sm gap-2 rounded-sm'
-    })[props.size]
+    })[props.size] ||
+    // 兜底：未知 size 时回退到 sm，避免 className 缺失导致按钮无尺寸
+    ({
+      xs: 'h-6 px-2 text-[11px] gap-1 rounded-sm',
+      sm: 'h-8 px-3 text-xs gap-1.5 rounded-sm',
+      md: 'h-9 px-4 text-sm gap-2 rounded-sm',
+      lg: 'h-10 px-5 text-sm gap-2 rounded-sm'
+    }).sm
 )
 
 const classes = computed(() =>

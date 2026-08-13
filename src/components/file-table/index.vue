@@ -200,7 +200,15 @@ function getFileTypeLabel(row: any) {
   if (type === 9) return '视频'
   if (type === 8) return '音乐'
   if (type === 11) return '代码'
-  if ([3, 4, 10].includes(type)) return '文档'
+  // 文档子类型（对应后端 FileTypeEnum）
+  const docTypes: Record<number, string> = {
+    3: 'Excel',
+    4: 'Word',
+    5: 'PDF',
+    6: '文本',
+    10: 'PPT'
+  }
+  if (docTypes[type]) return docTypes[type]
   return '其他'
 }
 

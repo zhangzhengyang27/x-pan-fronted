@@ -49,7 +49,7 @@ const route = useRoute()
 // P2-8: query.type → fileTypes 映射（与 file-type-filter 保持一致）
 const typeQueryMap: Record<string, string> = {
   imgs: '7',
-  docs: '3,4,10',
+  docs: '3,4,5,6,10',
   videos: '9',
   musics: '8',
   other: '0'

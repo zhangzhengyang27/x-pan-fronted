@@ -15,7 +15,7 @@ const emit = defineEmits<{ (e: 'close'): void }>()
 const filterOptions = [
   { value: '-1', label: '全部' },
   { value: '7', label: '图片' },
-  { value: '3,4,10', label: '文档' },
+  { value: '3,4,5,6,10', label: '文档' },
   { value: '9', label: '视频' },
   { value: '8', label: '音频' }
 ]

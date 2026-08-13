@@ -18,7 +18,7 @@ const router = useRouter()
 const types = [
   { value: '-1', query: '', label: '全部', icon: Folder },
   { value: '7', query: 'imgs', label: '图片', icon: ImageIcon },
-  { value: '3,4,10', query: 'docs', label: '文档', icon: FileText },
+  { value: '3,4,5,6,10', query: 'docs', label: '文档', icon: FileText },
   { value: '9', query: 'videos', label: '视频', icon: Video },
   { value: '8', query: 'musics', label: '音乐', icon: Music },
   { value: '0', query: 'other', label: '其他', icon: null }

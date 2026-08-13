@@ -45,10 +45,10 @@ onMounted(() => {
       <FileButtonGroup :button-array="buttonArray" />
 
       <!-- 视图切换：时间线 / 列表 -->
-      <div class="inline-flex items-center rounded-full p-0.5 bg-(--color-surface-2) border border-(--color-border)">
+      <div class="inline-flex items-center rounded-md p-0.5 bg-(--color-surface-2) border border-(--color-border)">
         <button
           type="button"
-          class="px-3 h-7 rounded-full text-xs font-medium inline-flex items-center gap-1 transition-colors"
+          class="px-3 h-7 rounded-md text-xs font-medium inline-flex items-center gap-1 transition-colors"
           :class="viewMode === 'timeline' ? 'bg-(--color-surface) text-(--color-text) shadow-sm' : 'text-(--color-text-muted) hover:text-(--color-text)'"
           @click="setViewMode('timeline')"
         >
@@ -56,7 +56,7 @@ onMounted(() => {
         </button>
         <button
           type="button"
-          class="px-3 h-7 rounded-full text-xs font-medium inline-flex items-center gap-1 transition-colors"
+          class="px-3 h-7 rounded-md text-xs font-medium inline-flex items-center gap-1 transition-colors"
           :class="viewMode === 'list' ? 'bg-(--color-surface) text-(--color-text) shadow-sm' : 'text-(--color-text-muted) hover:text-(--color-text)'"
           @click="setViewMode('list')"
         >

@@ -208,7 +208,7 @@ function onClose() {
 
 <template>
   <div class="inline-block">
-    <BaseButton variant="secondary" :size="props.size" @click="openModal">
+    <BaseButton variant="secondary" :size="props.size === 'small' ? 'sm' : 'md'" @click="openModal">
       <span class="inline-flex items-center gap-1.5">
         <Share2 :size="14" />
         分享

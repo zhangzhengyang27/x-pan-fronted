@@ -4,7 +4,7 @@
  */
 import { onMounted, reactive, ref, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Cloud, User, KeyRound, LogIn, Eye, EyeOff } from '@lucide/vue'
+import { Cloud, User, KeyRound, LogIn, Eye, EyeOff, Zap } from '@lucide/vue'
 import { ElMessage } from '@/composables/useToast'
 import userService from '@/api/user'
 import { setToken } from '@/utils/cookie'
@@ -35,6 +35,17 @@ function resolveRedirect(): { name: string } | { path: string } {
 function doLogin() {
   if (!loginForm.username) return ElMessage.error('请输入用户名')
   if (!loginForm.password) return ElMessage.error('请输入密码')
+  submitLogin()
+}
+
+// 一键登录：填充演示账号并直接登录
+function quickLogin() {
+  loginForm.username = 'xiaoye'
+  loginForm.password = '12345678'
+  submitLogin()
+}
+
+function submitLogin() {
   loading.value = true
   userService.login(
     loginForm,
@@ -175,6 +186,17 @@ onMounted(async () => {
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
             {{ loading ? '登录中...' : '登录' }}
+          </button>
+
+          <!-- 一键登录（演示账号） -->
+          <button
+            type="button"
+            :disabled="loading"
+            class="w-full flex justify-center items-center h-10 rounded-sm text-sm font-medium transition-all duration-150 text-primary-600 border border-primary-500/40 bg-primary-500/5 hover:bg-primary-500/10 disabled:opacity-60"
+            @click="quickLogin"
+          >
+            <Zap :size="16" :stroke-width="2" class="mr-1.5" />
+            一键登录（演示账号）
           </button>
         </form>
 

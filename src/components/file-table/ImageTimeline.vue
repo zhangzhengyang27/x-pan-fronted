@@ -191,13 +191,13 @@ function onCardClick(file: IFileVO) {
         共 {{ files.length }} 张图片
       </span>
       <div
-        class="inline-flex items-center rounded-full p-0.5 bg-(--color-surface-2) border border-(--color-border)"
+        class="inline-flex items-center rounded-md p-0.5 bg-(--color-surface-2) border border-(--color-border)"
       >
         <button
           v-for="m in (['year', 'month', 'day'] as const)"
           :key="m"
           type="button"
-          class="px-3 h-7 rounded-full text-xs font-medium transition-colors"
+          class="px-3 h-7 rounded-md text-xs font-medium transition-colors"
           :class="
             currentGroupMode === m
               ? 'bg-(--color-surface) text-(--color-text) shadow-sm'

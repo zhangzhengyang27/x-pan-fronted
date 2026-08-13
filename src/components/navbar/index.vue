@@ -65,10 +65,10 @@ const groups = computed(() => [
     title: '文件',
     items: [
       { key: 'Files', label: '全部文件', icon: Files, path: '/files', query: {} },
-      { key: 'Imgs', label: '图片', icon: ImageIcon, path: '/files', query: { type: 'imgs' } },
-      { key: 'Docs', label: '文档', icon: FileText, path: '/files', query: { type: 'docs' } },
-      { key: 'Videos', label: '视频', icon: Video, path: '/files', query: { type: 'videos' } },
-      { key: 'Musics', label: '音乐', icon: Music, path: '/files', query: { type: 'musics' } },
+      { key: 'Imgs', label: '图片', icon: ImageIcon, path: '/imgs', query: {} },
+      { key: 'Docs', label: '文档', icon: FileText, path: '/docs', query: {} },
+      { key: 'Videos', label: '视频', icon: Video, path: '/videos', query: {} },
+      { key: 'Musics', label: '音乐', icon: Music, path: '/musics', query: {} },
       { key: 'Favorites', label: '我的收藏', icon: Star, path: '/favorites', query: {} }
     ]
   },
@@ -87,10 +87,10 @@ const groups = computed(() => [
 
 const goMap = {
   Files: { path: '/files' },
-  Imgs: { path: '/files', query: { type: 'imgs' } },
-  Docs: { path: '/files', query: { type: 'docs' } },
-  Videos: { path: '/files', query: { type: 'videos' } },
-  Musics: { path: '/files', query: { type: 'musics' } },
+  Imgs: { path: '/imgs' },
+  Docs: { path: '/docs' },
+  Videos: { path: '/videos' },
+  Musics: { path: '/musics' },
   Shares: { path: '/shares' },
   Recycles: { path: '/recycles' },
   Offline: { path: '/offline' },
