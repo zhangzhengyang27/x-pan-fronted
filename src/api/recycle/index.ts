@@ -15,7 +15,7 @@ const recycleService = {
   },
 
   restoreRecycle(
-    data: { fileIds: string[] },
+    data: { fileIds: string },
     resolve: Callback<unknown>,
     reject: Callback<unknown>
   ) {
@@ -23,7 +23,7 @@ const recycleService = {
   },
 
   deleteRecycle(
-    data: { fileIds: string[] },
+    data: { fileIds: string },
     resolve: Callback<unknown>,
     reject: Callback<unknown>
   ) {

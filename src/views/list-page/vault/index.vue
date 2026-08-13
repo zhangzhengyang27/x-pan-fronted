@@ -200,47 +200,47 @@ onMounted(() => {
   <div class="flex flex-col gap-4">
     <!-- 加载状态 -->
     <div v-if="view === 'loading'" class="flex items-center justify-center min-h-[400px]">
-      <LoaderCircle :size="28" class="animate-spin text-[var(--color-primary-500)]" />
+      <LoaderCircle :size="28" class="animate-spin text-primary-500" />
     </div>
 
     <!-- 设置密码（首次） -->
     <div v-else-if="view === 'setup'" class="flex items-center justify-center min-h-[400px]">
-      <div class="w-[380px] max-w-[90vw] rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-8 text-center shadow-sm">
+      <div class="w-[380px] max-w-[90vw] rounded-2xl border border-(--color-border) bg-(--color-surface) p-8 text-center shadow-sm">
         <div
           class="size-16 rounded-2xl mx-auto mb-5 flex items-center justify-center"
           style="background: linear-gradient(135deg, rgba(0, 178, 255, 0.12), rgba(0, 178, 255, 0.04));"
         >
-          <KeyRound :size="32" :stroke-width="1.5" class="text-[var(--color-primary-500)]" />
+          <KeyRound :size="32" :stroke-width="1.5" class="text-primary-500" />
         </div>
-        <h2 class="text-lg font-medium text-[var(--color-text)] mb-2">设置保险箱密码</h2>
-        <p class="text-sm text-[var(--color-text-muted)] mb-6 leading-relaxed">
+        <h2 class="text-lg font-medium text-(--color-text) mb-2">设置保险箱密码</h2>
+        <p class="text-sm text-(--color-text-muted) mb-6 leading-relaxed">
           首次使用请设置独立密码，保险箱中的文件将加密存储。
           <br />
           <span class="text-xs">该密码与登录密码独立，丢失后无法找回。</span>
         </p>
         <div class="relative mb-4">
-          <Lock :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
+          <Lock :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-(--color-text-muted)" />
           <input
             v-model="password"
             :type="showPassword ? 'text' : 'password'"
             placeholder="请输入保险箱密码"
-            class="w-full pl-10 pr-10 py-2.5 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] text-sm text-[var(--color-text)] focus:outline-none focus:border-[var(--color-primary-500)]"
+            class="w-full pl-10 pr-10 py-2.5 rounded-sm border border-(--color-border) bg-(--color-surface) text-sm text-(--color-text) focus:outline-none focus:border-primary-500"
             @keyup.enter="setup"
           />
           <button
-            class="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-(--color-text-muted) hover:text-(--color-text)"
             @click="showPassword = !showPassword"
           >
             <component :is="showPassword ? EyeOff : Eye" :size="16" />
           </button>
         </div>
         <div class="relative mb-4">
-          <Lock :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
+          <Lock :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-(--color-text-muted)" />
           <input
             v-model="confirmPassword"
             :type="showPassword ? 'text' : 'password'"
             placeholder="请再次输入密码"
-            class="w-full pl-10 pr-10 py-2.5 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] text-sm text-[var(--color-text)] focus:outline-none focus:border-[var(--color-primary-500)]"
+            class="w-full pl-10 pr-10 py-2.5 rounded-sm border border-(--color-border) bg-(--color-surface) text-sm text-(--color-text) focus:outline-none focus:border-primary-500"
             @keyup.enter="setup"
           />
         </div>
@@ -259,28 +259,28 @@ onMounted(() => {
 
     <!-- 解锁 -->
     <div v-else-if="view === 'unlock'" class="flex items-center justify-center min-h-[400px]">
-      <div class="w-[380px] max-w-[90vw] rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-8 text-center shadow-sm">
+      <div class="w-[380px] max-w-[90vw] rounded-2xl border border-(--color-border) bg-(--color-surface) p-8 text-center shadow-sm">
         <div
           class="size-16 rounded-2xl mx-auto mb-5 flex items-center justify-center"
           style="background: linear-gradient(135deg, rgba(0, 178, 255, 0.12), rgba(0, 178, 255, 0.04));"
         >
-          <Shield :size="32" :stroke-width="1.5" class="text-[var(--color-primary-500)]" />
+          <Shield :size="32" :stroke-width="1.5" class="text-primary-500" />
         </div>
-        <h2 class="text-lg font-medium text-[var(--color-text)] mb-2">隐私保险箱</h2>
-        <p class="text-sm text-[var(--color-text-muted)] mb-6 leading-relaxed">
+        <h2 class="text-lg font-medium text-(--color-text) mb-2">隐私保险箱</h2>
+        <p class="text-sm text-(--color-text-muted) mb-6 leading-relaxed">
           保险箱中的文件经过加密存储，需输入独立密码才能访问。
         </p>
         <div class="relative mb-4">
-          <Lock :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
+          <Lock :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-(--color-text-muted)" />
           <input
             v-model="password"
             :type="showPassword ? 'text' : 'password'"
             placeholder="请输入保险箱密码"
-            class="w-full pl-10 pr-10 py-2.5 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] text-sm text-[var(--color-text)] focus:outline-none focus:border-[var(--color-primary-500)]"
+            class="w-full pl-10 pr-10 py-2.5 rounded-sm border border-(--color-border) bg-(--color-surface) text-sm text-(--color-text) focus:outline-none focus:border-primary-500"
             @keyup.enter="unlock"
           />
           <button
-            class="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-(--color-text-muted) hover:text-(--color-text)"
             @click="showPassword = !showPassword"
           >
             <component :is="showPassword ? EyeOff : Eye" :size="16" />
@@ -303,13 +303,13 @@ onMounted(() => {
     <template v-else>
       <div class="flex items-center justify-between py-2">
         <div class="flex items-center gap-3">
-          <h1 class="text-xl font-semibold tracking-tight text-[var(--color-text)]">隐私保险箱</h1>
+          <h1 class="text-xl font-semibold tracking-tight text-(--color-text)">隐私保险箱</h1>
           <span class="px-2 py-0.5 rounded-full font-mono text-xs" style="background-color: var(--color-surface-container-low); color: var(--color-text-muted);">
             {{ files.length }} items · 加密存储
           </span>
         </div>
         <button
-          class="flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-sm text-[var(--color-text-muted)] hover:bg-[var(--color-surface-container-low)]"
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-sm text-(--color-text-muted) hover:bg-(--color-surface-container-low)"
           @click="lock"
         >
           <LogOut :size="14" />
@@ -317,10 +317,10 @@ onMounted(() => {
         </button>
       </div>
 
-      <div class="rounded-sm border border-[var(--color-border)] bg-[var(--color-surface-container-low)]">
+      <div class="rounded-sm border border-(--color-border) bg-(--color-surface-container-low)">
         <!-- 加载中 -->
         <div v-if="loading" class="flex items-center justify-center py-20">
-          <LoaderCircle :size="24" class="animate-spin text-[var(--color-primary-500)]" />
+          <LoaderCircle :size="24" class="animate-spin text-primary-500" />
         </div>
 
         <!-- 空态 -->
@@ -336,22 +336,22 @@ onMounted(() => {
           <div
             v-for="f in files"
             :key="f.fileId"
-            class="flex items-center gap-3 px-4 py-3 border-b border-[var(--color-border)] last:border-b-0 hover:bg-[var(--color-surface-container)]"
+            class="flex items-center gap-3 px-4 py-3 border-b border-(--color-border) last:border-b-0 hover:bg-(--color-surface-container)"
           >
-            <Lock :size="16" class="text-[var(--color-primary-500)] shrink-0" />
-            <span class="text-sm text-[var(--color-text)] truncate flex-1">{{ f.filename }}</span>
-            <span class="text-xs text-[var(--color-text-muted)] tabular-nums shrink-0">{{ f.fileSizeDesc }}</span>
-            <span class="text-xs text-[var(--color-text-muted)] shrink-0 hidden sm:inline">{{ f.updateTime }}</span>
+            <Lock :size="16" class="text-primary-500 shrink-0" />
+            <span class="text-sm text-(--color-text) truncate flex-1">{{ f.filename }}</span>
+            <span class="text-xs text-(--color-text-muted) tabular-nums shrink-0">{{ f.fileSizeDesc }}</span>
+            <span class="text-xs text-(--color-text-muted) shrink-0 hidden sm:inline">{{ f.updateTime }}</span>
             <div class="flex items-center gap-1 shrink-0">
               <button
-                class="p-1.5 rounded-sm hover:bg-[var(--color-surface)] text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+                class="p-1.5 rounded-sm hover:bg-(--color-surface) text-(--color-text-muted) hover:text-(--color-text)"
                 title="移出保险箱"
                 @click="moveOut(f)"
               >
                 <Download :size="14" />
               </button>
               <button
-                class="p-1.5 rounded-sm hover:bg-[var(--color-surface)] text-red-400 hover:text-red-500"
+                class="p-1.5 rounded-sm hover:bg-(--color-surface) text-red-400 hover:text-red-500"
                 title="永久删除"
                 @click="destroy(f)"
               >

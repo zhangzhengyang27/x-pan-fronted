@@ -4,13 +4,16 @@
  * 基于原生 <dialog> + Teleport
  */
 import { watch, ref, nextTick } from 'vue'
+import type { PropType } from 'vue'
 import { X } from '@lucide/vue'
 import { cn } from '@/utils/classnames'
+
+type ModalSize = 'sm' | 'md' | 'lg' | 'xl' | 'full'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
   title: { type: String, default: '' },
-  size: { type: String, default: 'md' },
+  size: { type: String as PropType<ModalSize>, default: 'md' },
   closeOnBackdrop: { type: Boolean, default: true },
   closeOnEsc: { type: Boolean, default: true },
   hideClose: { type: Boolean, default: false }
@@ -18,9 +21,9 @@ const props = defineProps({
 
 const emit = defineEmits(['update:open', 'close'])
 
-const dialogRef = ref(null)
+const dialogRef = ref<HTMLDialogElement | null>(null)
 
-const sizeClass = {
+const sizeClass: Record<ModalSize, string> = {
   sm: 'max-w-sm',
   md: 'max-w-md',
   lg: 'max-w-lg',
@@ -32,9 +35,10 @@ watch(
   () => props.open,
   async (v) => {
     await nextTick()
-    if (!dialogRef.value) return
-    if (v && !dialogRef.value.open) dialogRef.value.showModal()
-    if (!v && dialogRef.value.open) dialogRef.value.close()
+    const dialog = dialogRef.value
+    if (!dialog) return
+    if (v && !dialog.open) dialog.showModal()
+    if (!v && dialog.open) dialog.close()
   }
 )
 
@@ -43,11 +47,11 @@ function onClose() {
   emit('close')
 }
 
-function onBackdrop(e) {
+function onBackdrop(e: MouseEvent) {
   if (props.closeOnBackdrop && e.target === dialogRef.value) onClose()
 }
 
-function onCancel(e) {
+function onCancel(e: Event) {
   if (!props.closeOnEsc) { e.preventDefault(); return }
   onClose()
 }
@@ -59,11 +63,11 @@ function onCancel(e) {
       ref="dialogRef"
       :class="
         cn(
-          'm-auto p-0 text-[var(--color-text)]',
+          'm-auto p-0 text-(--color-text)',
           'rounded-xl',
           'shadow-xl',
           'w-[92vw]',
-          'bg-[var(--color-surface)] border border-[var(--color-border)]',
+          'bg-(--color-surface) border border-(--color-border)',
           'overflow-visible',
           sizeClass[size]
         )
@@ -75,13 +79,13 @@ function onCancel(e) {
       <!-- 头部 -->
       <div
         v-if="title || !hideClose"
-        class="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)]"
+        class="flex items-center justify-between px-5 py-4 border-b border-(--color-border)"
       >
-        <h2 class="text-sm font-semibold m-0 text-[var(--color-text)]">{{ title }}</h2>
+        <h2 class="text-sm font-semibold m-0 text-(--color-text)">{{ title }}</h2>
         <button
           v-if="!hideClose"
           type="button"
-          class="size-7 rounded-sm flex items-center justify-center text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-hover)] transition-colors"
+          class="size-7 rounded-sm flex items-center justify-center text-(--color-text-secondary) hover:text-(--color-text) hover:bg-(--color-hover) transition-colors"
           aria-label="关闭"
           @click="onClose"
         >
@@ -95,7 +99,7 @@ function onCancel(e) {
       <!-- 底部 -->
       <div
         v-if="$slots.footer"
-        class="px-5 py-3 flex items-center justify-end gap-2 rounded-b-xl border-t border-[var(--color-border)] bg-[var(--color-surface-2)]"
+        class="px-5 py-3 flex items-center justify-end gap-2 rounded-b-xl border-t border-(--color-border) bg-(--color-surface-2)"
       >
         <slot name="footer" />
       </div>

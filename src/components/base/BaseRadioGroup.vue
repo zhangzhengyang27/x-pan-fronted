@@ -4,16 +4,23 @@
  * 方向：horizontal | vertical
  */
 import { cn } from '@/utils/classnames'
+import type { PropType } from 'vue'
+
+interface RadioOption {
+  label: string
+  value: string | number
+  disabled?: boolean
+}
 
 const props = defineProps({
-  modelValue: { type: [String, Number, null], default: '' },
-  options: { type: Array, default: () => [] }, // [{label, value, disabled}]
+  modelValue: { type: [String, Number], default: '' },
+  options: { type: Array as PropType<RadioOption[]>, default: () => [] },
   direction: { type: String, default: 'horizontal' },
   disabled: { type: Boolean, default: false }
 })
 const emit = defineEmits(['update:modelValue'])
 
-function pick(value) {
+function pick(value: string | number) {
   if (props.disabled) return
   emit('update:modelValue', value)
 }
@@ -34,8 +41,8 @@ function pick(value) {
         class="relative size-4 rounded-full border flex items-center justify-center transition-colors"
         :class="
           modelValue === opt.value
-            ? 'border-[var(--color-primary-600)] bg-[var(--color-primary-600)]'
-            : 'border-[var(--color-border-strong)] bg-[var(--color-surface)]'
+            ? 'border-primary-600 bg-primary-600'
+            : 'border-(--color-border-strong) bg-(--color-surface)'
         "
       >
         <span

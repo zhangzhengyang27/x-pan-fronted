@@ -28,8 +28,8 @@ function toggle() {
       class="relative size-4 rounded border flex items-center justify-center transition-colors"
       :class="
         modelValue || indeterminate
-          ? 'bg-[var(--color-primary-600)] border-[var(--color-primary-600)] text-white'
-          : 'border-[var(--color-border-strong)] bg-[var(--color-surface)]'
+          ? 'bg-primary-600 border-primary-600 text-white'
+          : 'border-(--color-border-strong) bg-(--color-surface)'
       "
     >
       <Check v-if="modelValue && !indeterminate" :size="12" :stroke-width="3" />

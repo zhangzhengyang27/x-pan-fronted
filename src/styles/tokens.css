@@ -301,6 +301,12 @@ button:focus-visible,
   color: var(--color-primary-500); /* 夸克:选中行蓝色字 */
 }
 
+/* 夸克网盘回收站选中行:浅灰底 */
+.recycle-row-selected {
+  background-color: var(--color-surface-container) !important;
+  color: var(--color-text);
+}
+
 /* 夸克式悬停 */
 .quark-row-hover:hover {
   background-color: var(--color-hover);
@@ -308,7 +314,7 @@ button:focus-visible,
 
 /* 夸克式危险按钮 */
 .quark-btn-danger {
-  background-color: var(--color-danger);
+  background-color: vardanger;
   color: white;
   border-radius: var(--radius);
   transition: opacity var(--dur-fast) var(--ease);
@@ -362,13 +368,13 @@ button:focus-visible,
 }
 .quark-badge-success {
   background: var(--color-success-bg);
-  color: var(--color-success);
+  color: varsuccess;
 }
 .quark-badge-warning {
   background: var(--color-warning-bg);
-  color: var(--color-warning);
+  color: varwarning;
 }
 .quark-badge-danger {
   background: var(--color-danger-bg);
-  color: var(--color-danger);
+  color: vardanger;
 }

@@ -1,6 +1,6 @@
 <template>
   <header
-    class="sticky top-0 z-50 h-16 border-b bg-[var(--color-surface)] border-[var(--color-border)]"
+    class="sticky top-0 z-50 h-16 border-b bg-(--color-surface) border-(--color-border)"
   >
     <div class="h-full w-full flex items-center justify-between px-4 md:px-6 gap-3">
       <!-- 品牌 -->
@@ -11,14 +11,14 @@
         >
           <Cloud :size="18" :stroke-width="2" class="text-white" />
         </div>
-        <span class="text-lg font-bold tracking-tight text-[var(--color-text)]">X Pan</span>
+        <span class="text-lg font-bold tracking-tight text-(--color-text)">X Pan</span>
       </router-link>
 
       <div class="flex items-center gap-2 md:gap-3">
         <!-- 主题切换 -->
         <button
           type="button"
-          class="size-9 rounded-sm flex items-center justify-center transition-colors text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-2)]"
+          class="size-9 rounded-sm flex items-center justify-center transition-colors text-(--color-text-muted) hover:text-(--color-text) hover:bg-(--color-surface-2)"
           :aria-label="theme.isDark ? '切换为浅色' : '切换为深色'"
           @click="theme.toggle"
         >

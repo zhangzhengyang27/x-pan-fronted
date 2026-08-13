@@ -38,7 +38,8 @@ export function useUploader() {
       singleFile: false,
       chunkSize: panUtil.getChunkSize(),
       testChunks: panUtil.getChunkUploadSwitch(),
-      forceChunkSize: false,
+      // 强制按 chunkSize 切片（除最后一块外均严格 >= 5MB），满足 MinIO composeObject 合并限制
+      forceChunkSize: true,
       simultaneousUploads: 3,
       fileParameterName: 'file',
       query: () => ({ parentId: fileStore.paramParentId }),
@@ -89,6 +90,7 @@ export function useUploader() {
           )
         }
         taskStore.add({
+          id: f.id,
           target: f,
           filename: f.name,
           uniqueIdentifier: f.uniqueIdentifier,
@@ -104,26 +106,32 @@ export function useUploader() {
 
         MD5(f.file, (e, md5) => {
           if (e || !md5) {
-            resumeWaiting(f.name)
+            ElMessage.error('文件：' + f.name + ' 计算指纹失败，已转入普通上传')
+            resumeWaiting(f.id)
             return
           }
           f.uniqueIdentifier = md5
           fileService.secUpload(
             { filename: f.name, identifier: md5, parentId: fileStore.paramParentId },
             (res) => {
-              if (res.code === 0) {
+              if (res.code === 0 && res.data) {
                 ElMessage.success('⚡ 秒传成功：' + f.name)
                 f.cancel()
-                taskStore.remove(f.name)
+                taskStore.remove(f.id)
                 fileStore.loadFileList()
                 if (_uploader && _uploader.files.length === 0) {
                   taskStore.updateViewFlag(false)
                 }
               } else {
-                resumeWaiting(f.name)
+                // 业务未命中秒传：转入普通分片上传
+                resumeWaiting(f.id)
               }
             },
-            () => resumeWaiting(f.name)
+            () => {
+              // 网络/接口异常：千万不要静默 return，否则文件会永久卡在暂停态
+              ElMessage.warning('秒传校验失败，已转入普通上传：' + f.name)
+              resumeWaiting(f.id)
+            }
           )
         })
       })
@@ -138,31 +146,33 @@ export function useUploader() {
     return true
   }
 
-  function resumeWaiting(filename: string) {
-    const task = taskStore.getUploadTask(filename)
+  function resumeWaiting(id: string) {
+    const task = taskStore.getUploadTask(id)
     if (task?.target) task.target.resume()
     taskStore.updateStatus({
-      filename,
+      id,
       status: EFileStatus.WAITING.code,
       statusText: EFileStatus.WAITING.text
     })
   }
 
   function onFileProgress(rootFile: UploaderFile, file: UploaderFile) {
-    if (!file.isUploading()) return
-    const item = taskStore.getUploadTask(file.name)
-    if (item?.status !== EFileStatus.UPLOADING.code) {
+    // 不再用 file.isUploading() 过滤：文件 resume 后可能短暂未置位，
+    // 导致前几次进度事件被跳过，只剩 0% 和 100%
+    const progress = Number(file.progress()) || 0
+    const item = taskStore.getUploadTask(file.id)
+    if (item && item.status !== EFileStatus.UPLOADING.code && progress > 0 && progress < 1) {
       taskStore.updateStatus({
-        filename: file.name,
+        id: file.id,
         status: EFileStatus.UPLOADING.code,
         statusText: EFileStatus.UPLOADING.text
       })
     }
     taskStore.updateProcess({
-      filename: file.name,
-      speed: panUtil.translateSpeed(file.averageSpeed),
-      percentage: Math.floor(file.progress() * 100),
-      uploadedSize: panUtil.translateFileSize(file.sizeUploaded()),
+      id: file.id,
+      speed: panUtil.translateSpeed(Number(file.averageSpeed) || 0),
+      percentage: Math.min(Math.floor(progress * 100), 99),
+      uploadedSize: panUtil.translateFileSize(Number(file.sizeUploaded()) || 0),
       timeRemaining: panUtil.translateTime(file.timeRemaining())
     })
   }
@@ -190,7 +200,7 @@ export function useUploader() {
     } else {
       file.pause()
       taskStore.updateStatus({
-        filename: file.name,
+        id: file.id,
         status: EFileStatus.FAIL.code,
         statusText: EFileStatus.FAIL.text
       })
@@ -198,14 +208,14 @@ export function useUploader() {
   }
 
   function doMerge(file: UploaderFile) {
-    const item = taskStore.getUploadTask(file.name)
+    const item = taskStore.getUploadTask(file.id)
     taskStore.updateStatus({
-      filename: file.name,
+      id: file.id,
       status: EFileStatus.MERGE.code,
       statusText: EFileStatus.MERGE.text
     })
     taskStore.updateProcess({
-      filename: file.name,
+      id: file.id,
       speed: panUtil.translateSpeed(file.averageSpeed),
       percentage: 99,
       uploadedSize: panUtil.translateFileSize(file.sizeUploaded()),
@@ -229,17 +239,17 @@ export function useUploader() {
         }
         fileStore.loadFileList()
         taskStore.updateStatus({
-          filename: file.name,
+          id: file.id,
           status: EFileStatus.SUCCESS.code,
           statusText: EFileStatus.SUCCESS.text
         })
-        taskStore.remove(file.name)
+        taskStore.remove(file.id)
         if (_uploader && _uploader.files.length === 0) taskStore.updateViewFlag(false)
       },
       () => {
         file.pause()
         taskStore.updateStatus({
-          filename: file.name,
+          id: file.id,
           status: EFileStatus.FAIL.code,
           statusText: EFileStatus.FAIL.text
         })
@@ -258,22 +268,22 @@ export function useUploader() {
     }
     fileStore.loadFileList()
     taskStore.updateStatus({
-      filename: file.name,
+      id: file.id,
       status: EFileStatus.SUCCESS.code,
       statusText: EFileStatus.SUCCESS.text
     })
-    taskStore.remove(file.name)
+    taskStore.remove(file.id)
     if (_uploader && _uploader.files.length === 0) taskStore.updateViewFlag(false)
   }
 
   function onUploadError(rootFile: UploaderFile, file: UploaderFile) {
     taskStore.updateStatus({
-      filename: file.name,
+      id: file.id,
       status: EFileStatus.FAIL.code,
       statusText: EFileStatus.FAIL.text
     })
     taskStore.updateProcess({
-      filename: file.name,
+      id: file.id,
       speed: panUtil.translateSpeed(0),
       percentage: 0,
       uploadedSize: panUtil.translateFileSize(0),

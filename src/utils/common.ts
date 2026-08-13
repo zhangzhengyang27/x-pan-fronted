@@ -45,8 +45,6 @@ interface PanUtil {
   translateTime(timeRemaining: number | undefined | null): string
   checkUsername(username: string): boolean
   checkPassword(password: string): boolean
-  showOperation(dom: HTMLElement): void
-  hiddenOperation(dom: HTMLElement): void
   getFileFontElement(type: number): IconName
   getPreviewUrl(fileId: string): string
   getUrlPrefix(): string
@@ -93,22 +91,6 @@ const panUtil: PanUtil = {
 
   checkPassword(password: string): boolean {
     return !!password && password.length >= 8 && password.length <= 16
-  },
-
-  showOperation(dom: HTMLElement): void {
-    const parentDiv = dom.firstElementChild
-    if (parentDiv && parentDiv.classList.contains('el-tooltip')) {
-      const div = parentDiv.lastElementChild as HTMLElement | null
-      if (div) div.style.display = 'inline-block'
-    }
-  },
-
-  hiddenOperation(dom: HTMLElement): void {
-    const parentDiv = dom.firstElementChild
-    if (parentDiv && parentDiv.classList.contains('el-tooltip')) {
-      const div = parentDiv.lastElementChild as HTMLElement | null
-      if (div) div.style.display = 'none'
-    }
   },
 
   getFileFontElement(type: number): IconName {
@@ -168,14 +150,16 @@ const panUtil: PanUtil = {
     // 支持两种形式：
     //   1. 完整地址，如 http://localhost:8081
     //   2. 相对路径（nginx 反代场景），如 /api
-    // 均缺失时回退到本地默认后端地址
+    // 均缺失时回退到相对路径 /api（由 nginx 反代到后端 8081，避免写死端口）
     const env = import.meta.env?.VITE_API_BASE_URL
     if (env) return env
-    return 'http://127.0.0.1:8081'
+    return '/api'
   },
 
   getChunkSize(): number {
-    return this.getChunkUploadSwitch() ? 1024 * 1024 * 1 : this.getMaxFileSize()
+    // 分片大小设为 5MB：MinIO composeObject 合并要求除最后一块外每块必须 >= 5MB，
+    // 故开启分片上传时固定使用 5MB 分片（对齐百度网盘 / 夸克等主流网盘的合并方式）。
+    return this.getChunkUploadSwitch() ? 1024 * 1024 * 5 : this.getMaxFileSize()
   },
 
   getMaxFileSize(): number {
@@ -196,3 +180,13 @@ const panUtil: PanUtil = {
 }
 
 export default panUtil
+
+/** 压缩包后缀（后端当前仅支持 ZIP，其余仅做识别展示） */
+export const ARCHIVE_EXTS = ['.zip', '.rar', '.7z', '.tar', '.gz', '.bz2']
+
+/** 判断文件是否为压缩包（供右键菜单/详情面板共用） */
+export function isArchive(file: Record<string, any> | null | undefined): boolean {
+  if (!file || file.fileType === 0) return false
+  const fn = (file.filename || '').toLowerCase()
+  return ARCHIVE_EXTS.some((ext) => fn.endsWith(ext))
+}

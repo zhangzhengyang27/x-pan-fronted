@@ -26,11 +26,11 @@ const passwordStrength = computed(() => {
   const isLongEnough = pwd.length >= 12
 
   if (isLongEnough && hasLetter && hasNumber && hasSpecial) {
-    return { level: 3, label: '强', bars: 3, color: 'var(--color-success)' }
+    return { level: 3, label: '强', bars: 3, color: 'varsuccess' }
   } else if (hasLength && hasLetter && hasNumber) {
-    return { level: 2, label: '中', bars: 2, color: 'var(--color-warning)' }
+    return { level: 2, label: '中', bars: 2, color: 'varwarning' }
   } else {
-    return { level: 1, label: '弱', bars: 1, color: 'var(--color-danger)' }
+    return { level: 1, label: '弱', bars: 1, color: 'vardanger' }
   }
 })
 
@@ -64,7 +64,7 @@ const goLogin = () => router.push({ name: 'Login' })
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-[var(--color-bg)] relative overflow-hidden">
+  <div class="min-h-screen flex items-center justify-center bg-(--color-bg) relative overflow-hidden">
     <!-- 夸克风格背景 -->
     <div class="absolute inset-0 pointer-events-none">
       <div class="absolute top-[-15%] right-[-5%] w-[50%] h-[50%] rounded-full blur-[130px] opacity-[0.07]" style="background-color: var(--color-primary-500);" />
@@ -76,10 +76,10 @@ const goLogin = () => router.push({ name: 'Login' })
         <div class="inline-flex items-center justify-center w-12 h-12 rounded-sm mb-5" style="background-color: var(--color-primary-500);">
           <Cloud :size="22" :stroke-width="2" class="text-white" />
         </div>
-        <h1 class="text-2xl font-bold tracking-tight text-[var(--color-text)]">
+        <h1 class="text-2xl font-bold tracking-tight text-(--color-text)">
           创建账号
         </h1>
-        <p class="text-sm mt-2 text-[var(--color-text-secondary)]">
+        <p class="text-sm mt-2 text-(--color-text-secondary)">
           加入 X Pan 分布式存储
         </p>
       </div>
@@ -89,9 +89,9 @@ const goLogin = () => router.push({ name: 'Login' })
         <form class="space-y-5" @submit.prevent="doRegister">
           <!-- 用户名 -->
           <div>
-            <label class="block text-sm font-medium mb-2 text-[var(--color-text)]">用户名</label>
+            <label class="block text-sm font-medium mb-2 text-(--color-text)">用户名</label>
             <div class="relative">
-              <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[var(--color-text-muted)]">
+              <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-(--color-text-muted)">
                 <User :size="16" :stroke-width="2" />
               </div>
               <input
@@ -99,16 +99,16 @@ const goLogin = () => router.push({ name: 'Login' })
                 type="text"
                 placeholder="6-16 位字母数字"
                 autocomplete="username"
-                class="w-full pl-10 pr-3.5 py-2.5 text-sm rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] placeholder-[var(--color-text-muted)] transition-colors duration-150 focus:outline-none focus:border-[var(--color-border-focus)] focus:ring-2 focus:ring-[var(--color-ring)]"
+                class="w-full pl-10 pr-3.5 py-2.5 text-sm rounded-sm border border-(--color-border) bg-(--color-surface) text-(--color-text) placeholder-(--color-text-muted) transition-colors duration-150 focus:outline-none focus:border-(--color-border-focus) focus:ring-2 focus:ring-(--color-ring)"
               />
             </div>
           </div>
 
           <!-- 密码 -->
           <div>
-            <label class="block text-sm font-medium mb-2 text-[var(--color-text)]">密码</label>
+            <label class="block text-sm font-medium mb-2 text-(--color-text)">密码</label>
             <div class="relative mb-2">
-              <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[var(--color-text-muted)]">
+              <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-(--color-text-muted)">
                 <KeyRound :size="16" :stroke-width="2" />
               </div>
               <input
@@ -116,11 +116,11 @@ const goLogin = () => router.push({ name: 'Login' })
                 :type="showPassword ? 'text' : 'password'"
                 placeholder="8-16 位字符"
                 autocomplete="new-password"
-                class="w-full pl-10 pr-10 py-2.5 text-sm rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] placeholder-[var(--color-text-muted)] transition-colors duration-150 focus:outline-none focus:border-[var(--color-border-focus)] focus:ring-2 focus:ring-[var(--color-ring)]"
+                class="w-full pl-10 pr-10 py-2.5 text-sm rounded-sm border border-(--color-border) bg-(--color-surface) text-(--color-text) placeholder-(--color-text-muted) transition-colors duration-150 focus:outline-none focus:border-(--color-border-focus) focus:ring-2 focus:ring-(--color-ring)"
               />
               <button
                 type="button"
-                class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+                class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-(--color-text-muted) hover:text-(--color-text) transition-colors"
                 @click="showPassword = !showPassword"
               >
                 <Eye v-if="showPassword" :size="15" :stroke-width="2" />
@@ -129,7 +129,7 @@ const goLogin = () => router.push({ name: 'Login' })
             </div>
             <!-- 夸克式密码强度条 -->
             <div v-if="registerForm.password" class="space-y-1.5">
-              <div class="flex gap-1 h-1 rounded-full overflow-hidden bg-[var(--color-border)]">
+              <div class="flex gap-1 h-1 rounded-full overflow-hidden bg-(--color-border)">
                 <div
                   v-for="i in 3"
                   :key="i"
@@ -145,9 +145,9 @@ const goLogin = () => router.push({ name: 'Login' })
 
           <!-- 确认密码 -->
           <div>
-            <label class="block text-sm font-medium mb-2 text-[var(--color-text)]">确认密码</label>
+            <label class="block text-sm font-medium mb-2 text-(--color-text)">确认密码</label>
             <div class="relative">
-              <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[var(--color-text-muted)]">
+              <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-(--color-text-muted)">
                 <KeyRound :size="16" :stroke-width="2" />
               </div>
               <input
@@ -155,21 +155,21 @@ const goLogin = () => router.push({ name: 'Login' })
                 :type="showConfirmPassword ? 'text' : 'password'"
                 placeholder="再次输入密码"
                 autocomplete="new-password"
-                class="w-full pl-10 pr-10 py-2.5 text-sm rounded-sm border bg-[var(--color-surface)] text-[var(--color-text)] placeholder-[var(--color-text-muted)] transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)]"
+                class="w-full pl-10 pr-10 py-2.5 text-sm rounded-sm border bg-(--color-surface) text-(--color-text) placeholder-(--color-text-muted) transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-(--color-ring)"
                 :style="{
-                  borderColor: rePasswordError ? 'var(--color-danger)' : 'var(--color-border)',
+                  borderColor: rePasswordError ? 'vardanger' : 'var(--color-border)',
                 }"
               />
               <button
                 type="button"
-                class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+                class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-(--color-text-muted) hover:text-(--color-text) transition-colors"
                 @click="showConfirmPassword = !showConfirmPassword"
               >
                 <Eye v-if="showConfirmPassword" :size="15" :stroke-width="2" />
                 <EyeOff v-else :size="15" :stroke-width="2" />
               </button>
             </div>
-            <p v-if="rePasswordError" class="text-xs mt-1.5 text-[var(--color-danger)]">{{ rePasswordError }}</p>
+            <p v-if="rePasswordError" class="text-xs mt-1.5 text-danger">{{ rePasswordError }}</p>
           </div>
 
           <!-- 注册按钮 -->
@@ -190,15 +190,15 @@ const goLogin = () => router.push({ name: 'Login' })
 
         <!-- 分隔线 -->
         <div class="mt-5 flex items-center gap-3">
-          <div class="flex-1 h-px bg-[var(--color-border)]" />
-          <span class="text-xs text-[var(--color-text-muted)]">已有账号？</span>
-          <div class="flex-1 h-px bg-[var(--color-border)]" />
+          <div class="flex-1 h-px bg-(--color-border)" />
+          <span class="text-xs text-(--color-text-muted)">已有账号？</span>
+          <div class="flex-1 h-px bg-(--color-border)" />
         </div>
 
         <!-- 去登录 -->
         <button
           type="button"
-          class="w-full flex justify-center items-center h-10 rounded-sm text-sm font-medium mt-5 transition-colors duration-150 border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] hover:bg-[var(--color-surface-2)]"
+          class="w-full flex justify-center items-center h-10 rounded-sm text-sm font-medium mt-5 transition-colors duration-150 border border-(--color-border) bg-(--color-surface) text-(--color-text) hover:bg-(--color-surface-2)"
           @click="goLogin"
         >
           去登录
@@ -206,11 +206,11 @@ const goLogin = () => router.push({ name: 'Login' })
       </div>
 
       <!-- 底部协议 -->
-      <p class="mt-6 text-center text-xs text-[var(--color-text-muted)] leading-relaxed">
+      <p class="mt-6 text-center text-xs text-(--color-text-muted) leading-relaxed">
         注册即代表您已同意
-        <router-link to="/agreement" class="text-[var(--color-primary-500)] hover:underline">《服务协议》</router-link>
+        <router-link to="/agreement" class="text-primary-500 hover:underline">《服务协议》</router-link>
         和
-        <router-link to="/privacy" class="text-[var(--color-primary-500)] hover:underline">《隐私政策》</router-link>
+        <router-link to="/privacy" class="text-primary-500 hover:underline">《隐私政策》</router-link>
       </p>
     </div>
   </div>

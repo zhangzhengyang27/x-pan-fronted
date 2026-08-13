@@ -56,8 +56,8 @@ onMounted(() => {
       class="inline-flex items-center gap-1.5 h-8 px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors"
       :class="[
         current === t.value
-          ? 'bg-[var(--color-primary-container)] text-[var(--color-on-primary-container)] border border-transparent'
-          : 'bg-[var(--color-surface-container)] border border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-surface-container-high)]'
+          ? 'bg-(--color-primary-container) text-(--color-on-primary-container) border border-transparent'
+          : 'bg-(--color-surface-container) border border-(--color-border) text-(--color-text) hover:bg-(--color-surface-container-high)'
       ]"
       @click="pick(t)"
     >

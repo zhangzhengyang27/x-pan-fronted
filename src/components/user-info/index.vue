@@ -176,38 +176,38 @@ onMounted(initUserInfoIfNecessary)
     <button
       v-if="!isLoggedIn"
       type="button"
-      class="flex items-center gap-2 px-2.5 h-9 rounded-sm hover:bg-[var(--color-surface-2)] transition-colors text-sm"
+      class="flex items-center gap-2 px-2.5 h-9 rounded-sm hover:bg-(--color-surface-2) transition-colors text-sm"
       @click="goLogin"
     >
       <span
-        class="size-7 rounded-full bg-[var(--color-primary-100)] dark:bg-[var(--color-primary-900)]/40 flex items-center justify-center text-[var(--color-primary-700)] dark:text-[var(--color-primary-300)]"
+        class="size-7 rounded-full bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center text-primary-700 dark:text-primary-300"
       >
         <User :size="14" />
       </span>
-      <span class="hidden sm:inline text-[var(--color-text)] max-w-[120px] truncate">未登录</span>
-      <LogOut :size="14" class="text-[var(--color-text-muted)]" />
+      <span class="hidden sm:inline text-(--color-text) max-w-[120px] truncate">未登录</span>
+      <LogOut :size="14" class="text-(--color-text-muted)" />
     </button>
 
     <BaseDropdown v-else v-model="open">
       <template #trigger>
         <button
           type="button"
-          class="flex items-center gap-2 px-2.5 h-9 rounded-sm hover:bg-[var(--color-surface-2)] transition-colors text-sm"
+          class="flex items-center gap-2 px-2.5 h-9 rounded-sm hover:bg-(--color-surface-2) transition-colors text-sm"
         >
           <span
-            class="size-7 rounded-full bg-[var(--color-primary-100)] dark:bg-[var(--color-primary-900)]/40 flex items-center justify-center text-[var(--color-primary-700)] dark:text-[var(--color-primary-300)]"
+            class="size-7 rounded-full bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center text-primary-700 dark:text-primary-300"
           >
             <User :size="14" />
           </span>
-          <span class="hidden sm:inline text-[var(--color-text)] max-w-[120px] truncate">{{
+          <span class="hidden sm:inline text-(--color-text) max-w-[120px] truncate">{{
             username || '已登录'
           }}</span>
-          <ChevronDown :size="14" class="text-[var(--color-text-muted)]" />
+          <ChevronDown :size="14" class="text-(--color-text-muted)" />
         </button>
       </template>
       <button
         type="button"
-        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-surface-2)] transition-colors text-left"
+        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-(--color-text) hover:bg-(--color-surface-2) transition-colors text-left"
         @click="openProfile"
       >
         <Info :size="14" />
@@ -215,7 +215,7 @@ onMounted(initUserInfoIfNecessary)
       </button>
       <button
         type="button"
-        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-surface-2)] transition-colors text-left"
+        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-(--color-text) hover:bg-(--color-surface-2) transition-colors text-left"
         @click="openChangePassword"
       >
         <KeyRound :size="14" />
@@ -223,7 +223,7 @@ onMounted(initUserInfoIfNecessary)
       </button>
       <button
         type="button"
-        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-surface-2)] transition-colors text-left"
+        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-(--color-text) hover:bg-(--color-surface-2) transition-colors text-left"
         @click="openDeviceManager"
       >
         <Monitor :size="14" />
@@ -231,7 +231,7 @@ onMounted(initUserInfoIfNecessary)
       </button>
       <button
         type="button"
-        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-[var(--color-danger)] hover:bg-[var(--color-surface-2)] transition-colors text-left"
+        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-danger hover:bg-(--color-surface-2) transition-colors text-left"
         @click="doExit"
       >
         <LogOut :size="14" />
@@ -289,21 +289,21 @@ onMounted(initUserInfoIfNecessary)
       size="sm"
     >
       <div class="flex flex-col gap-3 text-sm">
-        <div class="flex items-center justify-between py-2 border-b border-[var(--color-border)]">
-          <span class="text-[var(--color-text-muted)]">用户名</span>
-          <span class="font-medium text-[var(--color-text)] truncate max-w-[60%]">{{
+        <div class="flex items-center justify-between py-2 border-b border-(--color-border)">
+          <span class="text-(--color-text-muted)">用户名</span>
+          <span class="font-medium text-(--color-text) truncate max-w-[60%]">{{
             profile.username || '-'
           }}</span>
         </div>
-        <div class="flex items-center justify-between py-2 border-b border-[var(--color-border)]">
-          <span class="text-[var(--color-text-muted)]">根目录 ID</span>
-          <span class="font-mono text-xs text-[var(--color-text)] truncate max-w-[60%]">{{
+        <div class="flex items-center justify-between py-2 border-b border-(--color-border)">
+          <span class="text-(--color-text-muted)">根目录 ID</span>
+          <span class="font-mono text-xs text-(--color-text) truncate max-w-[60%]">{{
             profile.rootFileId || '-'
           }}</span>
         </div>
         <div class="flex items-center justify-between py-2">
-          <span class="text-[var(--color-text-muted)]">根目录名</span>
-          <span class="text-[var(--color-text)] truncate max-w-[60%]">{{
+          <span class="text-(--color-text-muted)">根目录名</span>
+          <span class="text-(--color-text) truncate max-w-[60%]">{{
             profile.rootFilename || '-'
           }}</span>
         </div>

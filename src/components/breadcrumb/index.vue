@@ -39,8 +39,8 @@ function goToThis(id) {
           :class="[
             'transition-colors truncate max-w-[280px]',
             index === breadCrumbs.length - 1
-              ? 'text-[var(--color-text)] font-semibold cursor-default'
-              : 'text-[var(--color-text-secondary)] hover:text-[var(--color-primary-500)] hover:underline'
+              ? 'text-(--color-text) font-semibold cursor-default'
+              : 'text-(--color-text-secondary) hover:text-primary-500 hover:underline'
           ]"
           :disabled="index === breadCrumbs.length - 1"
           @click="goToThis(item.id)"
@@ -50,7 +50,7 @@ function goToThis(id) {
         <ChevronRight
           v-if="index < breadCrumbs.length - 1"
           :size="14"
-          class="text-[var(--color-text-muted)] shrink-0"
+          class="text-(--color-text-muted) shrink-0"
         />
       </li>
     </ol>

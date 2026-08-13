@@ -12,23 +12,35 @@
  * <ContextMenu :items="menuItems" @select="onSelect"/>
  */
 import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import type { PropType } from 'vue'
+
+interface ContextMenuItem {
+  label?: string
+  icon?: unknown
+  danger?: boolean
+  disabled?: boolean
+  divider?: boolean
+  shortcut?: string
+  [key: string]: unknown
+}
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
   x: { type: Number, default: 0 },
   y: { type: Number, default: 0 },
-  items: { type: Array, required: true }
+  items: { type: Array as PropType<ContextMenuItem[]>, required: true }
 })
 
 const emit = defineEmits(['select', 'close'])
 
-const menuRef = ref(null)
+const menuRef = ref<HTMLDivElement | null>(null)
 const adjusted = ref({ x: 0, y: 0 })
 
 /** 自适应视口边界 */
 function adjustPosition() {
-  if (!menuRef.value) return
-  const rect = menuRef.value.getBoundingClientRect()
+  const menu = menuRef.value
+  if (!menu) return
+  const rect = menu.getBoundingClientRect()
   const vw = window.innerWidth
   const vh = window.innerHeight
   let nx = props.x
@@ -51,9 +63,9 @@ watch(
 )
 
 /** 全局点击外部关闭 */
-function onDocMouseDown(e) {
+function onDocMouseDown(e: MouseEvent) {
   if (!props.visible) return
-  if (menuRef.value && !menuRef.value.contains(e.target)) {
+  if (menuRef.value && !menuRef.value?.contains(e.target as Node)) {
     emit('close')
   }
 }
@@ -68,13 +80,13 @@ onUnmounted(() => {
 })
 
 /** 阻止自身的默认右键 */
-function onDocContextMenu(e) {
-  if (props.visible && menuRef.value && menuRef.value.contains(e.target)) {
+function onDocContextMenu(e: MouseEvent) {
+  if (props.visible && menuRef.value && menuRef.value.contains(e.target as Node)) {
     e.preventDefault()
   }
 }
 
-function onSelect(item, index) {
+function onSelect(item: ContextMenuItem, index: number) {
   if (item.disabled) return
   if (item.divider) return
   emit('select', item, index)
@@ -82,7 +94,7 @@ function onSelect(item, index) {
 }
 
 /** ESC 关闭 */
-function onKeyDown(e) {
+function onKeyDown(e: KeyboardEvent) {
   if (props.visible && e.key === 'Escape') emit('close')
 }
 onMounted(() => document.addEventListener('keydown', onKeyDown))
@@ -95,12 +107,12 @@ onUnmounted(() => document.removeEventListener('keydown', onKeyDown))
       <div
         v-if="visible"
         ref="menuRef"
-        class="fixed z-[100] min-w-[200px] py-1.5 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-2xl backdrop-blur-sm"
+        class="fixed z-100 min-w-[200px] py-1.5 rounded-xl bg-(--color-surface) border border-(--color-border) shadow-2xl backdrop-blur-sm"
         :style="{ left: adjusted.x + 'px', top: adjusted.y + 'px' }"
         @contextmenu.prevent
       >
         <template v-for="(item, idx) in items" :key="idx">
-          <div v-if="item.divider" class="my-1 h-px bg-[var(--color-border)]" />
+          <div v-if="item.divider" class="my-1 h-px bg-(--color-border)" />
           <button
             v-else
             type="button"
@@ -108,10 +120,10 @@ onUnmounted(() => document.removeEventListener('keydown', onKeyDown))
             class="w-full flex items-center justify-between gap-3 px-3 py-1.5 text-sm text-left transition-colors"
             :class="[
               item.disabled
-                ? 'text-[var(--color-text-muted)] cursor-not-allowed opacity-50'
+                ? 'text-(--color-text-muted) cursor-not-allowed opacity-50'
                 : item.danger
-                  ? 'text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10'
-                  : 'text-[var(--color-text)] hover:bg-[var(--color-surface-2)]'
+                  ? 'text-danger hover:bg-danger/10'
+                  : 'text-(--color-text) hover:bg-(--color-surface-2)'
             ]"
             @click="onSelect(item, idx)"
           >
@@ -121,14 +133,14 @@ onUnmounted(() => document.removeEventListener('keydown', onKeyDown))
                 :is="item.icon"
                 :size="15"
                 :class="
-                  item.danger ? 'text-[var(--color-danger)]' : 'text-[var(--color-text-muted)]'
+                  item.danger ? 'text-danger' : 'text-(--color-text-muted)'
                 "
               />
               <span class="truncate">{{ item.label }}</span>
             </span>
             <kbd
               v-if="item.shortcut"
-              class="ml-2 px-1.5 py-0.5 text-[10px] font-mono rounded bg-[var(--color-surface-2)] border border-[var(--color-border)] text-[var(--color-text-muted)] shrink-0"
+              class="ml-2 px-1.5 py-0.5 text-[10px] font-mono rounded bg-(--color-surface-2) border border-(--color-border) text-(--color-text-muted) shrink-0"
             >
               {{ item.shortcut }}
             </kbd>

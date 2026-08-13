@@ -13,7 +13,7 @@ const fileService = {
   list(
     params: {
       parentId: string
-      fileTypes: string
+      fileTypes?: string
       pageNum?: number
       pageSize?: number
       keyword?: string
@@ -45,7 +45,7 @@ const fileService = {
     http.put<unknown, ApiResponse<unknown>>('/file', data).then(resolve).catch(reject)
   },
 
-  delete(data: { fileIds: string[] }, resolve: Callback<unknown>, reject: Callback<unknown>) {
+  delete(data: { fileIds: string }, resolve: Callback<unknown>, reject: Callback<unknown>) {
     http.delete<unknown, ApiResponse<unknown>>('/file', { data }).then(resolve).catch(reject)
   },
 
@@ -54,7 +54,7 @@ const fileService = {
   },
 
   transfer(
-    data: { fileIds: string[]; targetParentId: string },
+    data: { fileIds: string; targetParentId: string },
     resolve: Callback<unknown>,
     reject: Callback<unknown>
   ) {
@@ -62,7 +62,7 @@ const fileService = {
   },
 
   copy(
-    data: { fileIds: string[]; targetParentId: string },
+    data: { fileIds: string; targetParentId: string },
     resolve: Callback<unknown>,
     reject: Callback<unknown>
   ) {
@@ -114,7 +114,7 @@ const fileService = {
   },
 
   archiveDownload(
-    data: { fileIds: string[]; zipName?: string },
+    data: { fileIds: string; zipName?: string },
     resolve: Callback<Blob>,
     reject: Callback<unknown>
   ) {

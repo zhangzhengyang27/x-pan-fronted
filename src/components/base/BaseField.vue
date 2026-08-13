@@ -23,18 +23,18 @@ const labelId = computed(() => `field-${Math.random().toString(36).slice(2, 9)}`
     <div v-if="label" class="flex items-center justify-between">
       <label
         :for="labelId"
-        class="text-sm font-medium text-[var(--color-text)]"
+        class="text-sm font-medium text-(--color-text)"
       >
         {{ label }}
-        <span v-if="required" style="color: var(--color-danger);" aria-hidden="true">*</span>
+        <span v-if="required" style="color: vardanger;" aria-hidden="true">*</span>
       </label>
       <slot name="label-extra" />
     </div>
     <slot :id="labelId" />
-    <p v-if="hint && !error" class="text-xs text-[var(--color-text-muted)]">
+    <p v-if="hint && !error" class="text-xs text-(--color-text-muted)">
       {{ hint }}
     </p>
-    <p v-if="error" class="text-xs" style="color: var(--color-danger);" role="alert">
+    <p v-if="error" class="text-xs" style="color: vardanger;" role="alert">
       {{ error }}
     </p>
     <slot name="hint" />

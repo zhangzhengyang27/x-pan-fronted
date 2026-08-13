@@ -13,7 +13,7 @@ const goHome = () => (window.location.href = '/')
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center relative overflow-hidden bg-[var(--color-bg-dark)]">
+  <div class="min-h-screen flex items-center justify-center relative overflow-hidden bg-(--color-bg-dark)">
     <!-- 背景网格装饰 -->
     <div
       class="absolute inset-0 z-0 opacity-20 pointer-events-none"
@@ -23,21 +23,21 @@ const goHome = () => (window.location.href = '/')
     <!-- 500 View -->
     <div class="relative z-10 flex flex-col items-center justify-center w-full max-w-2xl px-gutter text-center">
       <!-- 大号背景数字 -->
-      <div class="error-code-bg text-[var(--color-danger)]">500</div>
+      <div class="error-code-bg text-danger">500</div>
 
       <!-- Glass Panel 卡片 -->
       <div
         class="rounded-xl p-8 relative z-10 w-full max-w-md mx-auto transform hover:scale-[1.01] transition-transform duration-300 border-t-4"
-        :class="'bg-[var(--color-surface-container-lowest)]/60 dark:bg-[var(--color-surface-container-low)]/60 backdrop-blur-xl border border-[var(--color-border)]/50 dark:border-[var(--color-border-dark)]/50'"
-        style="border-top-color: var(--color-danger);"
+        :class="'bg-(--color-surface-container-lowest)/60 dark:bg-(--color-surface-container-low)/60 backdrop-blur-xl border border-(--color-border)/50 dark:border-(--color-border-dark)/50'"
+        style="border-top-color: vardanger;"
       >
         <div
           class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6"
-          :class="'bg-[var(--color-error-container)]/20 border border-[var(--color-danger)]/30'"
+          :class="'bg-(--color-error-container)/20 border border-danger/30'"
         >
           <svg
             class="w-8 h-8"
-            :class="'text-[var(--color-danger)]'"
+            :class="'text-danger'"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -51,11 +51,11 @@ const goHome = () => (window.location.href = '/')
           </svg>
         </div>
 
-        <h1 class="text-3xl font-bold mb-4 tracking-tight" :class="'text-[var(--color-text-dark)]'">
+        <h1 class="text-3xl font-bold mb-4 tracking-tight" :class="'text-(--color-text-dark)'">
           服务器错误
         </h1>
 
-        <p class="text-lg mb-8" :class="'text-[var(--color-text-muted-dark)]'">
+        <p class="text-lg mb-8" :class="'text-(--color-text-muted-dark)'">
           我们在处理您的请求时遇到了意外的节点错误。分布式存储网络正在尝试自我修复。
         </p>
 
@@ -64,7 +64,7 @@ const goHome = () => (window.location.href = '/')
           type="button"
           class="w-full flex items-center justify-center gap-2 py-3 px-6 rounded-sm text-sm font-medium transition-colors mb-4"
           :class="
-            'bg-[var(--color-danger)] hover:bg-[var(--color-danger)]/80 text-white'
+            'bg-danger hover:bg-danger/80 text-white'
           "
           @click="reload"
         >
@@ -75,12 +75,12 @@ const goHome = () => (window.location.href = '/')
         <!-- Trace ID -->
         <div
           class="p-4 rounded text-left"
-          :class="'bg-[var(--color-surface-container)] dark:bg-[var(--color-surface-container)] border border-[var(--color-border)] dark:border-[var(--color-border-dark)]'"
+          :class="'bg-(--color-surface-container) dark:bg-(--color-surface-container) border border-(--color-border) dark:border-(--color-border-dark)'"
         >
-          <p class="text-xs font-mono mb-1" :class="'text-[var(--color-text-muted-dark)]'">
+          <p class="text-xs font-mono mb-1" :class="'text-(--color-text-muted-dark)'">
             Trace ID:
           </p>
-          <code class="text-xs font-mono break-all" :class="'text-[var(--color-danger)]'">
+          <code class="text-xs font-mono break-all" :class="'text-danger'">
             err_req_8f92a1b_cluster_timeout
           </code>
         </div>
@@ -88,7 +88,7 @@ const goHome = () => (window.location.href = '/')
 
       <!-- 底部信息 -->
       <div class="mt-12 text-center z-10">
-        <p class="text-xs font-mono" :class="'text-[var(--color-text-muted-dark)]'">
+        <p class="text-xs font-mono" :class="'text-(--color-text-muted-dark)'">
           X Pan Distributed Storage • Error: INTERNAL_SERVER_ERROR
         </p>
       </div>
@@ -97,7 +97,7 @@ const goHome = () => (window.location.href = '/')
     <!-- 环境光晕 -->
     <div
       class="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-[120px] opacity-10 pointer-events-none transition-all duration-1000"
-      :class="'bg-[var(--color-danger)]'"
+      :class="'bg-danger'"
     />
   </div>
 </template>

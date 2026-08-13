@@ -82,11 +82,11 @@ function onKey(e) {
 }
 
 onMounted(() => {
-  // 加载同目录全部图片
+  // 加载同目录全部图片（后端分页返回 PageVO，取 records）
   fileService.list(
-    { parentId: panUtil.handleId(route.params.parentId || ''), fileTypes: '7' },
+    { parentId: panUtil.handleId(route.params.parentId || ''), fileTypes: '7', pageSize: 9999 },
     (res) => {
-      items.value = res.data || []
+      items.value = res.data?.records || []
       const idx = items.value.findIndex((x) => x.fileId === route.params.fileId)
       activeIdx.value = idx === -1 ? 0 : idx
       loading.value = false
@@ -192,7 +192,7 @@ onBeforeUnmount(() => {
             :src="urlOf(it.fileId)"
             :alt="it.filename"
             class="w-full h-full object-cover rounded border-2"
-            :class="i === activeIdx ? 'border-[var(--color-primary-400)]' : 'border-transparent'"
+            :class="i === activeIdx ? 'border-primary-400' : 'border-transparent'"
           />
         </button>
       </aside>
@@ -245,7 +245,7 @@ onBeforeUnmount(() => {
         class="shrink-0 h-20 w-20 rounded-sm overflow-hidden border-2 transition-all"
         :class="
           i === activeIdx
-            ? 'border-[var(--color-primary-400)] opacity-100 scale-105'
+            ? 'border-primary-400 opacity-100 scale-105'
             : 'border-transparent opacity-60 hover:opacity-100'
         "
         :aria-label="it.filename"

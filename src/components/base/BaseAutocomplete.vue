@@ -5,16 +5,26 @@
  * - 支持自定义过滤函数（默认不区分大小写 startsWith）
  */
 import { ref, computed } from 'vue'
+import type { PropType } from 'vue'
 import BaseInput from '@/components/base/BaseInput.vue'
+
+interface AutocompleteOption {
+  label: string
+  value: string | number
+  [key: string]: unknown
+}
 
 const props = defineProps({
   modelValue: { type: String, default: '' },
-  options: { type: Array, default: () => [] }, // [{label, value}]
+  options: { type: Array as PropType<AutocompleteOption[]>, default: () => [] }, // [{label, value}]
   placeholder: { type: String, default: '搜索…' },
   fetchSuggestions: { type: Function, default: null },
   disabled: { type: Boolean, default: false }
 })
-const emit = defineEmits(['update:modelValue', 'select'])
+const emit = defineEmits<{
+  'update:modelValue': [value: string]
+  select: [opt: AutocompleteOption]
+}>()
 
 const open = ref(false)
 const highlighted = ref(0)
@@ -26,12 +36,12 @@ const filtered = computed(() => {
   return src.filter((o) => o.label?.toLowerCase().includes(q)).slice(0, 8)
 })
 
-function onInput(v) {
+function onInput(v: string) {
   emit('update:modelValue', v)
   open.value = true
   highlighted.value = 0
 }
-function pick(opt) {
+function pick(opt: AutocompleteOption) {
   emit('update:modelValue', opt.label)
   emit('select', opt)
   open.value = false
@@ -43,7 +53,7 @@ function onBlur() {
   // 延迟以允许点击 option
   setTimeout(() => (open.value = false), 120)
 }
-function onKeydown(e) {
+function onKeydown(e: KeyboardEvent) {
   if (!open.value || filtered.value.length === 0) return
   if (e.key === 'ArrowDown') {
     e.preventDefault()
@@ -74,7 +84,7 @@ function onKeydown(e) {
     />
     <ul
       v-if="open && filtered.length > 0"
-      class="absolute left-0 right-0 top-full mt-2 z-[var(--z-popover)] max-h-64 overflow-y-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-lg py-1"
+      class="absolute left-0 right-0 top-full mt-2 z-(--z-popover) max-h-64 overflow-y-auto rounded-xl border border-(--color-border) bg-(--color-surface) shadow-lg py-1"
       role="listbox"
     >
       <li
@@ -85,8 +95,8 @@ function onKeydown(e) {
         :class="[
           'px-3 py-2 text-sm cursor-pointer transition-colors',
           highlighted === i
-            ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)]'
-            : 'hover:bg-[var(--color-surface-2)]'
+            ? 'bg-primary-50 text-primary-700'
+            : 'hover:bg-(--color-surface-2)'
         ]"
         @mousedown.prevent="pick(opt)"
       >

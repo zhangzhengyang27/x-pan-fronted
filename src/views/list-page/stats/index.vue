@@ -17,12 +17,12 @@ const hasFiles = computed(() => fileList.value.length > 0)
 
 <template>
   <div class="flex flex-col gap-6">
-    <h1 class="text-xl font-semibold text-[var(--color-text)]">统计概览</h1>
+    <h1 class="text-xl font-semibold text-(--color-text)">统计概览</h1>
 
     <DashboardCards v-if="hasFiles" :files="fileList" />
     <div
       v-else
-      class="flex flex-col items-center justify-center gap-2 py-12 text-[var(--color-text-muted)]"
+      class="flex flex-col items-center justify-center gap-2 py-12 text-(--color-text-muted)"
     >
       <p class="text-sm">暂无文件数据</p>
       <p class="text-xs">上传文件后即可查看统计信息</p>

@@ -210,14 +210,14 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="relative flex h-full overflow-hidden bg-[var(--color-surface)]">
+  <div class="relative flex h-full overflow-hidden bg-(--color-surface)">
     <!-- 左侧目录 -->
     <aside
       v-if="headings.length"
-      class="hidden w-56 shrink-0 flex-col border-r border-[var(--color-border)] bg-[var(--color-surface)] lg:flex"
+      class="hidden w-56 shrink-0 flex-col border-r border-(--color-border) bg-(--color-surface) lg:flex"
     >
       <div
-        class="px-4 py-3 text-xs font-semibold tracking-wide text-[var(--color-text-muted)]"
+        class="px-4 py-3 text-xs font-semibold tracking-wide text-(--color-text-muted)"
       >
         目录
       </div>
@@ -229,8 +229,8 @@ onBeforeUnmount(() => {
           class="block w-full truncate rounded-md px-2 py-1.5 text-left text-[13px] leading-relaxed transition-colors"
           :class="[
             h.index === activeIndex
-              ? 'bg-[var(--color-accent-soft)] font-semibold text-[var(--color-primary)]'
-              : 'text-[var(--color-text)] hover:bg-[var(--color-surface-2)]',
+              ? 'bg-(--color-accent-soft) font-semibold text-(--color-primary)'
+              : 'text-(--color-text) hover:bg-(--color-surface-2)',
             h.level === 1 ? 'pl-2' : h.level === 2 ? 'pl-4' : h.level === 3 ? 'pl-6' : h.level === 4 ? 'pl-8' : 'pl-10'
           ]"
           :title="h.text"
@@ -248,13 +248,13 @@ onBeforeUnmount(() => {
 
     <div
       v-if="loading"
-      class="absolute inset-0 flex items-center justify-center bg-[var(--color-surface)]"
+      class="absolute inset-0 flex items-center justify-center bg-(--color-surface)"
     >
-      <div class="size-10 rounded-xl bg-[var(--color-surface-2)] animate-pulse" />
+      <div class="size-10 rounded-xl bg-(--color-surface-2) animate-pulse" />
     </div>
     <div
       v-else-if="error"
-      class="absolute inset-0 flex items-center justify-center text-sm text-[var(--color-danger)]"
+      class="absolute inset-0 flex items-center justify-center text-sm text-danger"
     >
       {{ error }}
     </div>

@@ -145,7 +145,7 @@ const quotaColor = computed(() => {
       <div v-if="mobileOpen" class="fixed inset-0 z-50 flex" @click.self="mobileOpen = false">
         <div class="absolute inset-0 bg-black/40" @click="mobileOpen = false" />
         <aside
-          class="relative w-[260px] h-full flex flex-col bg-[var(--color-surface)] border-r border-[var(--color-border)]"
+          class="relative w-[260px] h-full flex flex-col bg-(--color-surface) border-r border-(--color-border)"
           @click.stop
         >
           <div class="h-full flex flex-col py-3 overflow-y-auto">
@@ -153,7 +153,7 @@ const quotaColor = computed(() => {
             <div class="px-3 flex justify-end mb-1">
               <button
                 type="button"
-                class="size-8 rounded-sm flex items-center justify-center text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-hover)] transition-colors"
+                class="size-8 rounded-sm flex items-center justify-center text-(--color-text-secondary) hover:text-(--color-text) hover:bg-(--color-hover) transition-colors"
                 aria-label="关闭导航"
                 @click="mobileOpen = false"
               >
@@ -166,7 +166,7 @@ const quotaColor = computed(() => {
               <div class="flex flex-col gap-0.5 px-2">
                 <p
                   v-if="group.items.length > 0"
-                  class="px-3 pt-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]"
+                  class="px-3 pt-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-(--color-text-muted)"
                 >
                   {{ group.title }}
                 </p>
@@ -176,8 +176,8 @@ const quotaColor = computed(() => {
                   type="button"
                   class="flex items-center gap-3 h-9 px-3 rounded-sm text-sm transition-all"
                   :class="active === item.key
-                    ? 'text-[var(--color-primary-500)] bg-[var(--color-selected)] font-medium'
-                    : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-hover)]'"
+                    ? 'text-primary-500 bg-(--color-selected) font-medium'
+                    : 'text-(--color-text-secondary) hover:text-(--color-text) hover:bg-(--color-hover)'"
                   @click="navigate(item)"
                 >
                   <component :is="item.icon" :size="16" :stroke-width="2" class="shrink-0" />
@@ -187,7 +187,7 @@ const quotaColor = computed(() => {
             </template>
 
             <!-- 存储空间卡片 -->
-            <div class="mt-auto mx-2 mb-2 rounded-xl p-3 bg-gradient-to-br from-[var(--color-surface-2)] to-[var(--color-surface-container-low)] border border-[var(--color-border)]/60 shadow-sm">
+            <div class="mt-auto mx-2 mb-2 rounded-xl p-3 bg-linear-to-br from-(--color-surface-2) to-(--color-surface-container-low) border border-(--color-border)/60 shadow-sm">
               <!-- 顶部：图标 + 百分比 -->
               <div class="flex items-center justify-between mb-2">
                 <div class="flex items-center gap-1.5">
@@ -197,7 +197,7 @@ const quotaColor = computed(() => {
                   >
                     <HardDrive :size="13" :stroke-width="2" />
                   </div>
-                  <span class="text-xs font-medium text-[var(--color-text-secondary)]">存储空间</span>
+                  <span class="text-xs font-medium text-(--color-text-secondary)">存储空间</span>
                 </div>
                 <span
                   class="text-sm font-bold tabular-nums leading-none"
@@ -206,7 +206,7 @@ const quotaColor = computed(() => {
               </div>
 
               <!-- 进度条 -->
-              <div class="relative h-1.5 rounded-full bg-[var(--color-surface)] overflow-hidden mb-2">
+              <div class="relative h-1.5 rounded-full bg-(--color-surface) overflow-hidden mb-2">
                 <div
                   class="absolute inset-y-0 left-0 rounded-full transition-all duration-500 ease-out"
                   :style="{ width: Math.min(100, usedPercent) + '%', backgroundColor: quotaColor }"
@@ -222,10 +222,10 @@ const quotaColor = computed(() => {
 
               <!-- 底部容量数值 -->
               <div class="flex items-center justify-between text-[11px]">
-                <span class="tabular-nums font-medium text-[var(--color-text)]">{{ formatSize(usedSpace) }}</span>
-                <span class="text-[var(--color-text-muted)]">/</span>
-                <span class="tabular-nums text-[var(--color-text-muted)]">{{ formatSize(totalSpace) }}</span>
-                <span class="ml-auto text-[var(--color-text-muted)]">剩余 {{ formatSize(Math.max(0, totalSpace - usedSpace)) }}</span>
+                <span class="tabular-nums font-medium text-(--color-text)">{{ formatSize(usedSpace) }}</span>
+                <span class="text-(--color-text-muted)">/</span>
+                <span class="tabular-nums text-(--color-text-muted)">{{ formatSize(totalSpace) }}</span>
+                <span class="ml-auto text-(--color-text-muted)">剩余 {{ formatSize(Math.max(0, totalSpace - usedSpace)) }}</span>
               </div>
             </div>
           </div>
@@ -237,7 +237,7 @@ const quotaColor = computed(() => {
   <!-- 桌面端固定侧栏 -->
   <aside
     v-if="!isMobile"
-    class="relative shrink-0 border-r border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden"
+    class="relative shrink-0 border-r border-(--color-border) bg-(--color-surface) overflow-hidden"
     :style="{ width: `${width}px` }"
   >
     <div class="h-full flex flex-col overflow-y-auto pt-2">
@@ -245,7 +245,7 @@ const quotaColor = computed(() => {
         <!-- 分组标题 -->
         <p
           v-if="group.items.length > 0"
-          class="px-4 pt-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]"
+          class="px-4 pt-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-(--color-text-muted)"
         >
           {{ group.title }}
         </p>
@@ -257,8 +257,8 @@ const quotaColor = computed(() => {
             type="button"
             class="flex items-center gap-2.5 h-8 px-2 rounded-sm text-sm transition-all w-full"
             :class="active === item.key
-              ? 'text-[var(--color-primary-500)] bg-[var(--color-selected)] font-medium'
-              : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-hover)]'"
+              ? 'text-primary-500 bg-(--color-selected) font-medium'
+              : 'text-(--color-text-secondary) hover:text-(--color-text) hover:bg-(--color-hover)'"
             @click="go(item.key)"
           >
             <component :is="item.icon" :size="14" :stroke-width="1.75" class="shrink-0" />
@@ -268,7 +268,7 @@ const quotaColor = computed(() => {
       </template>
 
       <!-- 存储空间卡片 -->
-      <div class="mt-auto mx-2 mb-2 rounded-xl p-3 bg-gradient-to-br from-[var(--color-surface-2)] to-[var(--color-surface-container-low)] border border-[var(--color-border)]/60 shadow-sm">
+      <div class="mt-auto mx-2 mb-2 rounded-xl p-3 bg-linear-to-br from-(--color-surface-2) to-(--color-surface-container-low) border border-(--color-border)/60 shadow-sm">
         <!-- 顶部：图标 + 百分比 -->
         <div class="flex items-center justify-between mb-2">
           <div class="flex items-center gap-1.5">
@@ -278,7 +278,7 @@ const quotaColor = computed(() => {
             >
               <HardDrive :size="13" :stroke-width="2" />
             </div>
-            <span class="text-xs font-medium text-[var(--color-text-secondary)]">存储空间</span>
+            <span class="text-xs font-medium text-(--color-text-secondary)">存储空间</span>
           </div>
           <span
             class="text-sm font-bold tabular-nums leading-none"
@@ -287,7 +287,7 @@ const quotaColor = computed(() => {
         </div>
 
         <!-- 进度条 -->
-        <div class="relative h-1.5 rounded-full bg-[var(--color-surface)] overflow-hidden mb-2">
+        <div class="relative h-1.5 rounded-full bg-(--color-surface) overflow-hidden mb-2">
           <div
             class="absolute inset-y-0 left-0 rounded-full transition-all duration-500 ease-out"
             :style="{ width: Math.min(100, usedPercent) + '%', backgroundColor: quotaColor }"
@@ -305,17 +305,17 @@ const quotaColor = computed(() => {
 
         <!-- 底部容量数值 -->
         <div class="flex items-center justify-between text-[11px]">
-          <span class="tabular-nums font-medium text-[var(--color-text)]">{{ formatSize(usedSpace) }}</span>
-          <span class="text-[var(--color-text-muted)]">/</span>
-          <span class="tabular-nums text-[var(--color-text-muted)]">{{ formatSize(totalSpace) }}</span>
-          <span class="ml-auto text-[var(--color-text-muted)]">剩余 {{ formatSize(Math.max(0, totalSpace - usedSpace)) }}</span>
+          <span class="tabular-nums font-medium text-(--color-text)">{{ formatSize(usedSpace) }}</span>
+          <span class="text-(--color-text-muted)">/</span>
+          <span class="tabular-nums text-(--color-text-muted)">{{ formatSize(totalSpace) }}</span>
+          <span class="ml-auto text-(--color-text-muted)">剩余 {{ formatSize(Math.max(0, totalSpace - usedSpace)) }}</span>
         </div>
       </div>
     </div>
 
     <!-- 拖拽手柄 -->
     <div
-      class="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize flex items-center justify-center transition-colors hover:bg-[var(--color-primary-500)]/20"
+      class="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize flex items-center justify-center transition-colors hover:bg-primary-500/20"
       role="separator"
       aria-orientation="vertical"
       :aria-valuenow="width"
@@ -323,7 +323,7 @@ const quotaColor = computed(() => {
       aria-valuemax="420"
       @mousedown="startDrag"
     >
-      <GripVertical :size="8" :stroke-width="2" class="text-[var(--color-border-strong)]" />
+      <GripVertical :size="8" :stroke-width="2" class="text-(--color-border-strong)" />
     </div>
   </aside>
 </template>

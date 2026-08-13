@@ -395,10 +395,10 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen flex flex-col bg-[var(--color-bg)]">
+  <div class="min-h-screen flex flex-col bg-(--color-bg)">
     <!-- Simple Header -->
     <header
-      class="sticky top-0 z-40 h-16 border-b px-6 flex items-center justify-between bg-[var(--color-surface)] border-[var(--color-border)]"
+      class="sticky top-0 z-40 h-16 border-b px-6 flex items-center justify-between bg-(--color-surface) border-(--color-border)"
     >
       <div class="flex items-center gap-2.5">
         <div
@@ -407,10 +407,10 @@ onUnmounted(() => {
         >
           <Cloud :size="18" class="text-white" :stroke-width="2" />
         </div>
-        <span class="text-lg font-semibold tracking-tight text-[var(--color-text)]">X Pan</span>
+        <span class="text-lg font-semibold tracking-tight text-(--color-text)">X Pan</span>
       </div>
       <div v-if="loginFlag" class="flex items-center gap-3 text-sm">
-        <span class="text-[var(--color-text-muted)]">欢迎您，{{ username }}</span>
+        <span class="text-(--color-text-muted)">欢迎您，{{ username }}</span>
         <BaseButton variant="ghost" size="sm" @click="exit">
           <span class="inline-flex items-center gap-1.5">
             <LogOut :size="14" :stroke-width="2" />
@@ -454,20 +454,20 @@ onUnmounted(() => {
       <!-- 分享内容 -->
       <div v-else class="flex flex-col gap-6">
         <!-- 分享信息卡 -->
-        <div class="rounded-sm border border-[var(--color-border)] p-6 bg-[var(--color-surface)]">
+        <div class="rounded-sm border border-(--color-border) p-6 bg-(--color-surface)">
           <div class="flex items-start gap-4 mb-4">
             <div class="size-16 rounded-sm flex items-center justify-center shrink-0" style="background-color: rgba(0, 112, 243, 0.1);">
               <Folder :size="32" :stroke-width="1.5" style="color: var(--color-primary-500);" />
             </div>
             <div class="flex-1 min-w-0">
-              <h2 class="text-xl font-semibold text-[var(--color-text)]">{{ shareCodeHeader }}</h2>
+              <h2 class="text-xl font-semibold text-(--color-text)">{{ shareCodeHeader }}</h2>
               <div class="flex items-center gap-4 mt-2 text-xs" style="color: var(--color-text-muted);">
                 <span class="inline-flex items-center gap-1">
                   <Clock :size="12" :stroke-width="2" />
                   {{ shareDate }}
                 </span>
                 <span
-                  :style="shareExpireDate === '永久有效' ? 'color: var(--color-success);' : 'color: var(--color-warning);'"
+                  :style="shareExpireDate === '永久有效' ? 'color: varsuccess;' : 'color: varwarning;'"
                   class="inline-flex items-center gap-1"
                 >
                   <Lock :size="12" :stroke-width="2" />
@@ -511,9 +511,9 @@ onUnmounted(() => {
         </div>
 
         <!-- 文件列表 -->
-        <div class="rounded-sm border border-[var(--color-border)] overflow-hidden bg-[var(--color-surface)]">
+        <div class="rounded-sm border border-(--color-border) overflow-hidden bg-(--color-surface)">
           <!-- 面包屑 -->
-          <div class="px-4 py-3 flex items-center gap-1.5 text-sm border-b border-[var(--color-border)]">
+          <div class="px-4 py-3 flex items-center gap-1.5 text-sm border-b border-(--color-border)">
             <button
               v-for="(bc, i) in breadCrumbs"
               :key="i"
@@ -556,7 +556,7 @@ onUnmounted(() => {
                     class="shrink-0"
                     style="color: var(--color-primary-500);"
                   />
-                  <span class="truncate text-[var(--color-text)]">{{ row.filename }}</span>
+                  <span class="truncate text-(--color-text)">{{ row.filename }}</span>
                 </button>
               </template>
               <template #cell-actions="{ row }">
@@ -611,7 +611,7 @@ onUnmounted(() => {
         >
           <Lock :size="28" :stroke-width="2" style="color: var(--color-primary-500);" />
         </div>
-        <h3 class="text-lg font-semibold m-0 mb-1 text-[var(--color-text)]">{{ shareCodeHeader }}</h3>
+        <h3 class="text-lg font-semibold m-0 mb-1 text-(--color-text)">{{ shareCodeHeader }}</h3>
         <p class="text-sm mb-6" style="color: var(--color-text-muted);">请输入提取码以查看分享</p>
         <BaseField label="提取码">
           <BaseInput
@@ -652,14 +652,14 @@ onUnmounted(() => {
     <BaseModal v-model:open="qrDialogVisible" title="分享二维码" size="sm">
       <div class="text-center py-2">
         <div
-          class="w-48 h-48 mx-auto rounded-sm bg-white p-2 shadow-sm border border-[var(--color-border)]"
+          class="w-48 h-48 mx-auto rounded-sm bg-white p-2 shadow-sm border border-(--color-border)"
           v-html="qrSvg"
         />
         <div class="mt-4 flex items-center gap-2">
           <input
             :value="shareUrl"
             readonly
-            class="flex-1 h-8 px-2 rounded-sm border border-[var(--color-border)] text-xs font-mono text-[var(--color-text)] bg-[var(--color-surface)]"
+            class="flex-1 h-8 px-2 rounded-sm border border-(--color-border) text-xs font-mono text-(--color-text) bg-(--color-surface)"
             @focus="$event.target.select()"
           />
           <BaseButton variant="secondary" size="sm" @click="copyShareLink">

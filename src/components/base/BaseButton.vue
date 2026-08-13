@@ -7,23 +7,28 @@
 import { computed } from 'vue'
 import { LoaderCircle } from '@lucide/vue'
 import { cn } from '@/utils/classnames'
+import type { PropType } from 'vue'
+
+type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'warning'
+type ButtonSize = 'xs' | 'sm' | 'md' | 'lg'
+type ButtonType = 'button' | 'submit' | 'reset'
 
 const props = defineProps({
-  variant: { type: String, default: 'primary' },
-  size: { type: String, default: 'md' },
+  variant: { type: String as PropType<ButtonVariant>, default: 'primary' },
+  size: { type: String as PropType<ButtonSize>, default: 'md' },
   loading: { type: Boolean, default: false },
   disabled: { type: Boolean, default: false },
   block: { type: Boolean, default: false },
-  type: { type: String, default: 'button' }
+  type: { type: String as PropType<ButtonType>, default: 'button' }
 })
 
 const variantClass = computed(() =>
   ({
-    primary: 'bg-[var(--color-primary-500)] text-white hover:bg-[var(--color-primary-600)]',
-    secondary: 'bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] hover:bg-[var(--color-surface-2)]',
-    ghost: 'bg-transparent text-[var(--color-text)] hover:bg-[var(--color-hover)]',
-    danger: 'bg-[var(--color-danger)] text-white hover:opacity-85',
-    warning: 'bg-[var(--color-warning)] text-white hover:opacity-85'
+    primary: 'bg-primary-500 text-white hover:bg-primary-600',
+    secondary: 'bg-(--color-surface) text-(--color-text) border border-(--color-border) hover:bg-(--color-surface-2)',
+    ghost: 'bg-transparent text-(--color-text) hover:bg-(--color-hover)',
+    danger: 'bg-danger text-white hover:opacity-85',
+    warning: 'bg-warning text-white hover:opacity-85'
   })[props.variant]
 )
 
@@ -41,7 +46,7 @@ const classes = computed(() =>
   cn(
     'inline-flex items-center justify-center font-medium select-none whitespace-nowrap',
     'transition-all duration-100',
-    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-ring)]',
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-(--color-ring)',
     'disabled:opacity-45 disabled:cursor-not-allowed',
     props.block && 'w-full',
     variantClass.value,

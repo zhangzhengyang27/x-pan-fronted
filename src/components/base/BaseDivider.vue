@@ -10,15 +10,15 @@ defineProps({
 
 <template>
   <div v-if="direction === 'horizontal'" class="flex items-center gap-3 my-2" role="separator">
-    <span class="flex-1 h-px bg-[var(--color-border)]" />
-    <span v-if="$slots.default" class="text-xs text-[var(--color-text-muted)] shrink-0"
+    <span class="flex-1 h-px bg-(--color-border)" />
+    <span v-if="$slots.default" class="text-xs text-(--color-text-muted) shrink-0"
       ><slot
     /></span>
-    <span class="flex-1 h-px bg-[var(--color-border)]" />
+    <span class="flex-1 h-px bg-(--color-border)" />
   </div>
   <span
     v-else
-    class="inline-block w-px self-stretch bg-[var(--color-border)] mx-2"
+    class="inline-block w-px self-stretch bg-(--color-border) mx-2"
     role="separator"
     aria-orientation="vertical"
   />

@@ -141,37 +141,37 @@ const hasTree = computed(() => treeData.value.length > 0)
     @click.self="close"
   >
     <div
-      class="w-[460px] max-w-[92vw] bg-[var(--color-surface)] rounded-sm border border-[var(--color-border)] shadow-xl overflow-hidden"
+      class="w-[460px] max-w-[92vw] bg-(--color-surface) rounded-sm border border-(--color-border) shadow-xl overflow-hidden"
     >
       <header
-        class="h-12 px-4 flex items-center justify-between border-b border-[var(--color-border)]"
+        class="h-12 px-4 flex items-center justify-between border-b border-(--color-border)"
       >
-        <h3 class="text-sm font-semibold text-[var(--color-text)]">{{ title }}</h3>
+        <h3 class="text-sm font-semibold text-(--color-text)">{{ title }}</h3>
         <button
           type="button"
-          class="size-7 rounded-sm hover:bg-[var(--color-surface-2)] flex items-center justify-center text-[var(--color-text-muted)]"
+          class="size-7 rounded-sm hover:bg-(--color-surface-2) flex items-center justify-center text-(--color-text-muted)"
           @click="close"
         >
           <span class="i-lucide-x text-base" />
         </button>
       </header>
 
-      <div class="px-4 py-3 border-b border-[var(--color-border)] bg-[var(--color-surface-2)]">
-        <p class="text-xs text-[var(--color-text-muted)]">目标位置</p>
-        <p class="mt-1 text-sm text-[var(--color-text)] truncate">{{ selectedLabel }}</p>
+      <div class="px-4 py-3 border-b border-(--color-border) bg-(--color-surface-2)">
+        <p class="text-xs text-(--color-text-muted)">目标位置</p>
+        <p class="mt-1 text-sm text-(--color-text) truncate">{{ selectedLabel }}</p>
       </div>
 
       <div class="p-2 h-72 overflow-auto">
         <div
           v-if="loading"
-          class="flex h-full items-center justify-center gap-2 text-sm text-[var(--color-text-muted)]"
+          class="flex h-full items-center justify-center gap-2 text-sm text-(--color-text-muted)"
         >
           <LoaderCircle :size="16" class="animate-spin" />
           加载中...
         </div>
         <div
           v-else-if="error"
-          class="flex h-full flex-col items-center justify-center gap-2 text-sm text-[var(--color-danger)]"
+          class="flex h-full flex-col items-center justify-center gap-2 text-sm text-danger"
         >
           <AlertCircle :size="20" />
           {{ error }}
@@ -179,7 +179,7 @@ const hasTree = computed(() => treeData.value.length > 0)
         </div>
         <div
           v-else-if="!hasTree"
-          class="flex h-full items-center justify-center text-sm text-[var(--color-text-muted)]"
+          class="flex h-full items-center justify-center text-sm text-(--color-text-muted)"
         >
           暂无可用文件夹
         </div>
@@ -190,8 +190,8 @@ const hasTree = computed(() => treeData.value.length > 0)
               class="w-full flex items-center gap-2 py-1.5 px-2 rounded-sm text-sm transition-colors"
               :class="
                 selectedId === null
-                  ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)] dark:bg-[var(--color-primary-900)]/30 dark:text-[var(--color-primary-300)]'
-                  : 'hover:bg-[var(--color-surface-2)] text-[var(--color-text)]'
+                  ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300'
+                  : 'hover:bg-(--color-surface-2) text-(--color-text)'
               "
               @click="pickRoot"
             >
@@ -204,7 +204,7 @@ const hasTree = computed(() => treeData.value.length > 0)
       </div>
 
       <footer
-        class="h-12 px-4 flex items-center justify-end gap-2 border-t border-[var(--color-border)] bg-[var(--color-surface-2)]"
+        class="h-12 px-4 flex items-center justify-end gap-2 border-t border-(--color-border) bg-(--color-surface-2)"
       >
         <BaseButton variant="ghost" size="sm" @click="close">取消</BaseButton>
         <BaseButton variant="primary" size="sm" @click="confirm">{{ confirmText }}</BaseButton>

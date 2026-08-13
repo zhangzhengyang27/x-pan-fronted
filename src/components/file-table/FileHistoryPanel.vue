@@ -71,7 +71,7 @@ function versionIconBg(op) {
   const v = operationMeta(op).variant
   switch (v) {
     case 'primary':
-      return 'bg-[var(--color-primary-50)] dark:bg-[var(--color-primary-900)]/30'
+      return 'bg-primary-50 dark:bg-primary-900/30'
     case 'warning':
       return 'bg-amber-50 dark:bg-amber-900/30'
     case 'success':
@@ -79,7 +79,7 @@ function versionIconBg(op) {
     case 'danger':
       return 'bg-red-50 dark:bg-red-900/30'
     default:
-      return 'bg-[var(--color-surface-2)]'
+      return 'bg-(--color-surface-2)'
   }
 }
 
@@ -87,7 +87,7 @@ function versionIconFg(op) {
   const v = operationMeta(op).variant
   switch (v) {
     case 'primary':
-      return 'text-[var(--color-primary-600)]'
+      return 'text-primary-600'
     case 'warning':
       return 'text-amber-600 dark:text-amber-400'
     case 'success':
@@ -95,7 +95,7 @@ function versionIconFg(op) {
     case 'danger':
       return 'text-red-600 dark:text-red-400'
     default:
-      return 'text-[var(--color-text-muted)]'
+      return 'text-(--color-text-muted)'
   }
 }
 
@@ -171,7 +171,7 @@ const stats = computed(() => {
     width="480px"
   >
     <template #header-extra>
-      <div class="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
+      <div class="flex items-center gap-2 text-xs text-(--color-text-muted)">
         <span>共 {{ stats.total }} 个版本</span>
       </div>
     </template>
@@ -179,21 +179,21 @@ const stats = computed(() => {
     <div class="flex flex-col h-full">
       <!-- 文件名 -->
       <div class="mb-4 px-1">
-        <p class="text-sm font-medium text-[var(--color-text)] truncate">{{ filename || '文件' }}</p>
+        <p class="text-sm font-medium text-(--color-text) truncate">{{ filename || '文件' }}</p>
       </div>
       
       <!-- 加载中 -->
-      <div v-if="loading" class="py-12 text-center text-sm text-[var(--color-text-muted)]">
+      <div v-if="loading" class="py-12 text-center text-sm text-(--color-text-muted)">
         加载中...
       </div>
       
       <!-- 空状态 -->
       <div v-else-if="versions.length === 0" class="py-12 text-center">
-        <div class="size-12 mx-auto rounded-2xl bg-[var(--color-surface-2)] flex items-center justify-center text-[var(--color-text-muted)] mb-3">
+        <div class="size-12 mx-auto rounded-2xl bg-(--color-surface-2) flex items-center justify-center text-(--color-text-muted) mb-3">
           <History :size="22" />
         </div>
-        <p class="text-sm text-[var(--color-text-muted)]">暂无历史版本</p>
-        <p class="text-xs text-[var(--color-text-muted)] mt-1">上传或修改文件后会自动生成版本</p>
+        <p class="text-sm text-(--color-text-muted)">暂无历史版本</p>
+        <p class="text-xs text-(--color-text-muted) mt-1">上传或修改文件后会自动生成版本</p>
       </div>
       
       <!-- 时间线 -->
@@ -206,7 +206,7 @@ const stats = computed(() => {
           <!-- 时间线竖线 -->
           <div
             v-if="index < versions.length - 1"
-            class="absolute left-4 top-10 bottom-0 w-px bg-[var(--color-border)]"
+            class="absolute left-4 top-10 bottom-0 w-px bg-(--color-border)"
           />
           
           <!-- 节点 -->
@@ -215,7 +215,7 @@ const stats = computed(() => {
               class="size-8 rounded-full flex items-center justify-center z-10"
               :class="[
                 versionIconBg(v.operation),
-                v.current ? 'ring-2 ring-[var(--color-primary-500)]' : ''
+                v.current ? 'ring-2 ring-primary-500' : ''
               ]"
             >
               <component
@@ -240,8 +240,8 @@ const stats = computed(() => {
                 </span>
               </BaseBadge>
             </div>
-            <p class="text-sm text-[var(--color-text)] truncate mb-1">{{ v.filename }}</p>
-            <div class="flex items-center gap-3 text-xs text-[var(--color-text-muted)] flex-wrap">
+            <p class="text-sm text-(--color-text) truncate mb-1">{{ v.filename }}</p>
+            <div class="flex items-center gap-3 text-xs text-(--color-text-muted) flex-wrap">
               <span class="tabular-nums">{{ v.fileSizeDesc }}</span>
               <span v-if="v.contentHash" class="font-mono">{{ shortHash(v.contentHash) }}</span>
               <span>{{ v.operationTime }}</span>

@@ -191,6 +191,8 @@ router.beforeEach((to, from, next) => {
     userService.info(
       (res) => {
         window.clearTimeout(timeoutId)
+        // 清掉上一次登录残留的目录缓存（避免新账号首屏显示旧目录）
+        try { localStorage.removeItem('xpan:parentId') } catch {}
         fileStore.setParentId(res.data.rootFileId)
         fileStore.setDefaultParentId(res.data.rootFileId)
         fileStore.setDefaultParentFilename(res.data.rootFilename)

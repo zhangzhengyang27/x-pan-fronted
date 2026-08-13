@@ -38,22 +38,8 @@ const isImage = computed(() => props.state.kind === 'image')
 const currentItem = computed(() => props.state.item)
 
 const modalWidth = computed(() => {
-  switch (props.state.kind) {
-    case 'audio':
-      return 560
-    case 'video':
-      return 920
-    case 'pdf':
-      return 960
-    case 'docx':
-    case 'excel':
-    case 'pptx':
-      return 960
-    case 'markdown':
-      return 960
-    default:
-      return 960
-  }
+  const W = { audio: 560, video: 920 } as Record<string, number>
+  return W[props.state.kind] ?? 960
 })
 
 const contentHeight = computed(() => {
@@ -70,6 +56,8 @@ const contentHeight = computed(() => {
 const fileName = computed(() => currentItem.value?.name || currentItem.value?.filename || '')
 
 // 监听状态变化加载 URL
+// 用请求令牌避免快速切换文件时旧请求后到覆盖新值（竞态）
+let urlToken = 0
 watch(
   () => [props.state.open, props.state.item, props.state.kind],
   async ([open, item, kind]) => {
@@ -78,17 +66,18 @@ watch(
       urlError.value = ''
       return
     }
+    const token = ++urlToken
     urlLoading.value = true
     urlError.value = ''
     try {
       const url = props.resolveUrl
         ? await props.resolveUrl(item)
         : await resolvePreviewUrl(item.fileId || item.id)
-      previewUrl.value = url
+      if (token === urlToken) previewUrl.value = url
     } catch {
-      urlError.value = '预览链接获取失败，请重试或直接下载。'
+      if (token === urlToken) urlError.value = '预览链接获取失败，请重试或直接下载。'
     } finally {
-      urlLoading.value = false
+      if (token === urlToken) urlLoading.value = false
     }
   },
   { immediate: true }
@@ -130,26 +119,27 @@ function handleGalleryIndex(i) {
     @update:open="(v) => !v && close()"
   >
     <div
-      class="drive-preview-body rounded-sm overflow-hidden border border-[var(--color-border)]"
+      class="drive-preview-body rounded-sm overflow-hidden border border-(--color-border)"
       :style="{ height: contentHeight }"
     >
       <div v-if="urlLoading" class="flex h-full items-center justify-center">
-        <div class="size-12 rounded-2xl bg-[var(--color-surface-2)] animate-pulse" />
+        <div class="size-12 rounded-2xl bg-(--color-surface-2) animate-pulse" />
       </div>
       <div
         v-else-if="urlError"
-        class="flex h-full flex-col items-center justify-center gap-3 text-sm text-[var(--color-text-muted)]"
+        class="flex h-full flex-col items-center justify-center gap-3 text-sm text-(--color-text-muted)"
       >
         <AlertCircle :size="32" />
         {{ urlError }}
       </div>
       <template v-else-if="previewUrl && currentItem">
-        <VideoPreviewer
-          v-if="state.kind === 'video'"
-          :url="previewUrl || undefined"
-          :file-id="currentItem.fileId || currentItem.id"
-          :title="fileName"
-        />
+        <div v-if="state.kind === 'video'" class="h-full w-full">
+          <VideoPreviewer
+            :url="previewUrl || undefined"
+            :file-id="currentItem.fileId || currentItem.id"
+            :title="fileName"
+          />
+        </div>
         <AudioPreviewer
           v-else-if="state.kind === 'audio'"
           :url="previewUrl || undefined"
@@ -180,7 +170,7 @@ function handleGalleryIndex(i) {
         />
         <div
           v-else
-          class="flex h-full items-center justify-center text-sm text-[var(--color-text-muted)]"
+          class="flex h-full items-center justify-center text-sm text-(--color-text-muted)"
         >
           暂不支持的预览类型：{{ state.kind }}
         </div>

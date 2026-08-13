@@ -33,9 +33,9 @@ watch(
 </script>
 
 <template>
-  <div class="h-screen flex flex-col overflow-hidden bg-[var(--color-bg)]">
+  <div class="h-screen flex flex-col overflow-hidden bg-(--color-bg)">
     <header
-      class="h-14 px-6 flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface)]"
+      class="h-14 px-6 flex items-center justify-between border-b border-(--color-border) bg-(--color-surface)"
     >
       <div class="flex items-center gap-2 min-w-0">
         <h1 class="text-base font-medium truncate">{{ filename }}</h1>
@@ -60,7 +60,7 @@ watch(
       />
       <div
         v-else
-        class="flex h-full items-center justify-center text-sm text-[var(--color-text-muted)]"
+        class="flex h-full items-center justify-center text-sm text-(--color-text-muted)"
       >
         此文件类型暂不支持预览
       </div>

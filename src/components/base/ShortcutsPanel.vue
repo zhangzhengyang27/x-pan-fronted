@@ -124,7 +124,7 @@ const filteredShortcuts = computed(() => {
 function onKeydown(e) {
   // ? 唤出
   if (e.key === '?' || (e.shiftKey && e.key === '/')) {
-    const t = e.target
+    const t = e.target as HTMLElement | null
     const isInput = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)
     if (!isInput) {
       e.preventDefault()
@@ -148,24 +148,24 @@ function onKeydown(e) {
       @click.self="open = false"
     >
       <div
-        class="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl shadow-2xl w-[92vw] max-w-2xl max-h-[80vh] flex flex-col overflow-hidden"
+        class="bg-(--color-surface) border border-(--color-border) rounded-2xl shadow-2xl w-[92vw] max-w-2xl max-h-[80vh] flex flex-col overflow-hidden"
       >
         <!-- Header -->
         <div
-          class="px-5 py-4 border-b border-[var(--color-border)] flex items-center justify-between gap-3"
+          class="px-5 py-4 border-b border-(--color-border) flex items-center justify-between gap-3"
         >
           <div class="flex items-center gap-2">
             <div
-              class="size-9 rounded-sm bg-gradient-to-br from-[var(--color-primary-500)] to-[var(--color-primary-700)] flex items-center justify-center text-white"
+              class="size-9 rounded-sm bg-linear-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white"
             >
               <Keyboard :size="18" />
             </div>
             <div>
               <h2 class="text-base font-semibold m-0">键盘快捷键</h2>
-              <p class="text-xs text-[var(--color-text-muted)] m-0 mt-0.5">
+              <p class="text-xs text-(--color-text-muted) m-0 mt-0.5">
                 按
                 <kbd
-                  class="px-1.5 py-0.5 rounded bg-[var(--color-surface-2)] border border-[var(--color-border)] text-[10px]"
+                  class="px-1.5 py-0.5 rounded bg-(--color-surface-2) border border-(--color-border) text-[10px]"
                   >?</kbd
                 >
                 随时唤出
@@ -174,7 +174,7 @@ function onKeydown(e) {
           </div>
           <button
             type="button"
-            class="text-[var(--color-text-muted)] hover:text-[var(--color-text)] p-1 rounded-sm hover:bg-[var(--color-surface-2)]"
+            class="text-(--color-text-muted) hover:text-(--color-text) p-1 rounded-sm hover:bg-(--color-surface-2)"
             @click="open = false"
           >
             <X :size="18" />
@@ -182,7 +182,7 @@ function onKeydown(e) {
         </div>
 
         <!-- Search -->
-        <div class="px-5 py-3 border-b border-[var(--color-border)]">
+        <div class="px-5 py-3 border-b border-(--color-border)">
           <BaseInput v-model="keyword" placeholder="搜索快捷键..." :prefix="Search" />
         </div>
 
@@ -190,13 +190,13 @@ function onKeydown(e) {
         <div class="flex-1 overflow-y-auto px-5 py-4">
           <div
             v-if="filteredShortcuts.length === 0"
-            class="text-center py-12 text-sm text-[var(--color-text-muted)]"
+            class="text-center py-12 text-sm text-(--color-text-muted)"
           >
             没有匹配的快捷键
           </div>
           <div v-for="(group, gi) in filteredShortcuts" :key="gi" class="mb-6 last:mb-0">
             <div
-              class="flex items-center gap-2 mb-2 text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider"
+              class="flex items-center gap-2 mb-2 text-xs font-medium text-(--color-text-muted) uppercase tracking-wider"
             >
               <component :is="group.icon" :size="14" />
               {{ group.group }}
@@ -205,19 +205,19 @@ function onKeydown(e) {
               <div
                 v-for="(item, ii) in group.items"
                 :key="ii"
-                class="flex items-center justify-between gap-3 px-3 py-2 rounded-sm hover:bg-[var(--color-surface-2)] transition-colors"
+                class="flex items-center justify-between gap-3 px-3 py-2 rounded-sm hover:bg-(--color-surface-2) transition-colors"
               >
                 <span class="text-sm">{{ item.desc }}</span>
                 <div class="flex items-center gap-1 shrink-0">
                   <template v-for="(k, ki) in item.keys" :key="ki">
                     <kbd
-                      class="px-2 py-0.5 rounded bg-[var(--color-surface-2)] border border-[var(--color-border)] text-[11px] font-mono min-w-[24px] text-center"
+                      class="px-2 py-0.5 rounded bg-(--color-surface-2) border border-(--color-border) text-[11px] font-mono min-w-[24px] text-center"
                     >
                       {{ k }}
                     </kbd>
                     <span
                       v-if="ki < item.keys.length - 1"
-                      class="text-[var(--color-text-muted)] text-xs"
+                      class="text-(--color-text-muted) text-xs"
                       >+</span
                     >
                   </template>
@@ -229,13 +229,13 @@ function onKeydown(e) {
 
         <!-- Footer -->
         <div
-          class="px-5 py-3 border-t border-[var(--color-border)] flex items-center justify-between text-xs text-[var(--color-text-muted)] bg-[var(--color-surface-2)]"
+          class="px-5 py-3 border-t border-(--color-border) flex items-center justify-between text-xs text-(--color-text-muted) bg-(--color-surface-2)"
         >
           <span>共 {{ shortcuts.reduce((s, g) => s + g.items.length, 0) }} 个快捷键</span>
           <span
             >按
             <kbd
-              class="px-1.5 py-0.5 rounded bg-[var(--color-surface)] border border-[var(--color-border)] text-[10px]"
+              class="px-1.5 py-0.5 rounded bg-(--color-surface) border border-(--color-border) text-[10px]"
               >Esc</kbd
             >
             关闭</span

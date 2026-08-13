@@ -65,7 +65,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="h-full w-full flex flex-col bg-[var(--color-bg)] text-[var(--color-text)]">
+  <div class="h-full w-full flex flex-col bg-(--color-bg) text-(--color-text)">
     <AppHeader />
     <div class="flex-1 flex min-h-0">
       <AppNavbar ref="navbarRef" />
@@ -86,10 +86,10 @@ onUnmounted(() => {
     <Transition name="modal">
       <div
         v-if="dragOver"
-        class="fixed inset-0 z-[2000] pointer-events-none flex items-center justify-center bg-[var(--color-primary-500)]/10 backdrop-blur-sm"
+        class="fixed inset-0 z-[2000] pointer-events-none flex items-center justify-center bg-primary-500/10 backdrop-blur-sm"
       >
         <div
-          class="flex flex-col items-center gap-4 px-12 py-10 rounded-3xl border-2 border-dashed border-[var(--color-primary-500)] bg-[var(--color-surface)]/90 shadow-2xl"
+          class="flex flex-col items-center gap-4 px-12 py-10 rounded-3xl border-2 border-dashed border-primary-500 bg-(--color-surface)/90 shadow-2xl"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -101,14 +101,14 @@ onUnmounted(() => {
             stroke-width="1.5"
             stroke-linecap="round"
             stroke-linejoin="round"
-            class="text-[var(--color-primary-500)]"
+            class="text-primary-500"
           >
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
             <polyline points="17 8 12 3 7 8" />
             <line x1="12" y1="3" x2="12" y2="15" />
           </svg>
-          <p class="text-lg font-semibold text-[var(--color-text)]">释放鼠标以上传文件</p>
-          <p class="text-sm text-[var(--color-text-muted)]">支持多文件批量上传 · 自动分片 + 秒传</p>
+          <p class="text-lg font-semibold text-(--color-text)">释放鼠标以上传文件</p>
+          <p class="text-sm text-(--color-text-muted)">支持多文件批量上传 · 自动分片 + 秒传</p>
         </div>
       </div>
     </Transition>

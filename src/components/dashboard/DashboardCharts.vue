@@ -125,9 +125,9 @@ const distribution = computed(() => {
       image: 'var(--color-tertiary-container)',
       video: 'var(--color-primary-700)',
       doc: 'var(--color-primary-600)',
-      audio: 'var(--color-danger)',
-      archive: 'var(--color-warning)',
-      code: 'var(--color-warning)',
+      audio: 'vardanger',
+      archive: 'varwarning',
+      code: 'varwarning',
       other: 'var(--color-text-muted)'
     }[key]
   }))
@@ -142,16 +142,16 @@ function clearHistory() {
 <template>
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5">
     <!-- 存储历史曲线 -->
-    <div class="rounded-sm border border-[var(--color-border)] p-4 bg-[var(--color-surface-container-low)]">
+    <div class="rounded-sm border border-(--color-border) p-4 bg-(--color-surface-container-low)">
       <div class="flex items-center justify-between mb-3">
-        <h3 class="text-sm font-semibold flex items-center gap-1.5 text-[var(--color-text)]">
+        <h3 class="text-sm font-semibold flex items-center gap-1.5 text-(--color-text)">
           <TrendingUp :size="14" :stroke-width="2" />
           存储趋势（最近 14 天）
         </h3>
         <button
           v-if="history.length > 0"
           type="button"
-          class="text-xs inline-flex items-center gap-1 transition-colors text-[var(--color-text-muted)] hover:text-[var(--color-danger)]"
+          class="text-xs inline-flex items-center gap-1 transition-colors text-(--color-text-muted) hover:text-danger"
           @click="clearHistory"
         >
           <Trash2 :size="12" :stroke-width="2" />
@@ -193,9 +193,9 @@ function clearHistory() {
     </div>
 
     <!-- 分类柱状图 -->
-    <div class="rounded-sm border border-[var(--color-border)] p-4 bg-[var(--color-surface-container-low)]">
+    <div class="rounded-sm border border-(--color-border) p-4 bg-(--color-surface-container-low)">
       <div class="flex items-center justify-between mb-3">
-        <h3 class="text-sm font-semibold flex items-center gap-1.5 text-[var(--color-text)]">
+        <h3 class="text-sm font-semibold flex items-center gap-1.5 text-(--color-text)">
           <ChartBar :size="14" :stroke-width="2" />
           分类分布
         </h3>

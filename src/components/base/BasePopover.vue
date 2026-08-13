@@ -43,7 +43,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onClickOutside))
     >
       <div
         v-if="modelValue"
-        class="absolute z-[var(--z-popover)] mt-2 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] shadow-lg overflow-hidden"
+        class="absolute z-(--z-popover) mt-2 rounded-sm border border-(--color-border) bg-(--color-surface) shadow-lg overflow-hidden"
         @click.stop
       >
         <slot />

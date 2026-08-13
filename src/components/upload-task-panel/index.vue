@@ -42,25 +42,25 @@ function closePanel() {
     >
       <div
         v-if="visible"
-        class="fixed bottom-6 right-6 z-50 w-80 overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-lg"
+        class="fixed bottom-6 right-6 z-50 w-80 overflow-hidden rounded-2xl border border-(--color-border) bg-(--color-surface) shadow-lg"
         role="region"
         aria-label="上传任务"
       >
         <div
-          class="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-2.5"
+          class="flex items-center justify-between border-b border-(--color-border) px-4 py-2.5"
         >
-          <span class="text-sm font-medium text-[var(--color-text)]">上传任务</span>
+          <span class="text-sm font-medium text-(--color-text)">上传任务</span>
           <div class="flex items-center gap-3">
             <button
               type="button"
-              class="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-colors"
+              class="text-xs text-(--color-text-muted) hover:text-(--color-primary) transition-colors"
               @click="clearFinished"
             >
               清除已完成
             </button>
             <button
               type="button"
-              class="text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+              class="text-(--color-text-muted) hover:text-(--color-text) transition-colors"
               aria-label="关闭上传任务面板"
               @click="closePanel"
             >
@@ -71,43 +71,43 @@ function closePanel() {
         <div class="max-h-64 space-y-3 overflow-y-auto p-4">
           <div v-for="task in taskList" :key="task.filename">
             <div class="flex items-center justify-between gap-2">
-              <span class="truncate text-xs font-medium text-[var(--color-text)]">
+              <span class="truncate text-xs font-medium text-(--color-text)">
                 {{ task.filename }}
               </span>
               <button
                 v-if="task.status !== 1"
                 type="button"
-                class="text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+                class="text-(--color-text-muted) hover:text-(--color-text) transition-colors"
                 :aria-label="`移除 ${task.filename}`"
                 @click="remove(task.filename)"
               >
                 <X :size="14" />
               </button>
             </div>
-            <div class="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[var(--color-surface-2)]">
+            <div class="mt-1.5 h-1.5 overflow-hidden rounded-full bg-(--color-surface-2)">
               <div
                 class="h-full rounded-full transition-all duration-300"
                 :class="
                   task.status === 6
-                    ? 'bg-[var(--color-danger)]'
+                    ? 'bg-danger'
                     : task.status === 4 || task.status === 5
-                      ? 'bg-[var(--color-success)]'
-                      : 'bg-[var(--color-primary)]'
+                      ? 'bg-success'
+                      : 'bg-(--color-primary)'
                 "
                 :style="{ width: `${task.percentage}%` }"
               />
             </div>
-            <p class="mt-1 flex items-center gap-1 text-[11px] text-[var(--color-text-muted)]">
+            <p class="mt-1 flex items-center gap-1 text-[11px] text-(--color-text-muted)">
               <LoaderCircle v-if="task.status === 1" :size="11" class="animate-spin" />
               <Check
                 v-else-if="task.status === 4 || task.status === 5"
                 :size="11"
-                class="text-[var(--color-success)]"
+                class="text-success"
               />
               <FileWarning
                 v-else-if="task.status === 6"
                 :size="11"
-                class="text-[var(--color-danger)]"
+                class="text-danger"
               />
               <span>{{ task.statusText }} · {{ task.percentage }}%</span>
             </p>

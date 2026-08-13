@@ -32,7 +32,7 @@ watch(
       class="h-14 px-6 flex items-center justify-between border-b border-white/10 bg-black/40 backdrop-blur"
     >
       <div class="flex items-center gap-2 min-w-0 text-white">
-        <Film :size="20" class="text-[var(--color-primary-400)] shrink-0" />
+        <Film :size="20" class="text-primary-400 shrink-0" />
         <h1 class="text-base font-medium truncate">{{ filename }}</h1>
       </div>
       <a :href="downloadUrl" target="_blank">
@@ -44,8 +44,12 @@ watch(
         </BaseButton>
       </a>
     </header>
-    <main class="flex-1 min-h-0 flex items-center justify-center">
-      <VideoPreviewer :url="previewUrl || undefined" :file-id="fileId" :filename="filename" class="w-full max-w-5xl" />
+    <main class="flex-1 min-h-0 flex items-center justify-center p-4">
+      <div class="w-full max-w-5xl">
+        <div class="aspect-video w-full bg-black rounded-lg overflow-hidden">
+          <VideoPreviewer :url="previewUrl || undefined" :file-id="fileId" :title="filename" class="h-full w-full" />
+        </div>
+      </div>
     </main>
   </div>
 </template>

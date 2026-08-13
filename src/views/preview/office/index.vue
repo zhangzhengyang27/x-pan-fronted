@@ -47,13 +47,13 @@ watch(
 </script>
 
 <template>
-  <div class="min-h-screen flex flex-col bg-[var(--color-bg)]">
+  <div class="min-h-screen flex flex-col bg-(--color-bg)">
     <header
-      class="h-14 px-6 flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface)]"
+      class="h-14 px-6 flex items-center justify-between border-b border-(--color-border) bg-(--color-surface)"
     >
       <div class="flex items-center gap-2 min-w-0">
         <h1 class="text-base font-medium truncate">{{ filename }}</h1>
-        <span class="text-xs text-[var(--color-text-muted)] uppercase">.{{ ext }}</span>
+        <span class="text-xs text-(--color-text-muted) uppercase">.{{ ext }}</span>
       </div>
       <a :href="downloadUrl" target="_blank">
         <BaseButton variant="secondary" size="sm">
@@ -68,7 +68,7 @@ watch(
       <OfficePreviewer v-if="kind" :url="previewUrl || undefined" :file-id="fileId" :kind="kind" />
       <div
         v-else
-        class="flex h-full items-center justify-center text-sm text-[var(--color-text-muted)]"
+        class="flex h-full items-center justify-center text-sm text-(--color-text-muted)"
       >
         无文件扩展名或不支持的 Office 类型
       </div>

@@ -223,6 +223,35 @@ export function resolveShikiLanguage(ext: string): string {
   return SHIKI_LANG_MAP[ext.toLowerCase()] || 'text'
 }
 
+/**
+ * 已内置 grammar 的 shiki 语言集合（与 code-previewer 的 langRegistry 必须保持一致）。
+ * 仅覆盖前端 / Java / Python / Linux 运维常用语言，其余语言回退纯文本高亮，
+ * 以避免把 shiki 全量语言打包进 vendor chunk。
+ */
+export const SUPPORTED_SHIKI_LANGS = new Set<string>([
+  'javascript',
+  'typescript',
+  'tsx',
+  'jsx',
+  'vue',
+  'html',
+  'css',
+  'scss',
+  'less',
+  'json',
+  'java',
+  'python',
+  'bash',
+  'yaml',
+  'dockerfile',
+  'toml',
+  'ini'
+])
+
+export function isShikiLangSupported(lang: string): boolean {
+  return SUPPORTED_SHIKI_LANGS.has(lang)
+}
+
 export const DOCX_EXTENSIONS = ['doc', 'docx']
 export const EXCEL_EXTENSIONS = ['xls', 'xlsx']
 export const PPTX_EXTENSIONS = ['ppt', 'pptx']

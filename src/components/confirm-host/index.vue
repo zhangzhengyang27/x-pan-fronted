@@ -105,14 +105,14 @@ onBeforeUnmount(() => {
         class="shrink-0 size-10 rounded-full flex items-center justify-center"
         :style="
           current.danger
-            ? 'background-color: rgba(239, 68, 68, 0.1); color: var(--color-danger);'
-            : 'background-color: rgba(245, 158, 11, 0.1); color: var(--color-warning);'
+            ? 'background-color: rgba(239, 68, 68, 0.1); color: vardanger;'
+            : 'background-color: rgba(245, 158, 11, 0.1); color: varwarning;'
         "
       >
         <AlertTriangle v-if="current.danger" :size="20" :stroke-width="2" />
         <AlertCircle v-else :size="20" :stroke-width="2" />
       </div>
-      <div class="flex-1 text-sm leading-relaxed text-[var(--color-text)]">
+      <div class="flex-1 text-sm leading-relaxed text-(--color-text)">
         {{ current.message }}
       </div>
     </div>
@@ -136,7 +136,7 @@ onBeforeUnmount(() => {
     @close="onPromptCancel"
   >
     <div class="space-y-3">
-      <div class="text-sm leading-relaxed text-[var(--color-text)]">
+      <div class="text-sm leading-relaxed text-(--color-text)">
         {{ promptCurrent.message }}
       </div>
       <BaseInput
@@ -145,7 +145,7 @@ onBeforeUnmount(() => {
         :error="!!inputError"
         @keydown.enter.prevent="onPromptConfirm"
       />
-      <p v-if="inputError" class="text-xs" style="color: var(--color-danger);">
+      <p v-if="inputError" class="text-xs" style="color: vardanger;">
         {{ inputError }}
       </p>
     </div>

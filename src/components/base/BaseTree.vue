@@ -3,12 +3,23 @@
  * BaseTree —— 树容器
  * 数据：[{ id, label, children?: [] }]
  */
+import type { PropType } from 'vue'
 import BaseTreeNode from '@/components/base/BaseTreeNode.vue'
 
+interface TreeNodeData {
+  id?: string | number
+  label?: string
+  children?: TreeNodeData[]
+  [key: string]: unknown
+}
+
 defineProps({
-  data: { type: Array, default: () => [] }
+  data: { type: Array as PropType<TreeNodeData[]>, default: () => [] }
 })
-const emit = defineEmits(['select', 'toggle'])
+const emit = defineEmits<{
+  select: [node: TreeNodeData]
+  toggle: [node: TreeNodeData]
+}>()
 </script>
 
 <template>

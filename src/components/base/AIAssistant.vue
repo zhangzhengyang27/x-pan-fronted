@@ -172,8 +172,8 @@ function close() {
       <!-- 视图切换：API Key 配置 / 对话 -->
       <template v-if="!showApiKeyPanel">
         <!-- 顶部状态栏：选中文件提示 + API Key 配置 -->
-        <div class="flex items-center justify-between gap-2 pb-2 border-b border-[var(--color-border)]">
-          <div class="text-xs text-[var(--color-text-muted)] truncate flex-1">
+        <div class="flex items-center justify-between gap-2 pb-2 border-b border-(--color-border)">
+          <div class="text-xs text-(--color-text-muted) truncate flex-1">
             <template v-if="multipleSelection.length > 0">
               已选中 {{ multipleSelection.length }} 个文件 · 当前目录：{{ currentFolder }}
             </template>
@@ -183,7 +183,7 @@ function close() {
           </div>
           <button
             type="button"
-            class="relative size-7 flex items-center justify-center rounded-sm transition-colors text-[var(--color-text-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)]"
+            class="relative size-7 flex items-center justify-center rounded-sm transition-colors text-(--color-text-muted) hover:bg-(--color-surface-2) hover:text-(--color-text)"
             :title="isConfigured ? 'API Key 已配置（点击修改）' : '配置 API Key'"
             @click="openApiKeyPanel"
           >
@@ -207,8 +207,8 @@ function close() {
               class="size-8 shrink-0 rounded-full flex items-center justify-center"
               :class="
                 m.role === 'user'
-                  ? 'bg-[var(--color-primary-500)] text-white'
-                  : 'bg-gradient-to-br from-amber-400 to-pink-500 text-white'
+                  ? 'bg-primary-500 text-white'
+                  : 'bg-linear-to-br from-amber-400 to-pink-500 text-white'
               "
             >
               <UserIcon v-if="m.role === 'user'" :size="14" />
@@ -218,8 +218,8 @@ function close() {
               class="max-w-[80%] px-3 py-2 rounded-2xl text-sm whitespace-pre-line break-words"
               :class="
                 m.role === 'user'
-                  ? 'bg-[var(--color-primary-500)] text-white rounded-tr-sm'
-                  : 'bg-[var(--color-surface-2)] rounded-tl-sm'
+                  ? 'bg-primary-500 text-white rounded-tr-sm'
+                  : 'bg-(--color-surface-2) rounded-tl-sm'
               "
             >
               {{ m.content }}
@@ -236,7 +236,7 @@ function close() {
         <div
           v-if="errorMsg"
           class="flex items-center gap-2 px-3 py-2 rounded-sm text-xs"
-          style="background-color: rgba(239, 68, 68, 0.1); color: var(--color-danger);"
+          style="background-color: rgba(239, 68, 68, 0.1); color: vardanger;"
         >
           <AlertCircle :size="12" :stroke-width="2" />
           {{ errorMsg }}
@@ -248,7 +248,7 @@ function close() {
             v-for="(p, i) in quickPrompts"
             :key="i"
             type="button"
-            class="px-2.5 py-1.5 text-xs rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-2)] transition-colors flex items-center gap-1.5"
+            class="px-2.5 py-1.5 text-xs rounded-full border border-(--color-border) bg-(--color-surface) hover:bg-(--color-surface-2) transition-colors flex items-center gap-1.5"
             @click="send(p.text)"
           >
             <component :is="p.icon" :size="11" />
@@ -257,7 +257,7 @@ function close() {
         </div>
 
         <!-- 输入框 -->
-        <div class="flex items-end gap-2 pt-2 border-t border-[var(--color-border)]">
+        <div class="flex items-end gap-2 pt-2 border-t border-(--color-border)">
           <div class="flex-1">
             <BaseInput v-model="input" placeholder="问点什么..." @enter="send()" />
           </div>
@@ -271,12 +271,12 @@ function close() {
       <template v-else>
         <div class="flex-1 flex flex-col justify-center gap-4 py-4">
           <div class="flex items-center gap-2">
-            <Wand2 :size="18" class="text-[var(--color-primary-500)]" />
-            <h3 class="text-base font-semibold text-[var(--color-text)]">配置 DeepSeek API Key</h3>
+            <Wand2 :size="18" class="text-primary-500" />
+            <h3 class="text-base font-semibold text-(--color-text)">配置 DeepSeek API Key</h3>
           </div>
-          <p class="text-xs text-[var(--color-text-muted)] leading-relaxed">
+          <p class="text-xs text-(--color-text-muted) leading-relaxed">
             前往
-            <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener" class="text-[var(--color-primary-500)] underline">platform.deepseek.com</a>
+            <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener" class="text-primary-500 underline">platform.deepseek.com</a>
             创建 API Key，粘贴到下方。Key 仅存本地 localStorage，不会上传服务器。
           </p>
           <BaseInput
@@ -301,7 +301,7 @@ function close() {
     </div>
 
     <template #footer>
-      <span class="text-xs text-[var(--color-text-muted)]">
+      <span class="text-xs text-(--color-text-muted)">
         Powered by DeepSeek · {{ isConfigured ? '已连接' : '未配置 API Key' }}
       </span>
       <BaseButton variant="ghost" size="sm" @click="close">关闭</BaseButton>

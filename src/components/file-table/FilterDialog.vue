@@ -31,7 +31,7 @@ function select(val: string) {
   <Transition name="modal">
     <div
       v-if="open"
-      class="absolute right-0 top-full mt-1 w-[140px] rounded-sm shadow-2xl overflow-hidden z-[100]"
+      class="absolute right-0 top-full mt-1 w-[140px] rounded-sm shadow-2xl overflow-hidden z-100"
       style="background-color: var(--color-surface); border: 1px solid var(--color-border);"
       @click.stop
     >
@@ -41,7 +41,7 @@ function select(val: string) {
           v-for="opt in filterOptions"
           :key="opt.value"
           class="flex items-center justify-between py-2.5 cursor-pointer rounded-sm px-3 transition-colors"
-          :class="fileTypes === opt.value ? 'bg-[var(--color-surface-2)]' : 'hover:bg-[var(--color-hover)]'"
+          :class="fileTypes === opt.value ? 'bg-(--color-surface-2)' : 'hover:bg-(--color-hover)'"
           @click="select(opt.value)"
         >
           <span

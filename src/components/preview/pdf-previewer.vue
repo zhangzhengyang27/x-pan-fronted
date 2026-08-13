@@ -219,15 +219,15 @@ function closeSearch() {
 </script>
 
 <template>
-  <div class="relative h-full w-full overflow-auto bg-[var(--color-surface-2)]">
+  <div class="relative h-full w-full overflow-auto bg-(--color-surface-2)">
     <!-- 工具栏 -->
     <div
-      class="sticky top-0 z-10 flex items-center justify-center gap-2 py-2 bg-[var(--color-surface)]/90 backdrop-blur border-b border-[var(--color-border)] flex-wrap"
+      class="sticky top-0 z-10 flex items-center justify-center gap-2 py-2 bg-(--color-surface)/90 backdrop-blur border-b border-(--color-border) flex-wrap"
     >
       <BaseButton variant="ghost" size="sm" @click="zoomOut" :disabled="zoom <= 50">
         <ZoomOut :size="14" />
       </BaseButton>
-      <span class="text-xs font-mono tabular-nums min-w-[50px] text-center text-[var(--color-text)]"
+      <span class="text-xs font-mono tabular-nums min-w-[50px] text-center text-(--color-text)"
         >{{ zoom }}%</span
       >
       <BaseButton variant="ghost" size="sm" @click="zoomIn" :disabled="zoom >= 200">
@@ -237,28 +237,28 @@ function closeSearch() {
         <RotateCcw :size="14" />
         重置
       </BaseButton>
-      <span class="mx-2 h-4 w-px bg-[var(--color-border)]" />
+      <span class="mx-2 h-4 w-px bg-(--color-border)" />
       <BaseButton
         variant="ghost"
         size="sm"
         @click="searchOpen = !searchOpen"
-        :class="searchOpen && 'bg-[var(--color-primary-50)]'"
+        :class="searchOpen && 'bg-primary-50'"
       >
         <Search :size="14" />
         搜索
       </BaseButton>
-      <span v-if="searchResults.length" class="text-xs text-[var(--color-text-muted)] tabular-nums">
+      <span v-if="searchResults.length" class="text-xs text-(--color-text-muted) tabular-nums">
         {{ searchIdx + 1 }} / {{ searchResults.length }}
       </span>
       <!-- P2-5 PDF 工具：旋转 / 保存旋转 / 提取页面 -->
-      <span class="mx-2 h-4 w-px bg-[var(--color-border)]" />
+      <span class="mx-2 h-4 w-px bg-(--color-border)" />
       <BaseButton variant="ghost" size="sm" title="逆时针旋转 90°" @click="rotateLeft">
         <RotateCcw :size="14" />
       </BaseButton>
       <BaseButton variant="ghost" size="sm" title="顺时针旋转 90°" @click="rotateRight">
         <RotateCw :size="14" />
       </BaseButton>
-      <span v-if="rotation !== 0" class="text-xs font-mono tabular-nums text-[var(--color-text-muted)]">{{ rotation }}°</span>
+      <span v-if="rotation !== 0" class="text-xs font-mono tabular-nums text-(--color-text-muted)">{{ rotation }}°</span>
       <BaseButton
         v-if="rotation !== 0"
         variant="ghost"
@@ -285,9 +285,9 @@ function closeSearch() {
     <!-- 搜索框 -->
     <div
       v-if="searchOpen"
-      class="sticky top-12 z-10 mx-auto mt-1 w-fit max-w-2xl flex items-center gap-1 px-2 py-1 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-sm shadow-sm"
+      class="sticky top-12 z-10 mx-auto mt-1 w-fit max-w-2xl flex items-center gap-1 px-2 py-1 bg-(--color-surface) border border-(--color-border) rounded-sm shadow-sm"
     >
-      <Search :size="14" class="text-[var(--color-text-muted)]" />
+      <Search :size="14" class="text-(--color-text-muted)" />
       <BaseInput
         v-model="searchKeyword"
         size="sm"
@@ -297,7 +297,7 @@ function closeSearch() {
       <button
         v-if="searchResults.length"
         type="button"
-        class="size-6 rounded hover:bg-[var(--color-surface-2)] flex items-center justify-center"
+        class="size-6 rounded hover:bg-(--color-surface-2) flex items-center justify-center"
         title="上一个"
         @click="prevResult"
       >
@@ -306,7 +306,7 @@ function closeSearch() {
       <button
         v-if="searchResults.length"
         type="button"
-        class="size-6 rounded hover:bg-[var(--color-surface-2)] flex items-center justify-center"
+        class="size-6 rounded hover:bg-(--color-surface-2) flex items-center justify-center"
         title="下一个"
         @click="nextResult"
       >
@@ -314,7 +314,7 @@ function closeSearch() {
       </button>
       <button
         type="button"
-        class="size-6 rounded hover:bg-[var(--color-surface-2)] flex items-center justify-center"
+        class="size-6 rounded hover:bg-(--color-surface-2) flex items-center justify-center"
         title="关闭"
         @click="closeSearch"
       >
@@ -340,11 +340,11 @@ function closeSearch() {
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
         @click.self="extractOpen = false"
       >
-        <div class="w-[420px] max-w-[90vw] rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-xl">
-          <h3 class="text-base font-medium mb-3 text-[var(--color-text)]">提取页面到新 PDF</h3>
-          <p class="text-xs text-[var(--color-text-muted)] mb-3 leading-relaxed">
+        <div class="w-[420px] max-w-[90vw] rounded-xl border border-(--color-border) bg-(--color-surface) p-5 shadow-xl">
+          <h3 class="text-base font-medium mb-3 text-(--color-text)">提取页面到新 PDF</h3>
+          <p class="text-xs text-(--color-text-muted) mb-3 leading-relaxed">
             输入页码范围，用逗号分隔。例如
-            <code class="px-1 py-0.5 rounded bg-[var(--color-surface-2)] text-[var(--color-primary-500)]">1-3,5,7-9</code>
+            <code class="px-1 py-0.5 rounded bg-(--color-surface-2) text-primary-500">1-3,5,7-9</code>
             将提取第 1-3 页、第 5 页、第 7-9 页。
           </p>
           <BaseInput

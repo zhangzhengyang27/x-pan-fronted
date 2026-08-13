@@ -34,11 +34,14 @@ import {
   History,
   Shield,
   Share2,
-  QrCode
+  QrCode,
+  FileArchive
 } from '@lucide/vue'
 import shareService from '@/api/share'
 import vaultService from '@/api/vault'
 import { FileType } from '@/types'
+import { isArchive } from '@/utils/common'
+import ExtractDialog from '@/components/base/ExtractDialog.vue'
 
 const props = withDefaults(
   defineProps<{
@@ -223,7 +226,13 @@ function goInFolder(fileId: string) {
 }
 
 function openNewPage(path: string, name: string, params: Record<string, string>, query: Record<string, string>) {
-  const { href } = router.resolve({ path, name, params, query })
+  // Vue Router 用 name 解析时会检查 params，必须保证每个必填参数都有值。
+  // 注意：不要同时传 path，否则 params 会被忽略。
+  const safeParams: Record<string, string> = {}
+  Object.entries(params).forEach(([key, value]) => {
+    safeParams[key] = value || '0'
+  })
+  const { href } = router.resolve({ name, params: safeParams, query })
   window.open(href, '_blank')
 }
 
@@ -239,11 +248,11 @@ function clickFilename(row: Record<string, any>) {
     case 6:
       return openNewPage('/preview/iframe', 'PreviewIframe', { fileId: panUtil.handleId(row.fileId) }, { filename: row.filename })
     case 7:
-      return openNewPage('/preview/image', 'PreviewImage', { fileId: panUtil.handleId(row.fileId), parentId: panUtil.handleId(row.parentId) }, { filename: row.filename })
+      return openNewPage('/preview/image', 'PreviewImage', { fileId: panUtil.handleId(row.fileId), parentId: panUtil.handleId(row.parentId || '0') }, { filename: row.filename })
     case 8:
-      return openNewPage('/preview/music', 'PreviewMusic', { fileId: panUtil.handleId(row.fileId), parentId: panUtil.handleId(row.parentId) }, { filename: row.filename })
+      return openNewPage('/preview/music', 'PreviewMusic', { fileId: panUtil.handleId(row.fileId), parentId: panUtil.handleId(row.parentId || '0') }, { filename: row.filename })
     case 9:
-      return openNewPage('/preview/video', 'PreviewVideo', { fileId: panUtil.handleId(row.fileId), parentId: panUtil.handleId(row.parentId) }, { filename: row.filename })
+      return openNewPage('/preview/video', 'PreviewVideo', { fileId: panUtil.handleId(row.fileId), parentId: panUtil.handleId(row.parentId || '0') }, { filename: row.filename })
     case 11:
       return openNewPage('/preview/code', 'PreviewCode', { fileId: panUtil.handleId(row.fileId) }, { filename: row.filename })
   }
@@ -558,6 +567,22 @@ function onMoveComplete() {
   fileStore.loadFileList()
 }
 
+// ─── 在线解压 ──────────────────────────────────────────────────────────────
+const extractDialog = ref({ open: false, fileId: '', filename: '' })
+
+function openExtractDialog(row: any) {
+  if (!row) return
+  extractDialog.value = {
+    open: true,
+    fileId: panUtil.handleId(row.fileId),
+    filename: row.filename || ''
+  }
+}
+
+function onExtracted() {
+  fileStore.loadFileList()
+}
+
 // ─── 右键菜单 ──────────────────────────────────────────────────────────────
 const ctxMenu = ref({ visible: false, x: 0, y: 0, row: null as any })
 
@@ -626,6 +651,14 @@ const ctxItems = computed(() => {
       icon: Share2,
       disabled: isFolder,
       action: () => shareWithQRCode(r)
+    },
+    {
+      key: 'extract',
+      label: '在线解压',
+      icon: FileArchive,
+      // 仅单文件压缩包支持，文件夹/多选/非压缩包隐藏
+      visible: !isMulti && !isFolder && isArchive(r),
+      action: () => openExtractDialog(r)
     },
     {
       divider: true
@@ -792,7 +825,7 @@ onBeforeUnmount(() => {
   <div class="h-full flex flex-col">
 
     <!-- 列表视图 -->
-    <div v-if="currentView === 'list'" class="flex-1 min-h-0 overflow-y-auto">
+    <div v-if="currentView === 'list'" class="flex-1 min-h-0 flex flex-col overflow-hidden">
     <BaseTable
       :columns="columns"
       :data="filteredList"
@@ -822,10 +855,10 @@ onBeforeUnmount(() => {
               :file="row"
               :size="38"
               rounded="rounded-md"
-              class="ring-1 ring-[var(--color-border)]/60"
+              class="ring-1 ring-(--color-border)/60"
             />
             <span
-              class="truncate text-[13.5px] font-medium text-[var(--color-text)] group-hover:text-[var(--color-primary-600)] transition-colors"
+              class="truncate text-[13.5px] font-medium text-(--color-text) group-hover:text-primary-600 transition-colors"
             >
               {{ row.filename }}
             </span>
@@ -836,7 +869,7 @@ onBeforeUnmount(() => {
       <template #cell-parentFilename="{ row }">
         <button
           type="button"
-          class="text-xs text-[var(--color-primary-500)] hover:underline"
+          class="text-xs text-primary-500 hover:underline"
           @click="goInFolder(row.parentId)"
         >
           {{ row.parentFilename }}
@@ -853,13 +886,13 @@ onBeforeUnmount(() => {
       </template>
 
       <template #cell-fileSizeDesc="{ row }">
-        <span class="text-[13px] text-[var(--color-text-secondary)] tabular-nums">
+        <span class="text-[13px] text-(--color-text-secondary) tabular-nums">
           {{ row.fileSizeDesc }}
         </span>
       </template>
 
       <template #cell-updateTime="{ row }">
-        <span class="text-[13px] text-[var(--color-text-muted)] tabular-nums">
+        <span class="text-[13px] text-(--color-text-muted) tabular-nums">
           {{ row.updateTime }}
         </span>
       </template>
@@ -870,6 +903,11 @@ onBeforeUnmount(() => {
           :title="filterActive ? '没有符合筛选条件的文件' : '该文件夹为空'"
           :description="filterActive ? '试着调整筛选条件或清除筛选' : '将文件拖拽到此处，或点击上方按钮添加文件'"
         />
+      </template>
+
+      <!-- 上传提示：转发给 BaseTable，渲染在其滚动区内，跟随数据滚动 -->
+      <template #after-list>
+        <slot name="after-list" />
       </template>
     </BaseTable>
     </div>
@@ -884,10 +922,10 @@ onBeforeUnmount(() => {
         <div
           v-for="i in 12"
           :key="i"
-          class="aspect-square rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] p-4 animate-pulse flex flex-col items-center justify-center gap-2"
+          class="aspect-square rounded-sm border border-(--color-border) bg-(--color-surface) p-4 animate-pulse flex flex-col items-center justify-center gap-2"
         >
-          <div class="size-14 rounded-sm bg-[var(--color-surface-2)]" />
-          <div class="h-3 w-3/4 rounded bg-[var(--color-surface-2)]" />
+          <div class="size-14 rounded-sm bg-(--color-surface-2)" />
+          <div class="h-3 w-3/4 rounded bg-(--color-surface-2)" />
         </div>
       </div>
 
@@ -909,7 +947,7 @@ onBeforeUnmount(() => {
         <!-- 框选虚线框 -->
         <div
           v-if="selBox.active"
-          class="absolute pointer-events-none border-2 border-dashed border-[var(--color-primary-500)] bg-[var(--color-primary-500)]/10 rounded-sm z-20"
+          class="absolute pointer-events-none border-2 border-dashed border-primary-500 bg-primary-500/10 rounded-sm z-20"
           :style="selBoxStyle"
         />
 
@@ -922,9 +960,9 @@ onBeforeUnmount(() => {
           :class="
             [
               selected.includes(row.fileId)
-                ? 'border-[var(--color-primary-500)] ring-2 ring-[var(--color-primary-500)]/20 bg-[var(--color-primary-500)]/5'
-                : 'border-[var(--color-border)] hover:border-[var(--color-primary-400)] hover:shadow-sm bg-[var(--color-surface)]',
-              activeKey === row.fileId ? 'outline outline-2 outline-[var(--color-primary-500)]' : ''
+                ? 'border-primary-500 ring-2 ring-primary-500/20 bg-primary-500/5'
+                : 'border-(--color-border) hover:border-primary-400 hover:shadow-sm bg-(--color-surface)',
+              activeKey === row.fileId ? 'outline outline-2 outline-primary-500' : ''
             ]
           "
           @click="onRowClick(row)"
@@ -934,7 +972,7 @@ onBeforeUnmount(() => {
           <!-- 选中指示 -->
           <div
             v-if="selected.includes(row.fileId)"
-            class="absolute top-2 right-2 size-[18px] rounded-[4px] bg-[var(--color-primary-500)] flex items-center justify-center shadow-sm"
+            class="absolute top-2 right-2 size-[18px] rounded-[4px] bg-primary-500 flex items-center justify-center shadow-sm"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" class="size-3">
               <polyline points="20 6 9 17 4 12" />
@@ -944,11 +982,11 @@ onBeforeUnmount(() => {
           <FileThumbnail :file="row" :size="56" rounded="rounded-sm" class="mb-2" />
 
           <BaseTooltip :text="row.filename" position="top">
-            <p class="text-xs font-medium text-[var(--color-text)] line-clamp-2 leading-snug w-full break-all">
+            <p class="text-xs font-medium text-(--color-text) line-clamp-2 leading-snug w-full break-all">
               {{ row.filename }}
             </p>
           </BaseTooltip>
-          <p class="text-[10px] text-[var(--color-text-muted)] tabular-nums mt-0.5">
+          <p class="text-[10px] text-(--color-text-muted) tabular-nums mt-0.5">
             {{ row.fileSizeDesc }}
           </p>
         </button>
@@ -958,14 +996,14 @@ onBeforeUnmount(() => {
       <div
         v-if="!filterActive && hasMore && filteredList.length > 0"
         ref="loadMoreSentinel"
-        class="py-6 flex items-center justify-center text-xs text-[var(--color-text-muted)]"
+        class="py-6 flex items-center justify-center text-xs text-(--color-text-muted)"
       >
         <LoaderCircle v-if="isLoadingMore" :size="14" class="animate-spin mr-2" />
         {{ isLoadingMore ? '加载中...' : '滚动加载更多' }}
       </div>
       <div
         v-else-if="!filterActive && !hasMore && filteredList.length > 0"
-        class="py-4 text-center text-xs text-[var(--color-text-muted)]"
+        class="py-4 text-center text-xs text-(--color-text-muted)"
       >
         已加载全部 {{ total }} 个文件
       </div>
@@ -989,6 +1027,14 @@ onBeforeUnmount(() => {
       :row="moveDialog.row"
       @update:open="(v: boolean) => (moveDialog.open = v)"
       @complete="onMoveComplete"
+    />
+
+    <!-- 在线解压 -->
+    <ExtractDialog
+      v-model:open="extractDialog.open"
+      :file-id="extractDialog.fileId"
+      :filename="extractDialog.filename"
+      @extracted="onExtracted"
     />
   </div>
 </template>

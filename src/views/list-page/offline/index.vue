@@ -126,9 +126,9 @@ function statusMeta(s: number | null | undefined) {
 
 function statusColor(s: number | null | undefined) {
   const meta = statusMeta(s)
-  if (meta.variant === 'success') return 'var(--color-success)'
-  if (meta.variant === 'danger') return 'var(--color-danger)'
-  if (meta.variant === 'warning') return 'var(--color-warning)'
+  if (meta.variant === 'success') return 'varsuccess'
+  if (meta.variant === 'danger') return 'vardanger'
+  if (meta.variant === 'warning') return 'varwarning'
   if (meta.variant === 'primary') return 'var(--color-primary-500)'
   return 'var(--color-text-muted)'
 }
@@ -213,7 +213,7 @@ onUnmounted(() => {
     <!-- 页面标题 -->
     <div class="flex items-center justify-between py-3">
       <div class="flex items-center gap-3">
-        <h1 class="text-xl font-semibold tracking-tight text-[var(--color-text)]">离线下载</h1>
+        <h1 class="text-xl font-semibold tracking-tight text-(--color-text)">离线下载</h1>
         <span class="px-2 py-0.5 rounded-full text-xs font-mono" style="background-color: var(--color-surface-container-low); color: var(--color-text-muted);">
           {{ tasks.length }} tasks
         </span>
@@ -252,7 +252,7 @@ onUnmounted(() => {
       <div
         v-for="t in tasks"
         :key="t.taskId"
-        class="group flex items-center gap-4 px-4 py-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-container-low)] transition-colors"
+        class="group flex items-center gap-4 px-4 py-3 rounded-xl border border-(--color-border) bg-(--color-surface) hover:bg-(--color-surface-container-low) transition-colors"
       >
         <!-- 状态图标 -->
         <component
@@ -265,7 +265,7 @@ onUnmounted(() => {
         
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2 mb-1">
-            <span class="font-medium text-sm truncate text-[var(--color-text)]">{{ t.filename || '未命名' }}</span>
+            <span class="font-medium text-sm truncate text-(--color-text)">{{ t.filename || '未命名' }}</span>
             <BaseBadge :variant="statusMeta(t.status).variant" size="sm">
               {{ statusMeta(t.status).label }}
             </BaseBadge>
@@ -279,7 +279,7 @@ onUnmounted(() => {
             <span v-if="t.progress != null && t.status === 1" class="tabular-nums">
               进度 {{ t.progress }}%
             </span>
-            <span v-if="t.errorMsg" style="color: var(--color-danger);">{{ t.errorMsg }}</span>
+            <span v-if="t.errorMsg" style="color: vardanger;">{{ t.errorMsg }}</span>
             <span>{{ t.createTime }}</span>
           </div>
           

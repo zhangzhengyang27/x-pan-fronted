@@ -240,18 +240,18 @@ function clickSuggestion(item) {
     <Transition name="modal">
       <div
         v-if="showSuggest && suggestions.length > 0"
-        class="absolute top-full left-0 right-0 mt-1 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] shadow-lg overflow-hidden z-[var(--z-dropdown)]"
+        class="absolute top-full left-0 right-0 mt-1 rounded-sm border border-(--color-border) bg-(--color-surface) shadow-lg overflow-hidden z-(--z-dropdown)"
       >
         <button
           v-for="(item, i) in suggestions"
           :key="i"
           type="button"
-          class="w-full flex items-center gap-3 px-3 py-2 text-sm text-left transition-colors hover:bg-[var(--color-surface-2)]"
+          class="w-full flex items-center gap-3 px-3 py-2 text-sm text-left transition-colors hover:bg-(--color-surface-2)"
           @mousedown.prevent="clickSuggestion(item)"
         >
-          <span class="size-2 rounded-full bg-[var(--color-primary-500)] shrink-0" />
-          <span class="truncate flex-1 text-[var(--color-text)]">{{ item.filename || item.name }}</span>
-          <span class="text-xs text-[var(--color-text-muted)] shrink-0">{{ item.fileSizeDesc }}</span>
+          <span class="size-2 rounded-full bg-primary-500 shrink-0" />
+          <span class="truncate flex-1 text-(--color-text)">{{ item.filename || item.name }}</span>
+          <span class="text-xs text-(--color-text-muted) shrink-0">{{ item.fileSizeDesc }}</span>
         </button>
       </div>
     </Transition>

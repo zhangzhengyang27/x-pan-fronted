@@ -4,7 +4,7 @@
       v-if="roundFlag"
       variant="secondary"
       :size="btnSize"
-      class="rounded-full !bg-[var(--color-warning)] !text-white !border-transparent hover:!opacity-90"
+      class="rounded-full !bg-warning !text-white !border-transparent hover:!opacity-90"
       @click="renameFile"
     >
       <span class="inline-flex items-center gap-1.5">
@@ -16,7 +16,7 @@
       v-if="circleFlag"
       variant="secondary"
       :size="btnSize"
-      class="rounded-full !px-0 !w-8 !h-8 justify-center !bg-[var(--color-warning)] !text-white !border-transparent hover:!opacity-90"
+      class="rounded-full !px-0 !w-8 !h-8 justify-center !bg-warning !text-white !border-transparent hover:!opacity-90"
       @click="renameFile"
     >
       <SquarePen :size="14" />

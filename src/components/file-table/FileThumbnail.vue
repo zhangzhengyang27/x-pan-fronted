@@ -8,7 +8,7 @@
  * 后端若提供 thumbnail 字段（image/video），优先用 thumbnail；
  * 当前无后端支持，图片直接走 preview URL。
  */
-import { ref, computed } from 'vue'
+import { ref, computed, watchEffect, onScopeDispose } from 'vue'
 import {
   Folder,
   FileText,
@@ -23,8 +23,8 @@ import {
   LoaderCircle,
   Eye
 } from '@lucide/vue'
+import { resolvePreviewUrl } from '@/utils/preview'
 import { cn } from '@/utils/classnames'
-import panUtil from '@/utils/common'
 
 const props = defineProps({
   file: { type: Object, required: true },
@@ -39,9 +39,9 @@ const visual = computed(() => {
   const t = props.file.fileType
   if (t === 0) {
     return {
-      bg: 'bg-gradient-to-br from-[var(--color-primary-100)] to-[var(--color-primary-200)] dark:from-[var(--color-primary-900)]/40 dark:to-[var(--color-primary-800)]/40',
+      bg: 'bg-linear-to-br from-primary-100 to-primary-200 dark:from-primary-900/40 dark:to-primary-800/40',
       icon: Folder,
-      text: 'var(--color-primary-700)',
+      text: 'text-primary-700',
       label: '文件夹'
     }
   }
@@ -92,14 +92,30 @@ const visual = computed(() => {
 const isImage = computed(() => props.file.fileType === 7)
 const showImage = computed(() => isImage.value && !imageErrored.value)
 
-// 后端预览 URL（图片直出预览）；后端 thumbnail 字段（P1.8）优先
-// P2 修复：使用 panUtil.getUrlPrefix() 拼绝对路径，避免相对路径 404
-const previewUrl = computed(() => {
-  if (!isImage.value) return null
-  if (props.file.thumbnail) return props.file.thumbnail
-  const base = panUtil.getUrlPrefix() || ''
-  // fileId 需加密；不解密直接传密文（后端解密）
-  return `${base}/file/thumbnail?fileId=${encodeURIComponent(props.file.fileId)}`
+// 后端预览直链（图片直出预览流）；后端 thumbnail 字段（P1.8）优先
+// 使用 resolvePreviewUrl 获取带短期签名 token 的预览流，避免 /file/thumbnail 返回空
+const previewUrl = ref<string | null>(null)
+let disposed = false
+onScopeDispose(() => {
+  disposed = true
+})
+
+watchEffect(() => {
+  if (!isImage.value) {
+    previewUrl.value = null
+    return
+  }
+  if (props.file.thumbnail) {
+    previewUrl.value = props.file.thumbnail
+    return
+  }
+  resolvePreviewUrl(props.file.fileId)
+    .then((url) => {
+      if (!disposed) previewUrl.value = url
+    })
+    .catch(() => {
+      if (!disposed) previewUrl.value = null
+    })
 })
 
 const iconSize = computed(() => Math.max(20, Math.round(props.size * 0.45)))

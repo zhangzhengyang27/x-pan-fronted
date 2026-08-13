@@ -84,7 +84,16 @@ function parseFileSizeDesc(desc: string | null | undefined): number {
 }
 
 export const useFileStore = defineStore('file', (): FileStore => {
-  const parentId = ref<string>('')
+  const LS_PARENT_KEY = 'xpan:parentId'
+  // 刷新前记住当前目录，刷新后恢复，避免一刷新回到根目录
+  const savedParentId = (() => {
+    try {
+      return localStorage.getItem(LS_PARENT_KEY) || ''
+    } catch {
+      return ''
+    }
+  })()
+  const parentId = ref<string>(savedParentId)
   const defaultParentId = ref<string>('')
   const defaultParentFilename = ref<string>('')
   const fileList = ref<IFileVO[]>([])
@@ -93,6 +102,18 @@ export const useFileStore = defineStore('file', (): FileStore => {
   const searchFlag = ref<boolean>(false)
   const searchKey = ref<string>('')
   const tableLoading = ref<boolean>(true)
+
+  function persistParentId(): void {
+    try {
+      if (parentId.value && parentId.value !== '-1') {
+        localStorage.setItem(LS_PARENT_KEY, parentId.value)
+      } else {
+        localStorage.removeItem(LS_PARENT_KEY)
+      }
+    } catch {
+      /* 忽略隐私模式下的写入失败 */
+    }
+  }
 
   const pageNum = ref<number>(1)
   const pageSize = ref<number>(50)
@@ -137,13 +158,25 @@ export const useFileStore = defineStore('file', (): FileStore => {
 
   function setParentId(newParentId: string): void {
     parentId.value = newParentId
+    persistParentId()
     pageNum.value = 1
     hasMore.value = false
     total.value = 0
   }
 
+  // 切换账号/重新登录时调用，清掉上一次登录残留的目录缓存，
+  // 避免新账号首屏短暂显示旧账号目录
+  function clearParentCache(): void {
+    try {
+      localStorage.removeItem(LS_PARENT_KEY)
+    } catch {
+      /* 忽略隐私模式写入失败 */
+    }
+  }
+
   function refreshParentId(): void {
     parentId.value = defaultParentId.value
+    persistParentId()
     pageNum.value = 1
     hasMore.value = false
     total.value = 0
@@ -188,6 +221,7 @@ export const useFileStore = defineStore('file', (): FileStore => {
 
   function clear(): void {
     parentId.value = ''
+    persistParentId()
     defaultParentId.value = ''
     defaultParentFilename.value = ''
     fileList.value = []
@@ -379,6 +413,7 @@ export const useFileStore = defineStore('file', (): FileStore => {
     sortProp,
     sortOrder,
     setParentId,
+    clearParentCache,
     refreshParentId,
     setDefaultParentId,
     setDefaultParentFilename,

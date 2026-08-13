@@ -22,13 +22,13 @@ const resolvedUrl = computed(() => props.url || getPreviewUrl(props.fileId))
 </script>
 
 <template>
-  <div class="h-full w-full overflow-auto bg-[var(--color-surface-2)]">
+  <div class="h-full w-full overflow-auto bg-(--color-surface-2)">
     <VueOfficeDocx v-if="kind === 'docx'" :src="resolvedUrl" class="min-h-full" />
     <VueOfficeExcel v-else-if="kind === 'excel'" :src="resolvedUrl" class="min-h-full" />
     <VueOfficePptx v-else-if="kind === 'pptx'" :src="resolvedUrl" class="min-h-full" />
     <div
       v-else
-      class="flex h-full items-center justify-center text-sm text-[var(--color-text-muted)]"
+      class="flex h-full items-center justify-center text-sm text-(--color-text-muted)"
     >
       不支持的 Office 类型：{{ kind }}
     </div>

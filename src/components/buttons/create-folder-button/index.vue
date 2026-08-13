@@ -4,7 +4,7 @@
       v-if="showRound"
       variant="secondary"
       :size="btnSize"
-      class="rounded-sm !bg-[var(--color-primary-500)] !text-white !border-transparent hover:!opacity-90 transition-opacity"
+      class="rounded-sm !bg-primary-500 !text-white !border-transparent hover:!opacity-90 transition-opacity"
       @click="createFolderDialogVisible = true"
     >
       <span class="inline-flex items-center gap-1.5">
@@ -16,7 +16,7 @@
       v-if="circleFlag"
       variant="secondary"
       :size="btnSize"
-      class="rounded-sm !px-0 !w-8 !h-8 justify-center !bg-[var(--color-primary-500)] !text-white !border-transparent hover:!opacity-90 transition-opacity"
+      class="rounded-sm !px-0 !w-8 !h-8 justify-center !bg-primary-500 !text-white !border-transparent hover:!opacity-90 transition-opacity"
       @click="createFolderDialogVisible = true"
     >
       <FolderPlus :size="14" />

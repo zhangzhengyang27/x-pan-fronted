@@ -48,28 +48,28 @@ const sizeClass = computed(
 const wrapperClass = computed(() => {
   const base = 'group relative flex items-center w-full rounded-sm border bg-transparent transition-colors duration-100'
   const errorClass = props.error
-    ? 'border-[var(--color-danger)] focus-within:ring-2 focus-within:ring-[var(--color-danger)]/20'
-    : 'border-[var(--color-border)] hover:border-[var(--color-border-strong)] focus-within:border-[var(--color-border-focus)] focus-within:ring-2 focus-within:ring-[var(--color-ring)]/20'
+    ? 'border-danger focus-within:ring-2 focus-within:ring-danger/20'
+    : 'border-(--color-border) hover:border-(--color-border-strong) focus-within:border-(--color-border-focus) focus-within:ring-2 focus-within:ring-(--color-ring)/20'
   const disabledClass = props.disabled ? 'opacity-50 cursor-not-allowed' : ''
   return `${base} ${errorClass} ${disabledClass}`
 })
 
 const inputClass = computed(() => {
-  const base = 'flex-1 min-w-0 bg-transparent outline-none transition-colors text-[var(--color-text)] placeholder-[var(--color-text-muted)]'
+  const base = 'flex-1 min-w-0 bg-transparent outline-none transition-colors text-(--color-text) placeholder-(--color-text-muted)'
   const disabledClass = props.disabled ? 'cursor-not-allowed' : ''
   const padLeft = props.prefix || showPwBtn.value ? 'pl-3' : 'pl-3'
   const padRight = showClearBtn.value || showPwBtn.value ? 'pr-3' : 'pr-3'
   return `${base} ${sizeClass.value} ${padLeft} ${padRight} ${disabledClass}`
 })
 
-function onInput(e) {
-  emit('update:modelValue', e.target.value)
+function onInput(e: Event) {
+  emit('update:modelValue', (e.target as HTMLInputElement).value)
 }
 function onClear() {
   emit('update:modelValue', '')
   emit('clear')
 }
-function onKeydown(e) {
+function onKeydown(e: KeyboardEvent) {
   if (e.key === 'Enter') emit('enter', e)
 }
 
@@ -83,7 +83,7 @@ defineExpose({ focus })
 <template>
   <div :class="wrapperClass">
     <span v-if="prefix" class="shrink-0 flex items-center pl-3 transition-colors">
-      <component :is="prefix" :size="16" :stroke-width="2" class="text-[var(--color-text-muted)]" />
+      <component :is="prefix" :size="16" :stroke-width="2" class="text-(--color-text-muted)" />
     </span>
 
     <input
@@ -112,7 +112,7 @@ defineExpose({ focus })
     <span v-if="showClearBtn" class="shrink-0 flex items-center pr-2">
       <button
         type="button"
-        class="size-5 flex items-center justify-center rounded text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+        class="size-5 flex items-center justify-center rounded text-(--color-text-muted) hover:text-(--color-text) transition-colors"
         aria-label="清除"
         @click="onClear"
       >
@@ -123,7 +123,7 @@ defineExpose({ focus })
     <span v-else-if="showPwBtn" class="shrink-0 flex items-center pr-2">
       <button
         type="button"
-        class="size-5 flex items-center justify-center rounded text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+        class="size-5 flex items-center justify-center rounded text-(--color-text-muted) hover:text-(--color-text) transition-colors"
         :aria-label="showPw ? '隐藏密码' : '显示密码'"
         @click="showPw = !showPw"
       >
@@ -132,7 +132,7 @@ defineExpose({ focus })
     </span>
 
     <span v-else-if="suffix" class="shrink-0 flex items-center pr-3">
-      <component :is="suffix" :size="16" :stroke-width="2" class="text-[var(--color-text-muted)]" />
+      <component :is="suffix" :size="16" :stroke-width="2" class="text-(--color-text-muted)" />
     </span>
   </div>
 </template>

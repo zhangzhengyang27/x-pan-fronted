@@ -17,10 +17,10 @@ const props = defineProps({
 const colorClass = computed(
   () =>
     ({
-      primary: 'bg-[var(--color-primary-600)]',
-      success: 'bg-[var(--color-success)]',
-      warning: 'bg-[var(--color-warning)]',
-      danger: 'bg-[var(--color-danger)]'
+      primary: 'bg-primary-600',
+      success: 'bg-success',
+      warning: 'bg-warning',
+      danger: 'bg-danger'
     })[props.status]
 )
 
@@ -31,11 +31,11 @@ const safe = computed(() => Math.max(0, Math.min(100, props.value)))
 <template>
   <div class="w-full">
     <div
-      :class="cn('w-full rounded-full bg-[var(--color-surface-2)] overflow-hidden', heightClass)"
+      :class="cn('w-full rounded-full bg-(--color-surface-2) overflow-hidden', heightClass)"
     >
       <div
         :class="
-          cn('h-full rounded-full transition-[width] duration-300 ease-[var(--ease)]', colorClass)
+          cn('h-full rounded-full transition-[width] duration-300 ease-(--ease)', colorClass)
         "
         :style="{ width: `${safe}%` }"
         role="progressbar"
@@ -46,7 +46,7 @@ const safe = computed(() => Math.max(0, Math.min(100, props.value)))
     </div>
     <div
       v-if="showText"
-      class="mt-1 text-xs text-[var(--color-text-muted)] text-right tabular-nums"
+      class="mt-1 text-xs text-(--color-text-muted) text-right tabular-nums"
     >
       {{ safe }}%
     </div>

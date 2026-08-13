@@ -33,7 +33,7 @@ const shareService = {
   },
 
   saveShareFiles(
-    data: { shareId: string; fileIds: string[]; targetParentId: string },
+    data: { shareId: string; fileIds: string; targetParentId: string },
     resolve: SimpleCallback<unknown>
   ) {
     simpleHttp.post<unknown, SA<unknown>>('/share/save', data).then(resolve)

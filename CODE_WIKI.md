@@ -147,7 +147,7 @@ R Pan（仓库内称 **X-Pan**）是一个面向个人的、可扩展的分布�
                    │ HTTPS (REST /api)                  │ WSS (/ws/notification)
 ┌──────────────────▼───────────────────────────────────▼──────────────┐
 │                       Nginx 反向代理                                │
-│         / → 静态 SPA   /api/ → 后端 8080   /ws → 后端 WS             │
+│         / → 静态 SPA   /api/ → 后端 8081   /ws → 后端 WS             │
 └──────────────────┬───────────────────────────────────────────────────┘
                    │
 ┌──────────────────▼───────────────────────────────────────────────────┐
@@ -570,7 +570,7 @@ npm install            # 或 pnpm install
 
 ```bash
 VITE_API_BASE_URL=/api                       # 或 http://127.0.0.1:8081
-VITE_WS_URL=ws://localhost:8080/ws/notification
+VITE_WS_URL=ws://localhost:8081/ws/notification
 ```
 
 | 命令 | 说明 |
@@ -595,14 +595,14 @@ export RPAN_JWT_SECRET=$(head -c 48 /dev/urandom | base64)
 
 # 编译 + 启动
 mvn clean install -DskipTests
-mvn -pl server spring-boot:run     # 默认 8080
+mvn -pl server spring-boot:run     # 默认 8081
 ```
 
 配置文件：`server/src/main/resources/application.yaml.example`（DB/Redis/MyBatis-Plus/Actuator/Swagger）。关键环境变量：`DB_HOST/DB_PORT/DB_USERNAME/DB_PASSWORD`、`REDIS_HOST/REDIS_PORT/REDIS_PASSWORD`、`RPAN_JWT_SECRET`。
 
 ### 9.4 Docker
 
-前端镜像（[`Dockerfile`](Dockerfile)）：`node:20-alpine` 构建 → `nginx:1.27-alpine` 提供静态服务，[`nginx.conf`](nginx.conf) 配置 SPA fallback、`/api/` 反代（`http://x-pan-backend:8080/`，10G body / 600s 读超时）、静态资源 1 年 immutable 缓存、gzip、安全头、`/health` 健康检查。
+前端镜像（[`Dockerfile`](Dockerfile)）：`node:20-alpine` 构建 → `nginx:1.27-alpine` 提供静态服务，[`nginx.conf`](nginx.conf) 配置 SPA fallback、`/api/` 反代（`http://x-pan-backend:8081/`，10G body / 600s 读超时）、静态资源 1 年 immutable 缓存、gzip、安全头、`/health` 健康检查。
 
 后端镜像：见 `r_pan_parent/server/Dockerfile`。
 
@@ -610,10 +610,10 @@ mvn -pl server spring-boot:run     # 默认 8080
 
 ### 9.5 可观测性端点
 
-- Swagger UI：`http://localhost:8080/swagger-ui.html`
-- OpenAPI JSON：`http://localhost:8080/v3/api-docs`
-- Prometheus：`http://localhost:8080/actuator/prometheus`
-- 健康：`http://localhost:8080/actuator/health`
+- Swagger UI：`http://localhost:8081/swagger-ui.html`
+- OpenAPI JSON：`http://localhost:8081/v3/api-docs`
+- Prometheus：`http://localhost:8081/actuator/prometheus`
+- 健康：`http://localhost:8081/actuator/health`
 
 ---
 
@@ -643,9 +643,9 @@ mvn -pl server spring-boot:run     # 默认 8080
 
 ## 11. 已知问题与注意事项
 
-1. **构建配置现状**：`vite.config.ts` / `tsconfig.json` / `tsconfig.app.json` / `tsconfig.node.json` 均已存在且可用。`tsconfig` 三件套采用 references 模式（strict、`@/*` paths、`vite/client` 经 `shims.d.ts` 引入），无需改动。`vite.config.ts` 已增强 `server.proxy`（`/api` → `:8080` 去前缀、`/ws` → `:8080`）与 `build.target: esnext`，端口固定 5179。注意：`package.json` 声明了 `unplugin-auto-import` / `unplugin-vue-components` 但**未在 vite.config 中启用**（源码全部显式导入，启用反而可能引入自动注册冲突），属有意保留。
+1. **构建配置现状**：`vite.config.ts` / `tsconfig.json` / `tsconfig.app.json` / `tsconfig.node.json` 均已存在且可用。`tsconfig` 三件套采用 references 模式（strict、`@/*` paths、`vite/client` 经 `shims.d.ts` 引入），无需改动。`vite.config.ts` 已增强 `server.proxy`（`/api` → `:8081` 去前缀、`/ws` → `:8081`）与 `build.target: esnext`，端口固定 5179。注意：`package.json` 声明了 `unplugin-auto-import` / `unplugin-vue-components` 但**未在 vite.config 中启用**（源码全部显式导入，启用反而可能引入自动注册冲突），属有意保留。
 2. **README 信息滞后**：[`README.md`](README.md) 与后端 README 多处仍写 "Element Plus"，实际前端 UI 由 Tailwind v4 + 自研 `Base*` 组件承担；`ElMessage/ElMessageBox` 为 [`useToast.ts`](src/composables/useToast.ts) 自研实现。
-3. **后端默认地址不一致**：前端 `panUtil.getUrlPrefix()` 缺省 `http://127.0.0.1:8081`，而后端实际监听 `8080`；本地直连需通过 `VITE_API_BASE_URL` 显式指定，或经 nginx `/api/` 反代。
+3. **后端默认地址一致**：前端 `panUtil.getUrlPrefix()` 缺省 `http://127.0.0.1:8081`，后端实际监听 `8081`；本地直连需通过 `VITE_API_BASE_URL` 显式指定，或经 nginx `/api/` 反代。
 4. **layui 遗留资源**：`public/static/layui/` 为旧版静态资源，未在当前源码中引用，可清理。
 5. **路由引用的页面**：`router/index.ts` 引用的 `@/views/register`、`@/views/preview/{code,office,iframe,image,music,video}`、`@/views/protocol`、`@/views/share` 等目录均已确认存在，无缺失。
 6. **前端配额估算**：上传完成时 `useUserStore.usedSpace` 仅前端累加，后端 `UserInfoVO` 暂未暴露真实用量字段，刷新后会被 `info()` 覆盖。

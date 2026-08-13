@@ -30,7 +30,7 @@ defineExpose({ triggerPicker })
   <div class="inline-block relative">
     <button
       type="button"
-      class="inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-sm text-sm font-medium cursor-pointer select-none whitespace-nowrap bg-[var(--color-primary-500)] text-white border border-transparent hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)] focus:ring-offset-1"
+      class="inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-sm text-sm font-medium cursor-pointer select-none whitespace-nowrap bg-primary-500 text-white border border-transparent hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-(--color-ring) focus:ring-offset-1"
       @click="triggerPicker"
     >
       <Upload :size="14" :stroke-width="2" />

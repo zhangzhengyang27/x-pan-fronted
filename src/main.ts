@@ -7,6 +7,7 @@ import './styles/tokens.css'
 import { initTheme } from '@/composables/useTheme'
 import { useWebSocket } from '@/composables/useWebSocket'
 import { getToken } from '@/utils/cookie'
+import { ElMessage } from '@/composables/useToast'
 
 const app = createApp(App)
 app.config.errorHandler = (err, instance, info) => {
@@ -42,10 +43,7 @@ if (import.meta.env.DEV) {
 ws.on('SYSTEM_NOTICE', (payload: { level?: string; message?: string }) => {
   const lvl = (payload?.level || 'info') as 'success' | 'error' | 'warning' | 'info'
   const msg = payload?.message || ''
-  // 延迟加载避免循环
-  import('@/composables/useToast').then(({ ElMessage }) => {
-    ElMessage[lvl](msg)
-  })
+  ElMessage[lvl](msg)
 })
 
 app.mount('#app')

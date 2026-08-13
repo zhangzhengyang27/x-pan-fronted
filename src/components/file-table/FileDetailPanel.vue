@@ -39,7 +39,7 @@ import { useRouter } from 'vue-router'
 import fileService from '@/api/file'
 import shareService from '@/api/share'
 import vaultService from '@/api/vault'
-import panUtil from '@/utils/common'
+import panUtil, { isArchive } from '@/utils/common'
 import { getDownloadUrl } from '@/utils/preview'
 import { ElMessage, ElMessageBox } from '@/composables/useToast'
 import QRCode from 'qrcode'
@@ -265,13 +265,6 @@ const fileTags = computed(() => {
 
 // ─── 在线解压 ───────────────────────────────────────────────────────────────
 const extractDialog = ref({ open: false, fileId: '', filename: '' })
-const ARCHIVE_EXTS = ['.zip', '.rar', '.7z', '.tar', '.gz', '.bz2']
-
-function isArchive(file: Record<string, any>): boolean {
-  if (!file || file.fileType === 0) return false
-  const fn = (file.filename || '').toLowerCase()
-  return ARCHIVE_EXTS.some((ext) => fn.endsWith(ext))
-}
 
 function openExtract() {
   if (!props.file) return
@@ -346,15 +339,15 @@ watch(
   <Transition name="detail-slide">
     <aside
       v-if="open && file"
-      class="fixed top-0 right-0 bottom-0 z-40 flex flex-col border-l border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden"
+      class="fixed top-0 right-0 bottom-0 z-40 flex flex-col border-l border-(--color-border) bg-(--color-surface) overflow-hidden"
       style="width: 320px; max-width: 90vw;"
     >
       <!-- Header -->
-      <div class="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border)]">
-        <span class="text-sm font-semibold text-[var(--color-text)]">文件详情</span>
+      <div class="flex items-center justify-between px-4 py-3 border-b border-(--color-border)">
+        <span class="text-sm font-semibold text-(--color-text)">文件详情</span>
         <button
           type="button"
-          class="size-7 rounded-sm flex items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-2)] transition-colors"
+          class="size-7 rounded-sm flex items-center justify-center text-(--color-text-muted) hover:text-(--color-text) hover:bg-(--color-surface-2) transition-colors"
           @click="emit('close')"
         >
           <X :size="16" />
@@ -379,24 +372,24 @@ watch(
               class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg bg-black/30"
             >
               <span class="size-8 rounded-full bg-white/90 flex items-center justify-center">
-                <ExternalLink :size="16" class="text-[var(--color-text)]" />
+                <ExternalLink :size="16" class="text-(--color-text)" />
               </span>
             </div>
           </div>
 
           <!-- 文件名 + 元信息 -->
           <div class="text-center w-full">
-            <p class="text-sm font-medium text-[var(--color-text)] break-all line-clamp-2 leading-snug">
+            <p class="text-sm font-medium text-(--color-text) break-all line-clamp-2 leading-snug">
               {{ file.filename }}
             </p>
             <div class="flex items-center justify-center gap-2 mt-0.5">
-              <span class="text-xs text-[var(--color-text-muted)] tabular-nums">
+              <span class="text-xs text-(--color-text-muted) tabular-nums">
                 {{ fileMeta?.size }}
               </span>
               <button
                 type="button"
                 class="flex items-center gap-1 text-[11px] transition-colors"
-                :class="isFavorite(file.fileId) ? 'text-amber-500' : 'text-[var(--color-text-muted)] hover:text-amber-500'"
+                :class="isFavorite(file.fileId) ? 'text-amber-500' : 'text-(--color-text-muted) hover:text-amber-500'"
                 @click="toggleFavorite(file)"
               >
                 <Star
@@ -415,10 +408,10 @@ watch(
           <div class="flex items-center justify-between gap-1">
             <button
               type="button"
-              class="group flex flex-col items-center gap-1.5 flex-1 py-2 rounded-lg text-[var(--color-text-muted)] hover:bg-[var(--color-surface-2)] transition-colors"
+              class="group flex flex-col items-center gap-1.5 flex-1 py-2 rounded-lg text-(--color-text-muted) hover:bg-(--color-surface-2) transition-colors"
               @click="download"
             >
-              <span class="size-9 rounded-full bg-[var(--color-primary-500)]/10 text-[var(--color-primary-500)] group-hover:bg-[var(--color-primary-500)] group-hover:text-white flex items-center justify-center transition-colors">
+              <span class="size-9 rounded-full bg-primary-500/10 text-primary-500 group-hover:bg-primary-500 group-hover:text-white flex items-center justify-center transition-colors">
                 <Download :size="17" :stroke-width="2" />
               </span>
               <span class="text-[11px]">下载</span>
@@ -426,11 +419,11 @@ watch(
 
             <button
               type="button"
-              class="group flex flex-col items-center gap-1.5 flex-1 py-2 rounded-lg text-[var(--color-text-muted)] hover:bg-[var(--color-surface-2)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              class="group flex flex-col items-center gap-1.5 flex-1 py-2 rounded-lg text-(--color-text-muted) hover:bg-(--color-surface-2) transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               :disabled="file.fileType === 0"
               @click="share"
             >
-              <span class="size-9 rounded-full bg-[var(--color-primary-500)]/10 text-[var(--color-primary-500)] group-hover:bg-[var(--color-primary-500)] group-hover:text-white flex items-center justify-center transition-colors">
+              <span class="size-9 rounded-full bg-primary-500/10 text-primary-500 group-hover:bg-primary-500 group-hover:text-white flex items-center justify-center transition-colors">
                 <LoaderCircle v-if="shareLoading" :size="17" class="animate-spin" />
                 <Share2 v-else :size="17" :stroke-width="2" />
               </span>
@@ -439,10 +432,10 @@ watch(
 
             <button
               type="button"
-              class="group flex flex-col items-center gap-1.5 flex-1 py-2 rounded-lg text-[var(--color-text-muted)] hover:bg-[var(--color-surface-2)] transition-colors"
+              class="group flex flex-col items-center gap-1.5 flex-1 py-2 rounded-lg text-(--color-text-muted) hover:bg-(--color-surface-2) transition-colors"
               @click="rename"
             >
-              <span class="size-9 rounded-full bg-[var(--color-surface-container-high)] text-[var(--color-text-muted)] group-hover:bg-[var(--color-text)] group-hover:text-[var(--color-surface)] flex items-center justify-center transition-colors">
+              <span class="size-9 rounded-full bg-(--color-surface-container-high) text-(--color-text-muted) group-hover:bg-(--color-text) group-hover:text-(--color-surface) flex items-center justify-center transition-colors">
                 <Edit3 :size="17" :stroke-width="2" />
               </span>
               <span class="text-[11px]">重命名</span>
@@ -450,10 +443,10 @@ watch(
 
             <button
               type="button"
-              class="group flex flex-col items-center gap-1.5 flex-1 py-2 rounded-lg text-[var(--color-text-muted)] hover:bg-[var(--color-surface-2)] transition-colors"
+              class="group flex flex-col items-center gap-1.5 flex-1 py-2 rounded-lg text-(--color-text-muted) hover:bg-(--color-surface-2) transition-colors"
               @click="deleteFile"
             >
-              <span class="size-9 rounded-full bg-[var(--color-danger)]/10 text-[var(--color-danger)] group-hover:bg-[var(--color-danger)] group-hover:text-white flex items-center justify-center transition-colors">
+              <span class="size-9 rounded-full bg-danger/10 text-danger group-hover:bg-danger group-hover:text-white flex items-center justify-center transition-colors">
                 <Trash2 :size="17" :stroke-width="2" />
               </span>
               <span class="text-[11px]">删除</span>
@@ -462,14 +455,14 @@ watch(
         </div>
 
         <!-- 分隔线 -->
-        <div class="mx-4 border-t border-[var(--color-border)]" />
+        <div class="mx-4 border-t border-(--color-border)" />
 
         <!-- 更多操作 -->
         <div class="px-3 py-2 space-y-0.5">
           <button
             v-if="file.fileType !== 0"
             type="button"
-            class="w-full flex items-center gap-3 h-8 px-2.5 rounded-md text-[13px] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)] transition-colors"
+            class="w-full flex items-center gap-3 h-8 px-2.5 rounded-md text-[13px] text-(--color-text-muted) hover:bg-(--color-surface-2) hover:text-(--color-text) transition-colors"
             @click="openCopy"
           >
             <Copy :size="14" :stroke-width="1.75" />
@@ -478,7 +471,7 @@ watch(
           <button
             v-if="file.fileType !== 0"
             type="button"
-            class="w-full flex items-center gap-3 h-8 px-2.5 rounded-md text-[13px] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)] transition-colors"
+            class="w-full flex items-center gap-3 h-8 px-2.5 rounded-md text-[13px] text-(--color-text-muted) hover:bg-(--color-surface-2) hover:text-(--color-text) transition-colors"
             @click="openMove"
           >
             <FolderInput :size="14" :stroke-width="1.75" />
@@ -487,7 +480,7 @@ watch(
           <button
             v-if="file.fileType !== 0"
             type="button"
-            class="w-full flex items-center gap-3 h-8 px-2.5 rounded-md text-[13px] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)] transition-colors"
+            class="w-full flex items-center gap-3 h-8 px-2.5 rounded-md text-[13px] text-(--color-text-muted) hover:bg-(--color-surface-2) hover:text-(--color-text) transition-colors"
             @click="openLocation"
           >
             <ExternalLink :size="14" :stroke-width="1.75" />
@@ -496,7 +489,7 @@ watch(
           <button
             v-if="file.fileType !== 0"
             type="button"
-            class="w-full flex items-center gap-3 h-8 px-2.5 rounded-md text-[13px] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)] transition-colors"
+            class="w-full flex items-center gap-3 h-8 px-2.5 rounded-md text-[13px] text-(--color-text-muted) hover:bg-(--color-surface-2) hover:text-(--color-text) transition-colors"
             @click="openHistory"
           >
             <History :size="14" :stroke-width="1.75" />
@@ -505,7 +498,7 @@ watch(
           <button
             v-if="isArchive(file)"
             type="button"
-            class="w-full flex items-center gap-3 h-8 px-2.5 rounded-md text-[13px] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)] transition-colors"
+            class="w-full flex items-center gap-3 h-8 px-2.5 rounded-md text-[13px] text-(--color-text-muted) hover:bg-(--color-surface-2) hover:text-(--color-text) transition-colors"
             @click="openExtract"
           >
             <FileArchive :size="14" :stroke-width="1.75" />
@@ -514,7 +507,7 @@ watch(
           <button
             v-if="file.fileType !== 0"
             type="button"
-            class="w-full flex items-center gap-3 h-8 px-2.5 rounded-md text-[13px] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)] transition-colors"
+            class="w-full flex items-center gap-3 h-8 px-2.5 rounded-md text-[13px] text-(--color-text-muted) hover:bg-(--color-surface-2) hover:text-(--color-text) transition-colors"
             @click="moveToVault"
           >
             <Shield :size="14" :stroke-width="1.75" />
@@ -523,39 +516,39 @@ watch(
         </div>
 
         <!-- 分隔线 -->
-        <div class="mx-4 border-t border-[var(--color-border)]" />
+        <div class="mx-4 border-t border-(--color-border)" />
 
         <!-- 文件信息 -->
         <div class="px-4 py-2">
-          <p class="text-xs font-medium text-[var(--color-text-muted)] mb-2 uppercase tracking-wider">
+          <p class="text-xs font-medium text-(--color-text-muted) mb-2 uppercase tracking-wider">
             文件信息
           </p>
           <div class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-xs">
-            <span class="text-[var(--color-text-muted)]">类型</span>
-            <span class="text-[var(--color-text)] text-right">{{ fileMeta?.type }}</span>
-            <span class="text-[var(--color-text-muted)]">大小</span>
-            <span class="text-[var(--color-text)] text-right tabular-nums">{{ fileMeta?.size }}</span>
-            <span class="text-[var(--color-text-muted)]">位置</span>
-            <span class="text-[var(--color-text)] text-right truncate max-w-[160px]">{{ fileMeta?.location }}</span>
-            <span class="text-[var(--color-text-muted)]">创建时间</span>
-            <span class="text-[var(--color-text)] text-right tabular-nums">{{ fileMeta?.created }}</span>
-            <span class="text-[var(--color-text-muted)]">修改时间</span>
-            <span class="text-[var(--color-text)] text-right tabular-nums">{{ fileMeta?.modified }}</span>
+            <span class="text-(--color-text-muted)">类型</span>
+            <span class="text-(--color-text) text-right">{{ fileMeta?.type }}</span>
+            <span class="text-(--color-text-muted)">大小</span>
+            <span class="text-(--color-text) text-right tabular-nums">{{ fileMeta?.size }}</span>
+            <span class="text-(--color-text-muted)">位置</span>
+            <span class="text-(--color-text) text-right truncate max-w-[160px]">{{ fileMeta?.location }}</span>
+            <span class="text-(--color-text-muted)">创建时间</span>
+            <span class="text-(--color-text) text-right tabular-nums">{{ fileMeta?.created }}</span>
+            <span class="text-(--color-text-muted)">修改时间</span>
+            <span class="text-(--color-text) text-right tabular-nums">{{ fileMeta?.modified }}</span>
           </div>
         </div>
 
         <!-- 分隔线 -->
-        <div class="mx-4 border-t border-[var(--color-border)]" />
+        <div class="mx-4 border-t border-(--color-border)" />
 
         <!-- 标签 -->
         <div class="px-4 py-2 pb-4">
           <div class="flex items-center justify-between mb-2">
-            <p class="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider">
+            <p class="text-xs font-medium text-(--color-text-muted) uppercase tracking-wider">
               标签
             </p>
             <button
               type="button"
-              class="flex items-center gap-1 text-[11px] text-[var(--color-primary-500)] hover:text-[var(--color-primary-600)] transition-colors"
+              class="flex items-center gap-1 text-[11px] text-primary-500 hover:text-primary-600 transition-colors"
               :disabled="tagLoading"
               @click="handleAutoTag"
             >
@@ -568,13 +561,13 @@ watch(
             <span
               v-for="tag in fileTags"
               :key="tag"
-              class="inline-flex items-center gap-1 h-6 px-2 rounded-full bg-[var(--color-surface-container-high)] text-xs text-[var(--color-text-muted)] group/tag"
+              class="inline-flex items-center gap-1 h-6 px-2 rounded-full bg-(--color-surface-container-high) text-xs text-(--color-text-muted) group/tag"
             >
               <Tag :size="10" />
               {{ tag }}
               <button
                 type="button"
-                class="size-3.5 rounded-full hover:bg-[var(--color-danger)]/20 hover:text-[var(--color-danger)] transition-colors ml-0.5 opacity-0 group-hover/tag:opacity-100"
+                class="size-3.5 rounded-full hover:bg-danger/20 hover:text-danger transition-colors ml-0.5 opacity-0 group-hover/tag:opacity-100"
                 @click="removeTag(file.fileId, tag)"
               >
                 <X :size="10" />
@@ -586,12 +579,12 @@ watch(
               v-model="tagInput"
               type="text"
               placeholder="添加标签..."
-              class="flex-1 h-7 px-2.5 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] text-xs text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-primary-500)] transition-colors"
+              class="flex-1 h-7 px-2.5 rounded-md border border-(--color-border) bg-(--color-surface) text-xs text-(--color-text) placeholder:text-(--color-text-muted) focus:outline-none focus:border-primary-500 transition-colors"
               @keydown.enter="handleAddTag"
             />
             <button
               type="button"
-              class="size-7 rounded-md bg-[var(--color-primary-500)] text-white hover:bg-[var(--color-primary-600)] transition-colors flex items-center justify-center"
+              class="size-7 rounded-md bg-primary-500 text-white hover:bg-primary-600 transition-colors flex items-center justify-center"
               @click="handleAddTag"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="size-3.5">

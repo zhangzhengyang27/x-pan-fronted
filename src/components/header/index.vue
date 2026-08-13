@@ -40,7 +40,7 @@ function openAI() {
 
 <template>
   <header
-    class="sticky top-0 z-50 flex-shrink-0 border-b bg-[var(--color-surface)] border-[var(--color-border)]"
+    class="sticky top-0 z-50 flex-shrink-0 border-b bg-(--color-surface) border-(--color-border)"
     style="height: var(--header-h);"
   >
     <div class="h-full w-full flex items-center px-4 lg:px-6 gap-3">
@@ -49,7 +49,7 @@ function openAI() {
       <button
         v-if="isMobile"
         type="button"
-        class="size-7 rounded-sm flex items-center justify-center text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-hover)] transition-colors flex-shrink-0"
+        class="size-7 rounded-sm flex items-center justify-center text-(--color-text-secondary) hover:text-(--color-text) hover:bg-(--color-hover) transition-colors flex-shrink-0"
         aria-label="打开导航"
         @click="openMobileNav"
       >
@@ -69,7 +69,7 @@ function openAI() {
           <Cloud :size="14" :stroke-width="2" class="text-white" />
         </div>
         <!-- 夸克式品牌名:无副标题,更紧凑 -->
-        <span class="text-base font-semibold tracking-tight text-[var(--color-text)] leading-none">
+        <span class="text-base font-semibold tracking-tight text-(--color-text) leading-none">
           X Pan
         </span>
       </router-link>
@@ -90,7 +90,7 @@ function openAI() {
         <BaseTooltip text="AI 助手" position="bottom">
           <button
             type="button"
-            class="size-7 rounded-sm flex items-center justify-center transition-colors text-[var(--color-text-secondary)] hover:text-[var(--color-primary-500)] hover:bg-[var(--color-hover)]"
+            class="size-7 rounded-sm flex items-center justify-center transition-colors text-(--color-text-secondary) hover:text-primary-500 hover:bg-(--color-hover)"
             aria-label="AI 助手"
             @click="openAI"
           >
@@ -102,7 +102,7 @@ function openAI() {
         <BaseTooltip text="快捷键 (?)" position="bottom">
           <button
             type="button"
-            class="size-7 rounded-sm flex items-center justify-center transition-colors text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-hover)]"
+            class="size-7 rounded-sm flex items-center justify-center transition-colors text-(--color-text-secondary) hover:text-(--color-text) hover:bg-(--color-hover)"
             aria-label="快捷键"
             @click="openShortcuts"
           >
@@ -114,7 +114,7 @@ function openAI() {
         <BaseTooltip :text="isDark ? '浅色模式' : '深色模式'" position="bottom">
           <button
             type="button"
-            class="size-7 rounded-sm flex items-center justify-center transition-colors text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-hover)]"
+            class="size-7 rounded-sm flex items-center justify-center transition-colors text-(--color-text-secondary) hover:text-(--color-text) hover:bg-(--color-hover)"
             :aria-label="isDark ? '浅色模式' : '深色模式'"
             @click="toggleTheme"
           >

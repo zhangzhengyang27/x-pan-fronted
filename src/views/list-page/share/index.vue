@@ -145,7 +145,7 @@ function formatExpireTime(row) {
   <div class="flex flex-col gap-4">
     <!-- 页面标题 -->
     <div class="flex items-center gap-3">
-      <h1 class="text-2xl font-semibold tracking-tight text-[var(--color-text)]">
+      <h1 class="text-2xl font-semibold tracking-tight text-(--color-text)">
         我的分享
       </h1>
       <span class="text-sm" style="color: var(--color-text-muted);">
@@ -156,23 +156,23 @@ function formatExpireTime(row) {
     <!-- 分享统计 -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
       <div
-        class="rounded-xl border border-[var(--color-border)] p-4 bg-[var(--color-surface-container-low)]"
+        class="rounded-xl border border-(--color-border) p-4 bg-(--color-surface-container-low)"
       >
         <div class="text-xs mb-1" style="color: var(--color-text-muted);">分享总数</div>
-        <div class="text-2xl font-bold tabular-nums text-[var(--color-text)]">
+        <div class="text-2xl font-bold tabular-nums text-(--color-text)">
           {{ summary.totalShares }}
         </div>
       </div>
       <div
-        class="rounded-xl border border-[var(--color-border)] p-4 bg-[var(--color-surface-container-low)]"
+        class="rounded-xl border border-(--color-border) p-4 bg-(--color-surface-container-low)"
       >
         <div class="text-xs mb-1" style="color: var(--color-text-muted);">有效分享</div>
-        <div class="text-2xl font-bold tabular-nums" style="color: var(--color-success);">
+        <div class="text-2xl font-bold tabular-nums" style="color: varsuccess;">
           {{ summary.activeShares }}
         </div>
       </div>
       <div
-        class="rounded-xl border border-[var(--color-border)] p-4 bg-[var(--color-surface-container-low)]"
+        class="rounded-xl border border-(--color-border) p-4 bg-(--color-surface-container-low)"
       >
         <div class="text-xs mb-1" style="color: var(--color-text-muted);">总下载次数</div>
         <div class="text-2xl font-bold tabular-nums" style="color: var(--color-primary-500);">
@@ -180,10 +180,10 @@ function formatExpireTime(row) {
         </div>
       </div>
       <div
-        class="rounded-xl border border-[var(--color-border)] p-4 bg-[var(--color-surface-container-low)]"
+        class="rounded-xl border border-(--color-border) p-4 bg-(--color-surface-container-low)"
       >
         <div class="text-xs mb-1" style="color: var(--color-text-muted);">剩余下载配额</div>
-        <div class="text-2xl font-bold tabular-nums" style="color: var(--color-warning);">
+        <div class="text-2xl font-bold tabular-nums" style="color: varwarning;">
           {{ summary.remainingQuota }}
         </div>
       </div>
@@ -220,7 +220,7 @@ function formatExpireTime(row) {
       <template #cell-filename="{ row }">
         <div class="flex items-center gap-3">
           <Share2 :size="18" :stroke-width="2" class="shrink-0" style="color: var(--color-primary-500);" />
-          <span class="truncate text-[var(--color-text)]">{{ row.filename || row.fileName || '未命名' }}</span>
+          <span class="truncate text-(--color-text)">{{ row.filename || row.fileName || '未命名' }}</span>
         </div>
       </template>
 
@@ -235,7 +235,7 @@ function formatExpireTime(row) {
       </template>
 
       <template #cell-shareCode="{ row }">
-        <span v-if="row.shareCode" class="font-mono tabular-nums text-sm tracking-wider text-[var(--color-text)]">
+        <span v-if="row.shareCode" class="font-mono tabular-nums text-sm tracking-wider text-(--color-text)">
           {{ row.shareCode }}
         </span>
         <span v-else style="color: var(--color-text-muted);">—</span>
@@ -244,7 +244,7 @@ function formatExpireTime(row) {
       <template #cell-expireTime="{ row }">
         <span
           class="tabular-nums text-sm"
-          :style="isExpired(row) ? 'color: var(--color-danger);' : 'color: var(--color-text-muted);'"
+          :style="isExpired(row) ? 'color: vardanger;' : 'color: var(--color-text-muted);'"
         >
           {{ formatExpireTime(row) }}
           <span v-if="isExpired(row)" class="ml-1">(已过期)</span>
@@ -252,7 +252,7 @@ function formatExpireTime(row) {
       </template>
 
       <template #cell-browseCount="{ row }">
-        <span class="inline-flex items-center gap-1 tabular-nums text-sm text-[var(--color-text)]">
+        <span class="inline-flex items-center gap-1 tabular-nums text-sm text-(--color-text)">
           <Eye :size="12" :stroke-width="2" style="color: var(--color-text-muted);" />
           {{ row.downloadCount || 0 }}
         </span>

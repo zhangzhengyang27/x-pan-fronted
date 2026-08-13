@@ -3,19 +3,31 @@
  * BaseTreeNode —— 树节点（递归组件自己）
  */
 import { ref } from 'vue'
+import type { PropType } from 'vue'
 import { ChevronRight, Folder, FolderOpen, File } from '@lucide/vue'
 import { cn } from '@/utils/classnames'
 
+interface TreeNodeData {
+  id?: string | number
+  label?: string
+  children?: TreeNodeData[]
+  expandable?: boolean
+  [key: string]: unknown
+}
+
 defineProps({
-  node: { type: Object, required: true },
+  node: { type: Object as PropType<TreeNodeData>, required: true },
   level: { type: Number, default: 0 }
 })
-const emit = defineEmits(['select', 'toggle'])
+const emit = defineEmits<{
+  select: [node: TreeNodeData]
+  toggle: [node: TreeNodeData]
+}>()
 
 const expanded = ref(false)
 const selected = ref(false)
 
-function onToggle(node) {
+function onToggle(node: TreeNodeData) {
   expanded.value = !expanded.value
   emit('toggle', node)
 }
@@ -27,9 +39,9 @@ function onToggle(node) {
       :class="
         cn(
           'flex items-center gap-1.5 py-1 px-2 rounded-sm cursor-pointer text-sm transition-colors',
-          'hover:bg-[var(--color-surface-2)]',
-          selected && 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)]',
-          selected && 'dark:bg-[var(--color-primary-900)]/30 dark:text-[var(--color-primary-300)]'
+          'hover:bg-(--color-surface-2)',
+          selected && 'bg-primary-50 text-primary-700',
+          selected && 'dark:bg-primary-900/30 dark:text-primary-300'
         )
       "
       :style="{ paddingLeft: `${level * 16 + 8}px` }"
@@ -38,7 +50,7 @@ function onToggle(node) {
       <button
         v-if="node.children?.length || node.expandable"
         type="button"
-        class="size-4 flex items-center justify-center text-[var(--color-text-muted)] transition-transform"
+        class="size-4 flex items-center justify-center text-(--color-text-muted) transition-transform"
         :class="expanded && 'rotate-90'"
         @click.stop="onToggle(node)"
       >
@@ -48,7 +60,7 @@ function onToggle(node) {
       <component
         :is="node.children?.length ? (expanded ? FolderOpen : Folder) : File"
         :size="16"
-        class="shrink-0 text-[var(--color-text-muted)]"
+        class="shrink-0 text-(--color-text-muted)"
       />
       <span class="truncate">{{ node.label }}</span>
     </div>

@@ -16,6 +16,7 @@
  *  - complete (targetParentId)
  */
 import { computed, ref, watch } from 'vue'
+import type { PropType } from 'vue'
 import {
   Folder,
   FolderOpen,
@@ -30,19 +31,27 @@ import BaseButton from './BaseButton.vue'
 import { ElMessage } from '@/composables/useToast'
 import fileService from '@/api/file'
 import { useFileStore } from '@/stores/file'
+import type { IFileVO, FileType } from '@/types'
+
+interface TreeNode {
+  id: string
+  name: string
+  loaded: boolean
+  children: TreeNode[]
+}
 
 const props = defineProps({
   open: { type: Boolean, default: false },
-  mode: { type: String, default: 'move' }, // move | copy
-  row: { type: [Object, Array], default: null }
+  mode: { type: String as PropType<'move' | 'copy'>, default: 'move' },
+  row: { type: [Object, Array] as PropType<IFileVO | IFileVO[]>, default: null }
 })
 
 const emit = defineEmits(['update:open', 'complete'])
 
 const fileStore = useFileStore()
-const expanded = ref(new Set()) // 已展开的文件夹 ID
-const tree = ref([]) // [{id, name, children: [...]}]
-const selectedId = ref(null) // 当前选中的目标 parentId（null = 根目录）
+const expanded = ref<Set<string>>(new Set()) // 已展开的文件夹 ID
+const tree = ref<TreeNode[]>([]) // [{id, name, children: [...]}]
+const selectedId = ref<string | null>(null) // 当前选中的目标 parentId（null = 根目录）
 const submitting = ref(false)
 
 const isMove = computed(() => props.mode === 'move')
@@ -57,10 +66,11 @@ async function loadRoot() {
 
 function buildTreeFromStore() {
   // 用 fileStore.fileList 作为顶层，加载时按需展开子节点
-  tree.value = fileStore.fileList.filter((f) => f.fileType === 0).map(toTreeNode)
+  // 注意：FileType.FOLDER = 1（不是 0），必须用枚举判断
+  tree.value = fileStore.fileList.filter((f) => f.fileType === FileType.FOLDER).map(toTreeNode)
 }
 
-function toTreeNode(item) {
+function toTreeNode(item: IFileVO): TreeNode {
   return {
     id: item.fileId,
     name: item.filename,
@@ -69,14 +79,14 @@ function toTreeNode(item) {
   }
 }
 
-async function loadChildren(node) {
+async function loadChildren(node: TreeNode) {
   if (node.loaded) return
-  return new Promise((resolve) => {
+  return new Promise<void>((resolve) => {
     fileService.list(
-      { parentId: node.id, pageNum: 1, pageSize: 1000 },
+      { parentId: node.id, fileTypes: '', pageNum: 1, pageSize: 1000 },
       (res) => {
         const rows = (res.data && res.data.records) || []
-        node.children = rows.filter((f) => f.fileType === 0).map(toTreeNode)
+        node.children = rows.filter((f) => f.fileType === FileType.FOLDER).map(toTreeNode)
         node.loaded = true
         resolve()
       },
@@ -85,7 +95,7 @@ async function loadChildren(node) {
   })
 }
 
-async function toggle(node) {
+async function toggle(node: TreeNode) {
   if (expanded.value.has(node.id)) {
     expanded.value.delete(node.id)
   } else {
@@ -96,7 +106,7 @@ async function toggle(node) {
   expanded.value = new Set(expanded.value)
 }
 
-function isExpanded(id) {
+function isExpanded(id: string) {
   return expanded.value.has(id)
 }
 
@@ -104,7 +114,7 @@ function selectRoot() {
   selectedId.value = null
 }
 
-function selectNode(node) {
+function selectNode(node: TreeNode) {
   selectedId.value = node.id
 }
 
@@ -112,7 +122,8 @@ function selectNode(node) {
 async function submit() {
   if (!props.row) return
   submitting.value = true
-  const ids = (Array.isArray(props.row) ? props.row : [props.row]).map((r) => r.fileId)
+  const rows = Array.isArray(props.row) ? props.row : [props.row]
+  const ids = rows.map((r) => r.fileId)
   const fileIds = ids.join('__,__')
 
   const api = isMove.value ? fileService.transfer : fileService.copy
@@ -124,8 +135,8 @@ async function submit() {
       emit('complete', selectedId.value)
       emit('update:open', false)
     },
-    (err) => {
-      ElMessage.error(err.message || '操作失败')
+    (err: { message?: string }) => {
+      ElMessage.error(err?.message || '操作失败')
       submitting.value = false
     }
   )
@@ -148,10 +159,10 @@ watch(
 <template>
   <BaseModal :open="open" @update:open="(v) => emit('update:open', v)" :title="title" size="md">
     <div class="flex flex-col gap-3">
-      <div class="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
+      <div class="flex items-center gap-2 text-xs text-(--color-text-muted)">
         <component :is="isMove ? ArrowRight : CopyIcon" :size="14" />
         将
-        <strong class="text-[var(--color-text)]">{{
+        <strong class="text-(--color-text)">{{
           Array.isArray(row) ? `${row.length} 项` : row?.filename || ''
         }}</strong>
         {{ isMove ? '移动' : '复制' }} 到：
@@ -159,7 +170,7 @@ watch(
 
       <!-- 目标文件夹树 -->
       <div
-        class="max-h-[50vh] overflow-y-auto rounded-xl border border-[var(--color-border)] p-2 bg-[var(--color-surface-2)]/40"
+        class="max-h-[50vh] overflow-y-auto rounded-xl border border-(--color-border) p-2 bg-(--color-surface-2)/40"
       >
         <!-- 根目录 -->
         <button
@@ -167,8 +178,8 @@ watch(
           class="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-sm text-sm transition-colors"
           :class="
             selectedId === null
-              ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)] font-medium'
-              : 'hover:bg-[var(--color-surface-2)]'
+              ? 'bg-primary-50 text-primary-700 font-medium'
+              : 'hover:bg-(--color-surface-2)'
           "
           @click="selectRoot"
         >
@@ -177,7 +188,7 @@ watch(
           <Check
             v-if="selectedId === null"
             :size="14"
-            class="ml-auto text-[var(--color-primary-600)]"
+            class="ml-auto text-primary-600"
           />
         </button>
 
@@ -186,7 +197,7 @@ watch(
           <div class="flex items-center gap-1">
             <button
               type="button"
-              class="size-6 flex items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+              class="size-6 flex items-center justify-center text-(--color-text-muted) hover:text-(--color-text)"
               @click="toggle(node)"
             >
               <ChevronDown v-if="isExpanded(node.id)" :size="14" />
@@ -197,8 +208,8 @@ watch(
               class="flex-1 flex items-center gap-1.5 px-2 py-1.5 rounded-sm text-sm transition-colors"
               :class="
                 selectedId === node.id
-                  ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)] font-medium'
-                  : 'hover:bg-[var(--color-surface-2)]'
+                  ? 'bg-primary-50 text-primary-700 font-medium'
+                  : 'hover:bg-(--color-surface-2)'
               "
               @click="selectNode(node)"
             >
@@ -207,7 +218,7 @@ watch(
               <Check
                 v-if="selectedId === node.id"
                 :size="14"
-                class="ml-auto text-[var(--color-primary-600)]"
+                class="ml-auto text-primary-600"
               />
             </button>
           </div>
@@ -220,8 +231,8 @@ watch(
                 class="flex-1 flex items-center gap-1.5 px-2 py-1.5 rounded-sm text-sm transition-colors"
                 :class="
                   selectedId === child.id
-                    ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)] font-medium'
-                    : 'hover:bg-[var(--color-surface-2)]'
+                    ? 'bg-primary-50 text-primary-700 font-medium'
+                    : 'hover:bg-(--color-surface-2)'
                 "
                 @click="selectNode(child)"
               >
@@ -230,14 +241,14 @@ watch(
                 <Check
                   v-if="selectedId === child.id"
                   :size="14"
-                  class="ml-auto text-[var(--color-primary-600)]"
+                  class="ml-auto text-primary-600"
                 />
               </button>
             </div>
           </div>
         </div>
 
-        <div v-if="!tree.length" class="py-8 text-center text-sm text-[var(--color-text-muted)]">
+        <div v-if="!tree.length" class="py-8 text-center text-sm text-(--color-text-muted)">
           暂无文件夹
         </div>
       </div>

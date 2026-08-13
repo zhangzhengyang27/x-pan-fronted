@@ -27,12 +27,12 @@ watch(
 </script>
 
 <template>
-  <div class="min-h-screen flex flex-col bg-[var(--color-bg)]">
+  <div class="min-h-screen flex flex-col bg-(--color-bg)">
     <header
-      class="h-14 px-6 flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface)]"
+      class="h-14 px-6 flex items-center justify-between border-b border-(--color-border) bg-(--color-surface)"
     >
       <div class="flex items-center gap-2 min-w-0">
-        <FileCode :size="20" class="text-[var(--color-primary-600)] shrink-0" />
+        <FileCode :size="20" class="text-primary-600 shrink-0" />
         <h1 class="text-base font-medium truncate">{{ filename }}</h1>
       </div>
       <a :href="downloadUrl" target="_blank">

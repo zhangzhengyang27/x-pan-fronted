@@ -3,11 +3,18 @@
  * BaseSteps —— 步骤条
  * active: 当前激活的步骤索引（从 0 开始）
  */
+import type { PropType } from 'vue'
 import { Check } from '@lucide/vue'
 import { cn } from '@/utils/classnames'
 
+interface StepItem {
+  title?: string
+  description?: string
+  [key: string]: unknown
+}
+
 defineProps({
-  steps: { type: Array, required: true }, // [{title, description}]
+  steps: { type: Array as PropType<StepItem[]>, required: true }, // [{title, description}]
   active: { type: Number, default: 0 }
 })
 </script>
@@ -24,11 +31,11 @@ defineProps({
           :class="
             cn(
               'size-7 rounded-full flex items-center justify-center text-xs font-medium transition-colors',
-              i < active && 'bg-[var(--color-primary-600)] text-white',
+              i < active && 'bg-primary-600 text-white',
               i === active &&
-                'bg-[var(--color-primary-600)] text-white ring-4 ring-[var(--color-primary-100)]',
+                'bg-primary-600 text-white ring-4 ring-primary-100',
               i > active &&
-                'bg-[var(--color-surface-2)] text-[var(--color-text-muted)] border border-[var(--color-border)]'
+                'bg-(--color-surface-2) text-(--color-text-muted) border border-(--color-border)'
             )
           "
         >
@@ -41,13 +48,13 @@ defineProps({
               cn(
                 'text-sm',
                 i <= active
-                  ? 'text-[var(--color-text)] font-medium'
-                  : 'text-[var(--color-text-muted)]'
+                  ? 'text-(--color-text) font-medium'
+                  : 'text-(--color-text-muted)'
               )
             "
             >{{ s.title }}</span
           >
-          <span v-if="s.description" class="text-xs text-[var(--color-text-muted)]">{{
+          <span v-if="s.description" class="text-xs text-(--color-text-muted)">{{
             s.description
           }}</span>
         </div>
@@ -57,7 +64,7 @@ defineProps({
         :class="
           cn(
             'flex-1 h-px mx-2 transition-colors',
-            i < active ? 'bg-[var(--color-primary-600)]' : 'bg-[var(--color-border)]'
+            i < active ? 'bg-primary-600' : 'bg-(--color-border)'
           )
         "
       />

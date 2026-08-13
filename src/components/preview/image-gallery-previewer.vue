@@ -277,7 +277,7 @@ onBeforeUnmount(() => {
         class="shrink-0 h-20 w-20 rounded-sm overflow-hidden border-2 transition-all"
         :class="
           i === activeIndex
-            ? 'border-[var(--color-primary-400)] opacity-100 scale-105'
+            ? 'border-primary-400 opacity-100 scale-105'
             : 'border-transparent opacity-60 hover:opacity-100'
         "
         :aria-label="it.name"
@@ -297,7 +297,7 @@ onBeforeUnmount(() => {
   <!-- inline 模式：嵌入弹窗（保留供 DrivePreviewModal 使用） -->
   <div
     v-else
-    class="relative w-full h-full flex items-center justify-center bg-[var(--color-surface-2)]"
+    class="relative w-full h-full flex items-center justify-center bg-(--color-surface-2)"
   >
     <button
       v-if="items.length > 1"
@@ -323,6 +323,6 @@ onBeforeUnmount(() => {
       :alt="currentItem?.name"
       class="max-h-full max-w-full object-contain"
     />
-    <div v-else class="size-10 rounded-xl bg-[var(--color-surface)] animate-pulse" />
+    <div v-else class="size-10 rounded-xl bg-(--color-surface) animate-pulse" />
   </div>
 </template>

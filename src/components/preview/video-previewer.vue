@@ -4,9 +4,9 @@
  * P1-8：倍速 0.5-5x + 快捷键 >/< 调速、Space 播放/暂停、←/→ 快退快进
  * P1-9：画中画（Picture-in-Picture）
  */
-import { onBeforeUnmount, onMounted, ref } from 'vue'
-import { getPreviewUrl } from '@/utils/preview'
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useVideoThumbnails } from '@/composables/useVideoThumbnails'
+import { ElMessage } from '@/composables/useToast'
 
 const props = defineProps({
   fileId: { type: [String, Number], required: true },
@@ -15,8 +15,10 @@ const props = defineProps({
   url: { type: String, default: '' }
 })
 
-const containerRef = ref(null)
-let player = null
+const containerRef = ref<HTMLDivElement | null>(null)
+let player: any = null
+let currentUrl = ''
+let ArtplayerCtor: any = null
 
 // P3-1：视频关键帧缩略图
 const { generate: generateThumbnails } = useVideoThumbnails()
@@ -24,15 +26,58 @@ const { generate: generateThumbnails } = useVideoThumbnails()
 // 倍速档位（对标夸克 0.5-5x）
 const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4, 5]
 
-onMounted(async () => {
-  if (!containerRef.value) return
-  const { default: Artplayer } = await import('artplayer')
-  const videoUrl = props.url || getPreviewUrl(props.fileId)
-  player = new Artplayer({
+async function initArtplayer() {
+  if (!ArtplayerCtor) {
+    const { default: Artplayer } = await import('artplayer')
+    ArtplayerCtor = Artplayer
+  }
+}
+
+function bindPlayerEvents() {
+  if (!player) return
+
+  // 首帧渲染保险：canplay 后强制 seek 到第 0 秒并渲染，避免某些浏览器黑屏
+  player.on('video:loadedmetadata', () => {
+    if (player && player.video && player.video.currentTime === 0) {
+      player.seek = 0
+    }
+  })
+
+  player.on('video:canplay', () => {
+    if (player && player.video) {
+      // 确保画面已绘制（部分浏览器 autoplay 被阻止后首帧不渲染）
+      if (player.video.paused && player.video.readyState >= 2) {
+        player.video.play().catch(() => {
+          // 自动播放被浏览器策略阻止，属于正常情况，不报错
+        })
+      }
+    }
+  })
+
+  // 监听浏览器 video 解码错误，提示用户视频编码可能不被支持
+  player.on('error', () => {
+    const video = player?.video
+    const err = video?.error
+    if (err && err.code === 4) {
+      ElMessage.error('视频格式或编码不受浏览器支持，可尝试下载后用本地播放器打开')
+    }
+  })
+}
+
+async function initPlayer(url: string) {
+  if (!containerRef.value || player) return
+  if (!url) return
+
+  await initArtplayer()
+  currentUrl = url
+
+  player = new ArtplayerCtor({
     container: containerRef.value,
-    url: videoUrl,
+    url,
     title: props.title,
     autoplay: true,
+    // 高度由容器 CSS（aspect-video + min-h）决定，
+    // .art-video-player 默认 height:100% 会撑满容器，避免高度塌陷黑屏
     autoSize: false,
     autoMini: true,
     screenshot: true,
@@ -53,8 +98,6 @@ onMounted(async () => {
     pip: true,
     // 快捷键开启（ArtPlayer 内置 hotkey）
     hotkey: true,
-    // 设置面板可折叠
-    setting: true,
     // P3-1：进度条关键帧缩略图（后台异步采样，生成后动态注入）
     thumbnails: {
       urls: [],
@@ -64,10 +107,16 @@ onMounted(async () => {
     }
   })
 
+  bindPlayerEvents()
+
   // P1-8：自定义全局快捷键（ArtPlayer hotkey 仅在焦点时生效，补充全局）
   window.addEventListener('keydown', onKeydown)
 
   // P3-1：后台异步采样关键帧，生成后动态注入 ArtPlayer
+  refreshThumbnails(url)
+}
+
+function refreshThumbnails(videoUrl: string) {
   generateThumbnails(videoUrl, { count: 20, width: 160 })
     .then((urls) => {
       if (urls.length > 0 && player) {
@@ -77,7 +126,36 @@ onMounted(async () => {
     .catch(() => {
       // 采样失败（CORS/格式问题）→ 降级为无缩略图，不影响播放
     })
+}
+
+onMounted(async () => {
+  if (!containerRef.value) return
+  if (props.url) {
+    initPlayer(props.url)
+  }
+  // 否则保持 loading，等 watch props.url 拿到签名 URL 后再初始化
 })
+
+// 签名 URL 解析完成后，动态切换视频源
+watch(
+  () => props.url,
+  (newUrl) => {
+    if (!newUrl || newUrl === currentUrl) return
+
+    if (!player) {
+      // 首次拿到签名 URL 时才真正创建播放器（避免用未签名 URL 初始化导致黑屏）
+      initPlayer(newUrl)
+      return
+    }
+
+    currentUrl = newUrl
+    // ArtPlayer.switchUrl 只接受一个 url 参数
+    player.switchUrl(newUrl)
+    player.seek = 0
+    player.play()
+    refreshThumbnails(newUrl)
+  }
+)
 
 // P1-8：全局快捷键
 function onKeydown(e: KeyboardEvent) {
@@ -108,20 +186,32 @@ function onKeydown(e: KeyboardEvent) {
   }
 }
 
+function nearestRateIndex(rate: number): number {
+  // 找不到精确匹配（浮点误差）时，选最接近的档位
+  let best = 0
+  let bestDiff = Infinity
+  PLAYBACK_RATES.forEach((r, i) => {
+    const diff = Math.abs(r - rate)
+    if (diff < bestDiff) {
+      bestDiff = diff
+      best = i
+    }
+  })
+  return best
+}
+
 function speedUp() {
   if (!player) return
-  const cur = player.playbackRate
-  const idx = PLAYBACK_RATES.findIndex((r) => Math.abs(r - cur) < 0.01)
-  const next = PLAYBACK_RATES[Math.min(idx + 1, PLAYBACK_RATES.length - 1)] || cur
+  const idx = nearestRateIndex(player.playbackRate)
+  const next = PLAYBACK_RATES[Math.min(idx + 1, PLAYBACK_RATES.length - 1)]
   player.playbackRate = next
   showSpeedToast(next)
 }
 
 function speedDown() {
   if (!player) return
-  const cur = player.playbackRate
-  const idx = PLAYBACK_RATES.findIndex((r) => Math.abs(r - cur) < 0.01)
-  const prev = PLAYBACK_RATES[Math.max(idx - 1, 0)] || cur
+  const idx = nearestRateIndex(player.playbackRate)
+  const prev = PLAYBACK_RATES[Math.max(idx - 1, 0)]
   player.playbackRate = prev
   showSpeedToast(prev)
 }
@@ -161,5 +251,25 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div ref="containerRef" class="drive-video-container h-full w-full min-h-[360px]" />
+  <div
+    ref="containerRef"
+    class="drive-video-container h-full w-full"
+  />
 </template>
+
+<style scoped>
+/* 兜底：保证 ArtPlayer 容器与 video 元素始终撑满父级高度，
+   避免父级高度链塌缩导致 .art-video-player(height:100%) 解析为 0（伪黑屏） */
+.drive-video-container {
+  min-height: 360px;
+}
+.drive-video-container :deep(.art-video-player) {
+  height: 100% !important;
+  width: 100% !important;
+}
+.drive-video-container :deep(.art-video-player video) {
+  height: 100% !important;
+  width: 100% !important;
+  object-fit: contain;
+}
+</style>

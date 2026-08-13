@@ -117,7 +117,7 @@ export interface IFileSearchReq {
 
 // ─── 分享 ───────────────────────────────────────────────────────
 export interface IShareCreateReq {
-  fileIds: string[]
+  fileIds: string // __,__ 分隔的文件ID串
   shareType: number // 1=公开 2=需要提取码 3=指定用户
   shareCode?: string
   expireHours?: number
@@ -217,8 +217,8 @@ export interface AppEvents {
   'xpan:open-mobile-nav': void
   'xpan:close-mobile-nav': void
   'xpan:reload-files': void
-  'xpan:open-share': { fileIds: string[] }
-  'xpan:open-folder-picker': { mode: 'move' | 'copy'; fileIds: string[] }
+  'xpan:open-share': { fileIds: string }
+  'xpan:open-folder-picker': { mode: 'move' | 'copy'; fileIds: string }
   'xpan:show-shortcuts': void
   'xpan:open-ai': void
 }

@@ -77,13 +77,13 @@ function onEnded() {
 
 onMounted(() => {
   fileService.list(
-    { parentId: panUtil.handleId(route.params.parentId || ''), fileTypes: '8' },
+    { parentId: panUtil.handleId(route.params.parentId || ''), fileTypes: '8', pageSize: 9999 },
     (res) => {
-      renderList(res.data || [])
-      const cur = (res.data || []).find((x) => x.fileId === route.params.fileId)
-      if (cur) {
-        const idx = res.data.findIndex((x) => x.fileId === route.params.fileId)
-        playMusic(cur, idx)
+      const list = res.data?.records || []
+      renderList(list)
+      const idx = list.findIndex((x) => x.fileId === route.params.fileId)
+      if (idx !== -1) {
+        playMusic(list[idx], idx)
       }
     },
     (res) => ElMessage.error(res.message)
@@ -97,16 +97,16 @@ onBeforeUnmount(() => {
 
 <template>
   <div
-    class="min-h-screen flex bg-gradient-to-br from-[var(--color-surface)] to-[var(--color-surface-2)]"
+    class="min-h-screen flex bg-linear-to-br from-(--color-surface) to-(--color-surface-2)"
   >
     <!-- 播放列表 -->
     <aside
-      class="w-80 shrink-0 border-r border-[var(--color-border)] bg-[var(--color-surface)]/80 backdrop-blur"
+      class="w-80 shrink-0 border-r border-(--color-border) bg-(--color-surface)/80 backdrop-blur"
     >
-      <div class="h-14 px-5 flex items-center gap-2 border-b border-[var(--color-border)]">
-        <Headphones :size="18" class="text-[var(--color-primary-600)]" />
+      <div class="h-14 px-5 flex items-center gap-2 border-b border-(--color-border)">
+        <Headphones :size="18" class="text-primary-600" />
         <h2 class="text-sm font-medium">音乐库</h2>
-        <span class="text-xs text-[var(--color-text-muted)] ml-auto"
+        <span class="text-xs text-(--color-text-muted) ml-auto"
           >{{ musicList.length }} 首</span
         >
       </div>
@@ -115,10 +115,10 @@ onBeforeUnmount(() => {
           v-for="(item, idx) in musicList"
           :key="item.fileId"
           type="button"
-          class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-[var(--color-surface-2)] transition-colors"
+          class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-(--color-surface-2) transition-colors"
           :class="
             activeIndex === item.fileId
-              ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)] dark:bg-[var(--color-primary-900)]/30 dark:text-[var(--color-primary-300)]'
+              ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300'
               : ''
           "
           @click="playMusic(item, idx)"
@@ -134,19 +134,19 @@ onBeforeUnmount(() => {
     <!-- 播放器 -->
     <main class="flex-1 flex items-center justify-center p-8">
       <div
-        class="w-full max-w-md rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] p-8 shadow-lg"
+        class="w-full max-w-md rounded-sm border border-(--color-border) bg-(--color-surface) p-8 shadow-lg"
       >
         <div class="flex items-center gap-4 mb-6">
           <div
-            class="size-20 rounded-sm bg-gradient-to-br from-[var(--color-primary-500)] to-[var(--color-primary-700)] flex items-center justify-center shadow-md"
+            class="size-20 rounded-sm bg-linear-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-md"
           >
             <Music :size="32" class="text-white" />
           </div>
           <div class="flex-1 min-w-0">
-            <p class="text-base font-medium text-[var(--color-text)] truncate">
+            <p class="text-base font-medium text-(--color-text) truncate">
               {{ musicName || '未选择' }}
             </p>
-            <p class="text-xs text-[var(--color-text-muted)] mt-0.5">X Pan 音乐预览</p>
+            <p class="text-xs text-(--color-text-muted) mt-0.5">X Pan 音乐预览</p>
           </div>
         </div>
 
@@ -163,7 +163,7 @@ onBeforeUnmount(() => {
         <div class="flex items-center justify-center gap-4">
           <button
             type="button"
-            class="size-12 rounded-full hover:bg-[var(--color-surface-2)] flex items-center justify-center"
+            class="size-12 rounded-full hover:bg-(--color-surface-2) flex items-center justify-center"
             aria-label="上一首"
             @click="prev"
           >
@@ -171,7 +171,7 @@ onBeforeUnmount(() => {
           </button>
           <button
             type="button"
-            class="size-16 rounded-full bg-[var(--color-primary-600)] text-white flex items-center justify-center hover:bg-[var(--color-primary-700)] transition-colors shadow-md"
+            class="size-16 rounded-full bg-primary-600 text-white flex items-center justify-center hover:bg-primary-700 transition-colors shadow-md"
             aria-label="播放/暂停"
             @click="togglePlay"
           >
@@ -180,7 +180,7 @@ onBeforeUnmount(() => {
           </button>
           <button
             type="button"
-            class="size-12 rounded-full hover:bg-[var(--color-surface-2)] flex items-center justify-center"
+            class="size-12 rounded-full hover:bg-(--color-surface-2) flex items-center justify-center"
             aria-label="下一首"
             @click="next"
           >

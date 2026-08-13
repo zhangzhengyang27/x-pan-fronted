@@ -68,14 +68,14 @@ const active = computed(() => !!sortProp.value && !!sortOrder.value)
     <template #trigger>
       <button
         type="button"
-        class="inline-flex items-center gap-1 h-8 px-2.5 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] text-xs transition-colors"
+        class="inline-flex items-center gap-1 h-8 px-2.5 rounded-sm border border-(--color-border) bg-(--color-surface) text-[13px] font-medium transition-colors"
         :class="
           active
-            ? 'border-[var(--color-primary-500)] text-[var(--color-primary-700)] dark:text-[var(--color-primary-300)] bg-[var(--color-primary-50)] dark:bg-[var(--color-primary-900)]/30'
-            : 'text-[var(--color-text-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-text)]'
+            ? 'border-primary-500 text-primary-700 dark:text-primary-300 bg-primary-50 dark:bg-primary-900/30'
+            : 'text-(--color-text) hover:bg-(--color-surface-2)'
         "
       >
-        <ArrowUpDown :size="13" />
+        <ArrowUpDown :size="14" />
         <span>{{ currentLabel }}</span>
       </button>
     </template>
@@ -89,8 +89,8 @@ const active = computed(() => !!sortProp.value && !!sortOrder.value)
         class="w-full flex items-center justify-between px-4 py-2 text-sm transition-colors"
         :class="
           sortProp === f.key
-            ? 'text-[var(--color-primary-500)]'
-            : 'text-[var(--color-text)] hover:bg-[var(--color-surface-2)]'
+            ? 'text-primary-500'
+            : 'text-(--color-text) hover:bg-(--color-surface-2)'
         "
         @click="selectField(f.key)"
       >
@@ -102,7 +102,7 @@ const active = computed(() => !!sortProp.value && !!sortOrder.value)
       </button>
 
       <!-- 分隔线 -->
-      <div class="my-1 border-t border-[var(--color-border)]" />
+      <div class="my-1 border-t border-(--color-border)" />
 
       <!-- 正序 / 倒序 -->
       <button
@@ -112,8 +112,8 @@ const active = computed(() => !!sortProp.value && !!sortOrder.value)
         class="w-full flex items-center justify-between px-4 py-2 text-sm transition-colors"
         :class="
           sortOrder === d.value
-            ? 'text-[var(--color-primary-500)]'
-            : 'text-[var(--color-text)] hover:bg-[var(--color-surface-2)]'
+            ? 'text-primary-500'
+            : 'text-(--color-text) hover:bg-(--color-surface-2)'
         "
         @click="selectDirection(d.value)"
       >
@@ -127,11 +127,11 @@ const active = computed(() => !!sortProp.value && !!sortOrder.value)
       <!-- 重置 -->
       <div
         v-if="sortProp || sortOrder"
-        class="mt-1 pt-1 border-t border-[var(--color-border)]"
+        class="mt-1 pt-1 border-t border-(--color-border)"
       >
         <button
           type="button"
-          class="w-full px-4 py-2 text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-2)] transition-colors text-left"
+          class="w-full px-4 py-2 text-sm text-(--color-text-muted) hover:text-(--color-text) hover:bg-(--color-surface-2) transition-colors text-left"
           @click="clearSort"
         >
           默认排序

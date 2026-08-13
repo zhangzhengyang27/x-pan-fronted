@@ -225,8 +225,8 @@ function onClose() {
       <!-- Step 1：配置 -->
       <div v-if="step === 1" class="space-y-4">
         <div>
-          <label class="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5">
-            分享名称 <span class="text-[var(--color-danger)]">*</span>
+          <label class="block text-xs font-medium text-(--color-text-muted) mb-1.5">
+            分享名称 <span class="text-danger">*</span>
           </label>
           <BaseInput
             ref="shareNameInputRef"
@@ -238,7 +238,7 @@ function onClose() {
           />
         </div>
         <div>
-          <label class="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5"
+          <label class="block text-xs font-medium text-(--color-text-muted) mb-1.5"
             >分享类型</label
           >
           <BaseSelect
@@ -246,23 +246,23 @@ function onClose() {
             :options="[{ value: '0', label: '有提取码' }]"
             disabled
           />
-          <p class="mt-1 text-[11px] text-[var(--color-text-muted)]">当前仅支持提取码分享</p>
+          <p class="mt-1 text-[11px] text-(--color-text-muted)">当前仅支持提取码分享</p>
         </div>
         <div>
-          <label class="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5"
+          <label class="block text-xs font-medium text-(--color-text-muted) mb-1.5"
             >分享有效期</label
           >
           <BaseSelect v-model="form.shareDayType" :options="dayTypeOptions" />
         </div>
 
         <!-- 高级选项 -->
-        <div class="border-t border-[var(--color-border)] pt-4 space-y-3">
-          <p class="text-xs font-medium text-[var(--color-text)] flex items-center gap-1.5">
+        <div class="border-t border-(--color-border) pt-4 space-y-3">
+          <p class="text-xs font-medium text-(--color-text) flex items-center gap-1.5">
             <Lock :size="12" />
             高级选项（可选）
           </p>
           <div>
-            <label class="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5"
+            <label class="block text-xs font-medium text-(--color-text-muted) mb-1.5"
               >自定义提取码</label
             >
             <div class="flex gap-2">
@@ -281,12 +281,12 @@ function onClose() {
                 随机
               </BaseButton>
             </div>
-            <p v-if="!errors.shareCode" class="mt-1 text-[11px] text-[var(--color-text-muted)]">
+            <p v-if="!errors.shareCode" class="mt-1 text-[11px] text-(--color-text-muted)">
               4-8 位字母数字，留空则系统自动生成
             </p>
           </div>
           <div>
-            <label class="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5"
+            <label class="block text-xs font-medium text-(--color-text-muted) mb-1.5"
               >下载次数限制</label
             >
             <BaseInput
@@ -297,7 +297,7 @@ function onClose() {
               min="0"
               max="999"
             />
-            <p v-if="!errors.downloadLimit" class="mt-1 text-[11px] text-[var(--color-text-muted)]">
+            <p v-if="!errors.downloadLimit" class="mt-1 text-[11px] text-(--color-text-muted)">
               达到上限后分享将失效，0 或留空表示不限制
             </p>
           </div>
@@ -307,13 +307,13 @@ function onClose() {
       <!-- Step 2：结果 -->
       <div v-else class="space-y-4">
         <div
-          class="flex items-center justify-center size-12 mx-auto rounded-full bg-[var(--color-success)]/10 text-[var(--color-success)]"
+          class="flex items-center justify-center size-12 mx-auto rounded-full bg-success/10 text-success"
         >
           <Check :size="22" />
         </div>
 
         <div>
-          <label class="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5"
+          <label class="block text-xs font-medium text-(--color-text-muted) mb-1.5"
             >分享链接</label
           >
           <div class="flex gap-2">
@@ -325,20 +325,20 @@ function onClose() {
         </div>
 
         <div>
-          <label class="block text-xs font-medium text-[var(--color-text-muted)] mb-1.5"
+          <label class="block text-xs font-medium text-(--color-text-muted) mb-1.5"
             >提取码</label
           >
           <div
-            class="px-4 py-3 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface-2)] text-center tracking-[0.5em] text-xl font-mono font-semibold text-[var(--color-primary-600)] dark:text-[var(--color-primary-400)]"
+            class="px-4 py-3 rounded-sm border border-(--color-border) bg-(--color-surface-2) text-center tracking-[0.5em] text-xl font-mono font-semibold text-primary-600 dark:text-primary-400"
           >
             {{ result.shareCode }}
           </div>
         </div>
 
-        <div class="border-t border-[var(--color-border)] pt-4">
+        <div class="border-t border-(--color-border) pt-4">
           <button
             type="button"
-            class="text-xs text-[var(--color-primary-600)] hover:underline flex items-center gap-1"
+            class="text-xs text-primary-600 hover:underline flex items-center gap-1"
             @click="showQR = !showQR"
           >
             <QrCode :size="12" />
@@ -346,7 +346,7 @@ function onClose() {
           </button>
           <div
             v-if="showQR"
-            class="mt-3 w-40 h-40 mx-auto rounded-sm bg-white p-2 shadow-sm border border-[var(--color-border)]"
+            class="mt-3 w-40 h-40 mx-auto rounded-sm bg-white p-2 shadow-sm border border-(--color-border)"
             v-html="qrSvg"
           />
         </div>

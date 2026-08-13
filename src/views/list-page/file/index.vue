@@ -38,6 +38,7 @@ import { useFileStore } from '@/stores/file'
 import { useBreadcrumbStore } from '@/stores/breadcrumb'
 import { useUploader } from '@/composables/useUploader'
 import { storeToRefs } from 'pinia'
+import fileService from '@/api/file'
 import { ElMessage } from '@/composables/useToast'
 
 const fileStore = useFileStore()
@@ -255,11 +256,30 @@ function onWindowDrop(e: DragEvent) {
 
 onMounted(() => {
   if (!searchFlag.value) {
-    const firstItem = { id: defaultParentId.value, name: defaultParentFilename.value }
-    breadcrumbStore.clear()
-    breadcrumbStore.addItem(firstItem)
-    fileStore.refreshParentId()
-    // P2-8: 从 query.type 读取类型筛选（首次进入仍重置到根目录）
+    const savedParentId = fileStore.parentId
+    if (savedParentId && savedParentId !== '-1') {
+      // 刷新后恢复：用保存的目录重新拉面包屑 + 列表
+      fileService.getBreadcrumbs(
+        { fileId: savedParentId },
+        (res) => {
+          breadcrumbStore.clear()
+          breadcrumbStore.reset(res.data)
+          fileStore.loadFileList()
+        },
+        () => {
+          breadcrumbStore.clear()
+          breadcrumbStore.addItem({ id: defaultParentId.value, name: defaultParentFilename.value })
+          fileStore.refreshParentId()
+          fileStore.loadFileList()
+        }
+      )
+    } else {
+      // 根目录：重置 breadcrumb
+      breadcrumbStore.clear()
+      breadcrumbStore.addItem({ id: defaultParentId.value, name: defaultParentFilename.value })
+      fileStore.refreshParentId()
+    }
+    // P2-8: 从 query.type 读取类型筛选（保留当前目录上下文）
     applyTypeQuery(route.query.type)
   }
   window.addEventListener('dragover', onWindowDragOver)
@@ -287,8 +307,8 @@ onUnmounted(() => {
     <div class="flex flex-1 gap-4 min-h-0">
     <!-- 拖拽上传区域 -->
     <div
-      class="flex flex-col gap-4 relative flex-1 min-w-0 h-full"
-      :class="isDragOver ? 'ring-2 ring-inset ring-[var(--color-primary-500)] rounded-xl' : ''"
+      class="flex flex-col relative flex-1 min-w-0 h-full"
+      :class="isDragOver ? 'ring-2 ring-inset ring-primary-500 rounded-xl' : ''"
       @dragenter="onDragEnter"
       @dragover="onDragOver"
       @dragleave="onDragLeave"
@@ -321,16 +341,16 @@ onUnmounted(() => {
     </Transition>
 
     <!-- 固定头部：工具条 + 面包屑 -->
-    <div class="sticky top-0 z-20 bg-[var(--color-bg)] pb-4 flex flex-col gap-4">
+    <div class="sticky top-0 z-20 bg-(--color-bg) flex flex-col">
       <!-- 工具条 -->
       <div
-        class="flex items-center justify-between gap-4 p-3 rounded-sm bg-[var(--color-surface-container-low)]"
+        class="flex items-center justify-between gap-4 p-3 rounded-sm bg-(--color-surface-container-low)"
       >
       <div class="flex items-center gap-2">
         <FileButtonGroup :button-array="buttonArray" />
 
         <template v-if="selectedCount > 0">
-          <div class="w-px h-4 bg-[var(--color-border)]" />
+          <div class="w-px h-4 bg-(--color-border)" />
 
           <button
             type="button"
@@ -342,18 +362,18 @@ onUnmounted(() => {
             <Check v-if="isAllSelected" :size="12" :stroke-width="3" />
             <Minus v-else-if="isIndeterminate" :size="12" :stroke-width="3" />
           </button>
-          <span class="text-sm text-[var(--color-text)]">
+          <span class="text-sm text-(--color-text)">
             已选
             <span class="font-medium tabular-nums">{{ selectedCount }}</span>
             项
           </span>
 
-          <div class="w-px h-4 bg-[var(--color-border)]" />
+          <div class="w-px h-4 bg-(--color-border)" />
 
           <BaseTooltip text="下载" position="bottom">
             <button
               type="button"
-              class="h-8 px-2 rounded-sm text-sm inline-flex items-center gap-1 text-[var(--color-text)] hover:bg-[var(--color-surface-2)]"
+              class="h-8 px-2 rounded-sm text-sm inline-flex items-center gap-1 text-(--color-text) hover:bg-(--color-surface-2)"
               @click="onBatchDownload"
             >
               <Download :size="16" />
@@ -363,7 +383,7 @@ onUnmounted(() => {
           <BaseTooltip text="分享" position="bottom">
             <button
               type="button"
-              class="h-8 px-2 rounded-sm text-sm inline-flex items-center gap-1 text-[var(--color-text)] hover:bg-[var(--color-surface-2)]"
+              class="h-8 px-2 rounded-sm text-sm inline-flex items-center gap-1 text-(--color-text) hover:bg-(--color-surface-2)"
               @click="onBatchShare"
             >
               <Share2 :size="16" />
@@ -375,7 +395,7 @@ onUnmounted(() => {
           <BaseTooltip text="删除" position="bottom">
             <button
               type="button"
-              class="h-8 px-2 rounded-sm text-sm inline-flex items-center gap-1 text-[var(--color-danger)] hover:bg-[var(--color-danger-bg)]/20"
+              class="h-8 px-2 rounded-sm text-sm inline-flex items-center gap-1 text-danger hover:bg-(--color-danger-bg)/20"
               @click="onBatchDelete"
             >
               <Trash2 :size="16" />
@@ -386,7 +406,7 @@ onUnmounted(() => {
             <template #trigger>
               <button
                 type="button"
-                class="h-8 px-2 rounded-sm text-sm inline-flex items-center gap-1 text-[var(--color-text)] hover:bg-[var(--color-surface-2)]"
+                class="h-8 px-2 rounded-sm text-sm inline-flex items-center gap-1 text-(--color-text) hover:bg-(--color-surface-2)"
               >
                 <MoreHorizontal :size="16" />
                 更多
@@ -395,21 +415,21 @@ onUnmounted(() => {
             <div class="py-1 min-w-[120px]">
               <button
                 type="button"
-                class="w-full px-3 py-1.5 text-sm text-left text-[var(--color-text)] hover:bg-[var(--color-surface-2)]"
+                class="w-full px-3 py-1.5 text-sm text-left text-(--color-text) hover:bg-(--color-surface-2)"
                 @click="onMoreAction('rename')"
               >
                 重命名
               </button>
               <button
                 type="button"
-                class="w-full px-3 py-1.5 text-sm text-left text-[var(--color-text)] hover:bg-[var(--color-surface-2)]"
+                class="w-full px-3 py-1.5 text-sm text-left text-(--color-text) hover:bg-(--color-surface-2)"
                 @click="onMoreAction('favorite')"
               >
                 收藏
               </button>
               <button
                 type="button"
-                class="w-full px-3 py-1.5 text-sm text-left text-[var(--color-text)] hover:bg-[var(--color-surface-2)]"
+                class="w-full px-3 py-1.5 text-sm text-left text-(--color-text) hover:bg-(--color-surface-2)"
                 @click="onMoreAction('detail')"
               >
                 查看详情
@@ -426,7 +446,7 @@ onUnmounted(() => {
           @filter-change="onFilterChange"
         />
         <div
-          class="flex items-center rounded-sm overflow-hidden bg-[var(--color-surface)] border border-[var(--color-border)]"
+          class="flex items-center rounded-sm overflow-hidden bg-(--color-surface) border border-(--color-border)"
         >
           <BaseTooltip text="列表视图" position="bottom">
             <button
@@ -451,11 +471,11 @@ onUnmounted(() => {
             </button>
           </BaseTooltip>
         </div>
-        <div class="w-px h-4 bg-[var(--color-border)]" />
+        <div class="w-px h-4 bg-(--color-border)" />
         <BaseTooltip text="刷新" position="bottom">
           <button
             type="button"
-            class="size-8 rounded-sm inline-flex items-center justify-center transition-colors text-[var(--color-text)] hover:bg-[var(--color-surface-2)]"
+            class="size-8 rounded-sm inline-flex items-center justify-center transition-colors text-(--color-text) hover:bg-(--color-surface-2)"
             @click="onRefresh"
           >
             <RefreshCw :size="16" />
@@ -465,31 +485,33 @@ onUnmounted(() => {
     </div>
 
       <!-- 面包屑 -->
-      <BreadCrumb />
+      <BreadCrumb class="pt-2 pb-1" />
     </div>
 
     <!-- 文件表格 -->
-    <FileTable ref="fileTableRef" class="flex-1 min-h-0" />
-
-    <!-- 空白处上传提示 -->
-    <div
-      class="mt-4 py-6 rounded-xl border border-dashed text-center flex-none"
-      style="border-color: var(--color-border-strong);"
-    >
-      <p class="text-sm text-[var(--color-text-muted)]">
-        点击
-        <button
-          type="button"
-          class="text-[var(--color-primary-500)] hover:underline"
-          @click="fileTableRef?.triggerUpload?.()"
+    <FileTable ref="fileTableRef" class="flex-1 min-h-0">
+      <template #after-list>
+        <!-- 空白处上传提示（跟随文件列表之后） -->
+        <div
+          class="mt-4 py-6 rounded-xl border border-dashed text-center flex-none"
+          style="border-color: var(--color-border-strong);"
         >
-          上传文件
-        </button>
-        or
-        <span class="text-[var(--color-primary-500)]">拖拽/粘贴</span>
-        到空白处上传文件
-      </p>
-    </div>
+          <p class="text-sm text-(--color-text-muted)">
+            点击
+            <button
+              type="button"
+              class="text-primary-500 hover:underline"
+              @click="fileTableRef?.triggerUpload?.()"
+            >
+              上传文件
+            </button>
+            or
+            <span class="text-primary-500">拖拽/粘贴</span>
+            到空白处上传文件
+          </p>
+        </div>
+      </template>
+    </FileTable>
   </div>
 
   <Transition name="detail-mask">

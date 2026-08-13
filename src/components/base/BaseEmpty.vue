@@ -23,15 +23,15 @@ defineProps({
         :is="icon"
         :size="30"
         :stroke-width="1.5"
-        class="text-[var(--color-primary-500)]"
+        class="text-primary-500"
       />
     </div>
     <!-- 标题 -->
-    <h3 class="text-sm font-medium text-[var(--color-text)] mb-1.5">{{ title }}</h3>
+    <h3 class="text-sm font-medium text-(--color-text) mb-1.5">{{ title }}</h3>
     <!-- 描述 -->
     <p
       v-if="description"
-      class="text-xs text-[var(--color-text-muted)] max-w-xs leading-relaxed mb-4"
+      class="text-xs text-(--color-text-muted) max-w-xs leading-relaxed mb-4"
     >
       {{ description }}
     </p>

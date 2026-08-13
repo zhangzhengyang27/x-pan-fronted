@@ -84,12 +84,12 @@ function close() {
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
         @click.self="close"
       >
-        <div class="w-[560px] max-w-[90vw] rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-xl">
+        <div class="w-[560px] max-w-[90vw] rounded-xl border border-(--color-border) bg-(--color-surface) shadow-xl">
           <!-- 头部 -->
-          <div class="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)]">
-            <h3 class="text-base font-medium text-[var(--color-text)]">设备管理</h3>
+          <div class="flex items-center justify-between px-5 py-4 border-b border-(--color-border)">
+            <h3 class="text-base font-medium text-(--color-text)">设备管理</h3>
             <button
-              class="p-1.5 rounded-sm hover:bg-[var(--color-surface-container-low)] text-[var(--color-text-muted)]"
+              class="p-1.5 rounded-sm hover:bg-(--color-surface-container-low) text-(--color-text-muted)"
               @click="close"
             >
               <X :size="16" />
@@ -98,13 +98,13 @@ function close() {
 
           <!-- 内容区 -->
           <div class="px-5 py-4">
-            <p class="text-xs text-[var(--color-text-muted)] mb-4">
+            <p class="text-xs text-(--color-text-muted) mb-4">
               以下是当前账号登录的设备，如发现陌生设备请立即下线并修改密码。
             </p>
 
             <!-- 加载中 -->
             <div v-if="loading" class="flex items-center justify-center py-12">
-              <LoaderCircle :size="24" class="animate-spin text-[var(--color-primary-500)]" />
+              <LoaderCircle :size="24" class="animate-spin text-primary-500" />
             </div>
 
             <!-- 设备列表 -->
@@ -112,7 +112,7 @@ function close() {
               <div
                 v-for="d in devices"
                 :key="d.deviceId"
-                class="flex items-center gap-3 p-3 rounded-sm border border-[var(--color-border)] hover:bg-[var(--color-surface-container-low)]"
+                class="flex items-center gap-3 p-3 rounded-sm border border-(--color-border) hover:bg-(--color-surface-container-low)"
               >
                 <div
                   class="size-10 rounded-sm flex items-center justify-center shrink-0"
@@ -121,12 +121,12 @@ function close() {
                   <component
                     :is="deviceIcon(d)"
                     :size="20"
-                    :class="d.isCurrent ? 'text-green-500' : 'text-[var(--color-text-muted)]'"
+                    :class="d.isCurrent ? 'text-green-500' : 'text-(--color-text-muted)'"
                   />
                 </div>
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-2">
-                    <span class="text-sm font-medium text-[var(--color-text)]">{{ d.deviceName }}</span>
+                    <span class="text-sm font-medium text-(--color-text)">{{ d.deviceName }}</span>
                     <span
                       v-if="d.isCurrent"
                       class="px-1.5 py-0.5 rounded text-[10px] font-medium text-green-600"
@@ -135,10 +135,10 @@ function close() {
                       当前设备
                     </span>
                   </div>
-                  <div class="flex items-center gap-3 mt-1 text-xs text-[var(--color-text-muted)]">
+                  <div class="flex items-center gap-3 mt-1 text-xs text-(--color-text-muted)">
                     <span>{{ d.browser }} · {{ d.os }}</span>
                   </div>
-                  <div class="flex items-center gap-3 mt-1 text-xs text-[var(--color-text-muted)]">
+                  <div class="flex items-center gap-3 mt-1 text-xs text-(--color-text-muted)">
                     <span class="flex items-center gap-1">
                       <MapPin :size="11" />
                       {{ d.location }} ({{ d.ip }})

@@ -90,8 +90,8 @@ const statItems = computed(() => [
 
 // 存储环
 const quotaColor = computed(() => {
-  if (usedPercent.value >= 90) return 'var(--color-danger)'
-  if (usedPercent.value >= 70) return 'var(--color-warning)'
+  if (usedPercent.value >= 90) return 'vardanger'
+  if (usedPercent.value >= 70) return 'varwarning'
   return 'var(--color-primary-500)'
 })
 
@@ -143,7 +143,7 @@ function shorten(str, len = 8) {
   <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
     <!-- 存储环 -->
     <div
-      class="rounded-xl border border-[var(--color-border)] p-4 flex flex-col items-center justify-center bg-[var(--color-surface-container-low)]"
+      class="rounded-xl border border-(--color-border) p-4 flex flex-col items-center justify-center bg-(--color-surface-container-low)"
     >
       <div class="relative w-24 h-24 mb-3">
         <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
@@ -158,7 +158,7 @@ function shorten(str, len = 8) {
           />
         </svg>
         <div class="absolute inset-0 flex flex-col items-center justify-center">
-          <span class="text-xl font-bold tabular-nums text-[var(--color-text)]">
+          <span class="text-xl font-bold tabular-nums text-(--color-text)">
             {{ Math.round(usedPercent) }}%
           </span>
           <span class="text-[10px]" style="color: var(--color-text-muted);">Used</span>
@@ -171,13 +171,13 @@ function shorten(str, len = 8) {
 
     <!-- 统计卡片 - 文件总数 -->
     <div
-      class="rounded-xl border border-[var(--color-border)] p-4 flex flex-col justify-between bg-[var(--color-surface-container-low)]"
+      class="rounded-xl border border-(--color-border) p-4 flex flex-col justify-between bg-(--color-surface-container-low)"
     >
       <span :style="{ color: quotaColor }">
         <Folder :size="20" :stroke-width="2" />
       </span>
       <div>
-        <div class="text-2xl font-bold tabular-nums text-[var(--color-text)]">
+        <div class="text-2xl font-bold tabular-nums text-(--color-text)">
           {{ stats.total.toLocaleString() }}
         </div>
         <div class="text-xs" style="color: var(--color-text-muted);">文件总数</div>
@@ -186,13 +186,13 @@ function shorten(str, len = 8) {
 
     <!-- 图片数 -->
     <div
-      class="rounded-xl border border-[var(--color-border)] p-4 flex flex-col justify-between bg-[var(--color-surface-container-low)]"
+      class="rounded-xl border border-(--color-border) p-4 flex flex-col justify-between bg-(--color-surface-container-low)"
     >
       <span style="color: var(--color-primary-500);">
         <FileImage :size="20" :stroke-width="2" />
       </span>
       <div>
-        <div class="text-2xl font-bold tabular-nums text-[var(--color-text)]">
+        <div class="text-2xl font-bold tabular-nums text-(--color-text)">
           {{ stats.image.toLocaleString() }}
         </div>
         <div class="text-xs" style="color: var(--color-text-muted);">图片</div>
@@ -201,13 +201,13 @@ function shorten(str, len = 8) {
 
     <!-- 收藏数 -->
     <div
-      class="rounded-xl border border-[var(--color-border)] p-4 flex flex-col justify-between bg-[var(--color-surface-container-low)]"
+      class="rounded-xl border border-(--color-border) p-4 flex flex-col justify-between bg-(--color-surface-container-low)"
     >
-      <span style="color: var(--color-warning);">
+      <span style="color: varwarning;">
         <Star :size="20" :stroke-width="2" />
       </span>
       <div>
-        <div class="text-2xl font-bold tabular-nums text-[var(--color-text)]">
+        <div class="text-2xl font-bold tabular-nums text-(--color-text)">
           {{ favoriteCount.toLocaleString() }}
         </div>
         <div class="text-xs" style="color: var(--color-text-muted);">收藏</div>

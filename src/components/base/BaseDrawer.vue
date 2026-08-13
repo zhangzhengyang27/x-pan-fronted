@@ -4,19 +4,25 @@
  * position: left | right | top | bottom
  */
 import { watch, ref, nextTick, computed } from 'vue'
+import type { PropType } from 'vue'
 import { X } from '@lucide/vue'
 import { cn } from '@/utils/classnames'
+
+type DrawerPosition = 'left' | 'right' | 'top' | 'bottom'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
   title: { type: String, default: '' },
-  position: { type: String, default: 'right' },
+  position: { type: String as PropType<DrawerPosition>, default: 'right' },
   width: { type: String, default: '420px' },
   height: { type: String, default: '60vh' }
 })
 
-const emit = defineEmits(['update:open', 'close'])
-const dialogRef = ref(null)
+const emit = defineEmits<{
+  'update:open': [value: boolean]
+  close: []
+}>()
+const dialogRef = ref<HTMLDialogElement | null>(null)
 
 watch(
   () => props.open,
@@ -49,7 +55,7 @@ const sizeStyle = computed(() =>
       ref="dialogRef"
       :class="
         cn(
-          'fixed p-0 m-0 bg-transparent text-[var(--color-text)] backdrop:bg-black/50 backdrop:backdrop-blur-sm',
+          'fixed p-0 m-0 bg-transparent text-(--color-text) backdrop:bg-black/50 backdrop:backdrop-blur-sm',
           position === 'right' && 'ml-auto top-0 bottom-0 right-0',
           position === 'left' && 'mr-auto top-0 bottom-0 left-0',
           position === 'top' && 'top-0 left-0 right-0',
@@ -61,7 +67,7 @@ const sizeStyle = computed(() =>
       @close="emit('update:open', false)"
     >
       <div
-        class="h-full w-full bg-[var(--color-surface)] shadow-xl border border-[var(--color-border)] flex flex-col"
+        class="h-full w-full bg-(--color-surface) shadow-xl border border-(--color-border) flex flex-col"
         :class="
           (position === 'right' && 'rounded-l-2xl',
           position === 'left' && 'rounded-r-2xl',
@@ -70,12 +76,12 @@ const sizeStyle = computed(() =>
         "
       >
         <div
-          class="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)]"
+          class="flex items-center justify-between px-5 py-4 border-b border-(--color-border)"
         >
           <h2 class="text-base font-semibold m-0">{{ title }}</h2>
           <button
             type="button"
-            class="text-[var(--color-text-muted)] hover:text-[var(--color-text)] rounded-sm p-1 hover:bg-[var(--color-surface-2)]"
+            class="text-(--color-text-muted) hover:text-(--color-text) rounded-sm p-1 hover:bg-(--color-surface-2)"
             aria-label="关闭"
             @click="onClose"
           >
@@ -87,7 +93,7 @@ const sizeStyle = computed(() =>
         </div>
         <div
           v-if="$slots.footer"
-          class="px-5 py-3 border-t border-[var(--color-border)] flex justify-end gap-2 bg-[var(--color-surface-2)]"
+          class="px-5 py-3 border-t border-(--color-border) flex justify-end gap-2 bg-(--color-surface-2)"
         >
           <slot name="footer" />
         </div>
