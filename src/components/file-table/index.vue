@@ -131,6 +131,16 @@ function downloadSelected() {
   batchDownload(selectedRows.value)
 }
 
+// 单个文件下载（DrivePreviewModal 弹窗"下载"按钮）
+function onDownload(row: Record<string, any>) {
+  if (!row) return
+  if (row.fileType === 0) {
+    ElMessage.error('文件夹暂不支持下载')
+    return
+  }
+  batchDownload([row])
+}
+
 function renameSelected() {
   if (!selectedRows.value.length) {
     ElMessage.error('请先选择要重命名的文件')
@@ -252,7 +262,7 @@ function clickFilename(row: Record<string, any>) {
     case 8:
       return openNewPage('/preview/music', 'PreviewMusic', { fileId: panUtil.handleId(row.fileId), parentId: panUtil.handleId(row.parentId || '0') }, { filename: row.filename })
     case 9:
-      return openNewPage('/preview/video', 'PreviewVideo', { fileId: panUtil.handleId(row.fileId), parentId: panUtil.handleId(row.parentId || '0') }, { filename: row.filename })
+      return openNewPage('/preview/video', 'PreviewVideo', { fileId: panUtil.handleId(row.fileId) }, { filename: row.filename })
     case 11:
       return openNewPage('/preview/code', 'PreviewCode', { fileId: panUtil.handleId(row.fileId) }, { filename: row.filename })
   }
@@ -552,7 +562,7 @@ const selBoxStyle = computed(() => {
 })
 
 // ─── 收藏 ─────────────────────────────────────────────────────────────────
-const { isFavorite, toggle: toggleFavorite } = useFavorites()
+const { isFavorite, toggle: toggleFavorite, ensureLoaded: ensureFavoritesLoaded } = useFavorites()
 
 // ─── 移动/复制对话框 ──────────────────────────────────────────────────────
 const moveDialog = ref({ open: false, mode: 'move' as 'move' | 'copy', row: null as any })
@@ -813,6 +823,7 @@ onMounted(() => {
   fileStore.setMultipleSelection([])
   window.addEventListener('keydown', onKeyDown)
   setupIntersectionObserver()
+  ensureFavoritesLoaded()
 })
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeyDown)
@@ -1036,5 +1047,6 @@ onBeforeUnmount(() => {
       :filename="extractDialog.filename"
       @extracted="onExtracted"
     />
+
   </div>
 </template>

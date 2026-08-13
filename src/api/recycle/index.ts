@@ -9,9 +9,20 @@ import type { IFileVO } from '@/types'
 
 type Callback<T> = (res: ApiResponse<T>) => void
 
+export interface IRecycleStatVO {
+  fileCount: number
+  sizeBytes: number
+  sizeDesc: string
+}
+
 const recycleService = {
   recycles(resolve: Callback<IFileVO[]>, reject: Callback<unknown>) {
     http.get<unknown, ApiResponse<IFileVO[]>>('/recycles').then(resolve).catch(reject)
+  },
+
+  /** 回收站统计（文件数、占用空间） */
+  stat(resolve: Callback<IRecycleStatVO>, reject: Callback<unknown>) {
+    http.get<unknown, ApiResponse<IRecycleStatVO>>('/stat').then(resolve).catch(reject)
   },
 
   restoreRecycle(

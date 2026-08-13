@@ -86,6 +86,26 @@ const fileService = {
       .catch(reject)
   },
 
+  /** 搜索联想（P4-5 后端 suggest，基于用户历史 + 文件名前缀） */
+  suggest(
+    prefix: string,
+    resolve: Callback<string[]>,
+    reject: Callback<unknown>
+  ) {
+    http
+      .get<unknown, ApiResponse<string[]>>('/file/search/suggest', { params: { prefix } })
+      .then(resolve)
+      .catch(reject)
+  },
+
+  /** 热搜榜（P4-5 全站聚合） */
+  hot(limit: number, resolve: Callback<string[]>, reject: Callback<unknown>) {
+    http
+      .get<unknown, ApiResponse<string[]>>('/file/search/hot', { params: { limit } })
+      .then(resolve)
+      .catch(reject)
+  },
+
   getBreadcrumbs(
     params: { fileId: string },
     resolve: Callback<unknown>,

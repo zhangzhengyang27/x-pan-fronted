@@ -21,7 +21,9 @@ import {
   Download as DownloadIcon,
   Shield,
   BarChart3,
-  HardDrive
+  HardDrive,
+  Star,
+  Copy as CopyIcon
 } from '@lucide/vue'
 import { useResizable } from '@/composables/useResizable'
 import { useUserStore } from '@/stores/user'
@@ -66,7 +68,8 @@ const groups = computed(() => [
       { key: 'Imgs', label: '图片', icon: ImageIcon, path: '/files', query: { type: 'imgs' } },
       { key: 'Docs', label: '文档', icon: FileText, path: '/files', query: { type: 'docs' } },
       { key: 'Videos', label: '视频', icon: Video, path: '/files', query: { type: 'videos' } },
-      { key: 'Musics', label: '音乐', icon: Music, path: '/files', query: { type: 'musics' } }
+      { key: 'Musics', label: '音乐', icon: Music, path: '/files', query: { type: 'musics' } },
+      { key: 'Favorites', label: '我的收藏', icon: Star, path: '/favorites', query: {} }
     ]
   },
   {
@@ -76,6 +79,7 @@ const groups = computed(() => [
       { key: 'Offline', label: '离线下载', icon: DownloadIcon, path: '/offline', query: {} },
       { key: 'Vault', label: '隐私保险箱', icon: Shield, path: '/vault', query: {} },
       { key: 'Stats', label: '存储统计', icon: BarChart3, path: '/stats', query: {} },
+      { key: 'Dedup', label: '文件去重', icon: CopyIcon, path: '/dedup', query: {} },
       { key: 'Recycles', label: '回收站', icon: Trash2, path: '/recycles', query: {} }
     ]
   }
@@ -91,7 +95,9 @@ const goMap = {
   Recycles: { path: '/recycles' },
   Offline: { path: '/offline' },
   Vault: { path: '/vault' },
-  Stats: { path: '/stats' }
+  Stats: { path: '/stats' },
+  Favorites: { path: '/favorites' },
+  Dedup: { path: '/dedup' }
 }
 
 function go(key: string) {

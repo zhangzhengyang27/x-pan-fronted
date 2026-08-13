@@ -25,7 +25,7 @@ import {
   ChevronRight,
   RotateCcw
 } from '@lucide/vue'
-import recycleService from '@/api/recycle'
+import recycleService, { type IRecycleStatVO } from '@/api/recycle'
 import { ElMessage, ElMessageBox } from '@/composables/useToast'
 import BaseTable from '@/components/base/BaseTable.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
@@ -36,6 +36,14 @@ const RECYCLE_EXPIRE_DAYS = 30
 const tableData = ref([])
 const selected = ref([])
 const tableLoading = ref(true)
+const recycleStat = ref<IRecycleStatVO | null>(null)
+
+function loadRecycleStat() {
+  recycleService.stat(
+    (res) => { recycleStat.value = res.data },
+    () => {}
+  )
+}
 
 // 文件类型筛选（与文件页映射保持一致，新增 folder/archive/audio/install 以满足截图分类）
 const typeFilter = ref('-1')
@@ -215,7 +223,10 @@ function restoreAllFiltered() {
   }).catch(() => {})
 }
 
-onMounted(loadTableData)
+onMounted(() => {
+  loadTableData()
+  loadRecycleStat()
+})
 </script>
 
 <template>
@@ -226,7 +237,10 @@ onMounted(loadTableData)
         <span class="text-sm text-(--color-text-secondary) whitespace-nowrap">全部</span>
         <ChevronRight :size="14" class="text-(--color-text-muted)" />
         <span class="text-sm font-medium text-(--color-text)">回收站</span>
-        <span v-if="totalSummary.count > 0" class="quark-badge text-[11px]">{{ totalSummary.count }} 项</span>
+        <span v-if="totalSummary.count > 0 || recycleStat?.fileCount" class="quark-badge text-[11px]">
+          {{ recycleStat?.fileCount ?? totalSummary.count }} 项
+          <template v-if="recycleStat?.sizeDesc">&nbsp;· 占用 {{ recycleStat.sizeDesc }}</template>
+        </span>
       </div>
       <span class="text-xs text-(--color-text-secondary) whitespace-nowrap">
         文件保存有效期 {{ RECYCLE_EXPIRE_DAYS }} 天

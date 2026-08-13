@@ -51,7 +51,6 @@ const MAP: Record<string, FileKind> = {
   avi: 'video',
   wmv: 'video',
   flv: 'video',
-  m3u8: 'video',
   mp3: 'audio',
   wav: 'audio',
   ogg: 'audio',

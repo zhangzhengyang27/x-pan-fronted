@@ -25,11 +25,54 @@ const { defaultParentId, defaultParentFilename, fileList } = storeToRefs(fileSto
 const searchKey = ref('')
 const showSuggest = ref(false)
 const suggestions = ref([])
+/** 后端联想词（字符串关键词，点击后直接搜索） */
+const suggestWords = ref<string[]>([])
+/** 热搜词 */
+const hotWords = ref<string[]>([])
 const inputRef = ref(null)
+
+let suggestTimer: ReturnType<typeof setTimeout> | null = null
+
+/** 防抖调后端 suggest */
+function fetchSuggest(prefix: string) {
+  if (suggestTimer) clearTimeout(suggestTimer)
+  suggestTimer = setTimeout(() => {
+    fileService.suggest(
+      prefix,
+      (res) => {
+        suggestWords.value = res.data || []
+      },
+      () => {
+        suggestWords.value = []
+      }
+    )
+  }, 200)
+}
+
+/** 加载热搜词（聚焦空框时展示） */
+function fetchHot() {
+  fileService.hot(
+    10,
+    (res) => {
+      hotWords.value = res.data || []
+    },
+    () => {}
+  )
+}
 
 // Ctrl/Cmd+K 聚焦搜索框
 function onFocusSearch() {
   inputRef.value?.focus()
+}
+
+// 输入框聚焦：空框时加载热搜并展示下拉
+function onInputFocus() {
+  if (!searchKey.value.trim()) {
+    if (hotWords.value.length === 0) fetchHot()
+    showSuggest.value = true
+  } else {
+    showSuggest.value = suggestions.value.length > 0 || suggestWords.value.length > 0
+  }
 }
 onMounted(() => {
   window.addEventListener('xpan:focus-search', onFocusSearch)
@@ -141,17 +184,27 @@ function normalizeSize(num: number, unit: string): number {
   return num
 }
 
-// 输入时实时建议（本地 Fuse.js 模糊匹配）
+// 输入时实时建议（本地 Fuse.js 模糊匹配 + 后端 suggest 联想词）
 watch(searchKey, (val) => {
   if (!val || val.trim().length < 1) {
     suggestions.value = []
+    suggestWords.value = []
     showSuggest.value = false
     return
   }
-  const results = fuse.value.search(val.trim()).slice(0, 6)
+  const trimmed = val.trim()
+  const results = fuse.value.search(trimmed).slice(0, 6)
   suggestions.value = results.map((r) => r.item)
-  showSuggest.value = suggestions.value.length > 0
+  fetchSuggest(trimmed)
+  showSuggest.value = suggestions.value.length > 0 || suggestWords.value.length > 0
 })
+
+// 点击联想词：填入搜索框并执行搜索
+function clickSuggestionWord(word: string) {
+  showSuggest.value = false
+  searchKey.value = word
+  doSearch()
+}
 
 function doSearch() {
   if (!searchKey.value.trim()) return
@@ -232,27 +285,61 @@ function clickSuggestion(item) {
         spellcheck="false"
         clearable
         @enter="doSearch"
-        @focus="showSuggest = suggestions.length > 0"
+        @focus="onInputFocus"
       />
     </form>
 
-    <!-- 搜索建议下拉（P1-5 Fuse.js 本地模糊匹配） -->
+    <!-- 搜索建议下拉（本地 Fuse + 后端 suggest 联想词 + 热搜词） -->
     <Transition name="modal">
       <div
-        v-if="showSuggest && suggestions.length > 0"
+        v-if="showSuggest && (suggestions.length > 0 || suggestWords.length > 0 || hotWords.length > 0)"
         class="absolute top-full left-0 right-0 mt-1 rounded-sm border border-(--color-border) bg-(--color-surface) shadow-lg overflow-hidden z-(--z-dropdown)"
       >
-        <button
-          v-for="(item, i) in suggestions"
-          :key="i"
-          type="button"
-          class="w-full flex items-center gap-3 px-3 py-2 text-sm text-left transition-colors hover:bg-(--color-surface-2)"
-          @mousedown.prevent="clickSuggestion(item)"
-        >
-          <span class="size-2 rounded-full bg-primary-500 shrink-0" />
-          <span class="truncate flex-1 text-(--color-text)">{{ item.filename || item.name }}</span>
-          <span class="text-xs text-(--color-text-muted) shrink-0">{{ item.fileSizeDesc }}</span>
-        </button>
+        <!-- 后端联想词 -->
+        <template v-if="suggestWords.length > 0">
+          <p class="px-3 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-(--color-text-muted)">联想</p>
+          <button
+            v-for="(word, i) in suggestWords"
+            :key="'w' + i"
+            type="button"
+            class="w-full flex items-center gap-3 px-3 py-2 text-sm text-left transition-colors hover:bg-(--color-surface-2)"
+            @mousedown.prevent="clickSuggestionWord(word)"
+          >
+            <SearchIcon :size="14" class="text-primary-500 shrink-0" />
+            <span class="truncate flex-1 text-(--color-text)">{{ word }}</span>
+          </button>
+        </template>
+
+        <!-- 本地文件建议 -->
+        <template v-if="suggestions.length > 0">
+          <p v-if="suggestWords.length > 0" class="px-3 pt-1 pb-1 text-[11px] font-semibold uppercase tracking-wider text-(--color-text-muted)">文件</p>
+          <button
+            v-for="(item, i) in suggestions"
+            :key="i"
+            type="button"
+            class="w-full flex items-center gap-3 px-3 py-2 text-sm text-left transition-colors hover:bg-(--color-surface-2)"
+            @mousedown.prevent="clickSuggestion(item)"
+          >
+            <span class="size-2 rounded-full bg-primary-500 shrink-0" />
+            <span class="truncate flex-1 text-(--color-text)">{{ item.filename || item.name }}</span>
+            <span class="text-xs text-(--color-text-muted) shrink-0">{{ item.fileSizeDesc }}</span>
+          </button>
+        </template>
+
+        <!-- 热搜词（空框聚焦时） -->
+        <template v-if="!searchKey.trim() && hotWords.length > 0">
+          <p class="px-3 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-(--color-text-muted)">热搜</p>
+          <button
+            v-for="(word, i) in hotWords"
+            :key="'h' + i"
+            type="button"
+            class="w-full flex items-center gap-3 px-3 py-2 text-sm text-left transition-colors hover:bg-(--color-surface-2)"
+            @mousedown.prevent="clickSuggestionWord(word)"
+          >
+            <span class="w-4 text-xs font-bold text-(--color-text-muted) shrink-0">{{ i + 1 }}</span>
+            <span class="truncate flex-1 text-(--color-text)">{{ word }}</span>
+          </button>
+        </template>
       </div>
     </Transition>
   </div>

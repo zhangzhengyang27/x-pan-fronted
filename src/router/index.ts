@@ -44,6 +44,16 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/list-page/recycle/index.vue')
       },
       {
+        path: '/favorites',
+        name: 'Favorites',
+        component: () => import('@/views/list-page/favorite/index.vue')
+      },
+      {
+        path: '/dedup',
+        name: 'Dedup',
+        component: () => import('@/views/list-page/dedup/index.vue')
+      },
+      {
         path: '/shares',
         name: 'Shares',
         component: () => import('@/views/list-page/share/index.vue')
@@ -116,7 +126,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/preview/music/index.vue')
   },
   {
-    path: '/preview/video/:parentId/:fileId',
+    path: '/preview/video/:fileId',
     name: 'PreviewVideo',
     component: () => import('@/views/preview/video/index.vue')
   },

@@ -64,10 +64,6 @@ const userService = {
     http.post<unknown, ApiResponse<unknown>>('/user/exit').then(resolve).catch(reject)
   },
 
-  searchHistories(resolve: Callback<unknown>, reject: Callback<unknown>) {
-    http.get<unknown, ApiResponse<unknown>>('/user/search/histories').then(resolve).catch(reject)
-  },
-
   checkUserLoginStatus(
     params: Record<string, unknown>,
     resolve: Callback<unknown>,

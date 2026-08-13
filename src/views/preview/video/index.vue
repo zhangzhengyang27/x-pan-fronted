@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * PreviewVideo —— 视频预览（ArtPlayer）
+ * PreviewVideo —— 视频预览（ArtPlayer），独立新页面播放
  */
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
@@ -10,8 +10,8 @@ import BaseButton from '@/components/base/BaseButton.vue'
 import VideoPreviewer from '@/components/preview/video-previewer.vue'
 
 const route = useRoute()
-const fileId = computed(() => route.params.fileId)
-const filename = computed(() => route.query.filename || 'video')
+const fileId = computed(() => route.params.fileId as string)
+const filename = computed(() => (route.query.filename as string) || 'video')
 const downloadUrl = computed(() => getDownloadUrl(fileId.value))
 
 // 统一走签名 URL（与 DrivePreviewModal 一致），避免长期 token 进 URL
@@ -47,7 +47,12 @@ watch(
     <main class="flex-1 min-h-0 flex items-center justify-center p-4">
       <div class="w-full max-w-5xl">
         <div class="aspect-video w-full bg-black rounded-lg overflow-hidden">
-          <VideoPreviewer :url="previewUrl || undefined" :file-id="fileId" :title="filename" class="h-full w-full" />
+          <VideoPreviewer
+            :url="previewUrl || undefined"
+            :file-id="fileId"
+            :title="filename"
+            class="h-full w-full"
+          />
         </div>
       </div>
     </main>

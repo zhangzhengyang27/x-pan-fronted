@@ -36,13 +36,6 @@ async function initArtplayer() {
 function bindPlayerEvents() {
   if (!player) return
 
-  // 首帧渲染保险：canplay 后强制 seek 到第 0 秒并渲染，避免某些浏览器黑屏
-  player.on('video:loadedmetadata', () => {
-    if (player && player.video && player.video.currentTime === 0) {
-      player.seek = 0
-    }
-  })
-
   player.on('video:canplay', () => {
     if (player && player.video) {
       // 确保画面已绘制（部分浏览器 autoplay 被阻止后首帧不渲染）
@@ -71,7 +64,7 @@ async function initPlayer(url: string) {
   await initArtplayer()
   currentUrl = url
 
-  player = new ArtplayerCtor({
+  const playerOptions: any = {
     container: containerRef.value,
     url,
     title: props.title,
@@ -105,7 +98,9 @@ async function initPlayer(url: string) {
       height: 90,
       column: 1
     }
-  })
+  }
+
+  player = new ArtplayerCtor(playerOptions)
 
   bindPlayerEvents()
 
@@ -151,7 +146,6 @@ watch(
     currentUrl = newUrl
     // ArtPlayer.switchUrl 只接受一个 url 参数
     player.switchUrl(newUrl)
-    player.seek = 0
     player.play()
     refreshThumbnails(newUrl)
   }
@@ -176,7 +170,7 @@ function onKeydown(e: KeyboardEvent) {
       break
     case 'ArrowRight':
       e.preventDefault()
-      player.forward = 5
+      player.forward(5)
       player.seek(player.currentTime + 5)
       break
     case 'ArrowLeft':

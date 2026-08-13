@@ -71,7 +71,6 @@ function openPreview() {
     const typeMap: Record<number, string> = {
       7: '/preview/image',
       8: '/preview/music',
-      9: '/preview/video',
       3: '/preview/office',
       4: '/preview/office',
       10: '/preview/office',
@@ -80,7 +79,7 @@ function openPreview() {
     const path = typeMap[props.file.fileType] || '/preview/iframe'
     const { href } = router.resolve({
       path,
-      name: `Preview${props.file.fileType === 7 ? 'Image' : props.file.fileType === 8 ? 'Music' : props.file.fileType === 9 ? 'Video' : props.file.fileType === 11 ? 'Code' : 'Office'}`,
+      name: `Preview${props.file.fileType === 7 ? 'Image' : props.file.fileType === 8 ? 'Music' : props.file.fileType === 11 ? 'Code' : 'Office'}`,
       params: { fileId: fid }
     })
     window.open(href, '_blank')
