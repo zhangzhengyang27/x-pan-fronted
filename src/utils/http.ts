@@ -15,7 +15,7 @@ import axios, {
   type AxiosResponse,
   type InternalAxiosRequestConfig
 } from 'axios'
-import { clearToken, getToken } from '@/utils/cookie'
+import { clearToken, getToken, setToken } from '@/utils/cookie'
 import { ElMessage, ElMessageBox } from '@/composables/useToast'
 import panUtil from '@/utils/common'
 import { useBreadcrumbStore } from '@/stores/breadcrumb'
@@ -85,6 +85,9 @@ http.interceptors.request.use(
  */
 http.interceptors.response.use(
   (res: AxiosResponse<ApiResponse>) => {
+    // token 续期：后端在过半续期时通过响应头下发新 token，这里更新本地 cookie
+    const newToken = res.headers?.['new-access-token'] as string | undefined
+    if (newToken) setToken(newToken)
     if (res.data && res.data.code === 10) {
       toLogin()
       return Promise.reject(res.data) as unknown as AxiosResponse

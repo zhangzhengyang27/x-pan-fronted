@@ -41,7 +41,6 @@ import { ElMessage } from '@/composables/useToast'
 import { useFileStore } from '@/stores/file'
 import { storeToRefs } from 'pinia'
 import panUtil from '@/utils/common'
-import { getToken } from '@/utils/cookie'
 
 // BaseButton 尺寸：small → sm，default → md
 const btnSize = computed(() => (props.size === 'small' ? 'sm' : 'md'))
@@ -58,8 +57,8 @@ const doDownload = (item) => {
   }
   const fileId = String(item.fileId).replace(/\+/g, '%2B')
   const filename = item.filename
-  let url =
-      panUtil.getUrlPrefix() + '/file/download?fileId=' + fileId + '&authorization=' + getToken(),
+  // 不再拼 authorization query：后端从同源 Cookie 读取登录 token 鉴权
+  let url = panUtil.getUrlPrefix() + '/file/download?fileId=' + fileId,
     link = document.createElement('a')
   link.style.display = 'none'
   link.href = url

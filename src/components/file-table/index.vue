@@ -163,7 +163,7 @@ async function createFolder() {
     })
     if (!name) return
     fileService.createFolder(
-      { parentId: fileStore.parentId, folderName: name.trim() },
+      { parentId: fileStore.parentId, filename: name.trim() },
       () => {
         ElMessage.success('新建成功')
         fileStore.loadFileList()

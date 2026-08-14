@@ -6,8 +6,6 @@
 
 'use strict'
 
-import { getToken } from '@/utils/cookie'
-
 /** 文件上传状态枚举值 */
 export const EFileStatus = {
   PARSING: { code: 1, text: '解析中' },
@@ -136,13 +134,9 @@ const panUtil: PanUtil = {
   },
 
   getPreviewUrl(fileId: string): string {
-    return (
-      this.getUrlPrefix() +
-      '/file/preview?fileId=' +
-      this.handleId(fileId) +
-      '&authorization=' +
-      getToken()
-    )
+    // 不再把 token 拼进 URL query（后端已支持从 Cookie 读取登录 token，
+    // 浏览器原生标签跳转会自动携带同源 Cookie，避免 token 泄露到日志/Referer）。
+    return this.getUrlPrefix() + '/file/preview?fileId=' + this.handleId(fileId)
   },
 
   getUrlPrefix(): string {

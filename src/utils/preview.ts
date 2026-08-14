@@ -103,6 +103,8 @@ export function isPreviewable(kind: PreviewKind): boolean {
 }
 
 const urlCache = new Map<string | number, Promise<string>>()
+// 缓存容量上限：避免长时间浏览大量文件导致内存无界增长
+const URL_CACHE_MAX = 500
 
 /**
  * 解析预览资源 URL（带缓存 + 并发去重）
@@ -133,6 +135,11 @@ export function resolvePreviewUrl(fileId: string | number | undefined): Promise<
       throw new Error('preview url resolve failed')
     })
     .catch(() => getPreviewUrl(fileId))
+  // 容量控制：超过上限时淘汰最旧条目
+  if (urlCache.size >= URL_CACHE_MAX) {
+    const oldest = urlCache.keys().next().value
+    if (oldest !== undefined) urlCache.delete(oldest)
+  }
   urlCache.set(fileId, p)
   return p
 }
@@ -152,15 +159,15 @@ export function getPreviewUrl(fileId: string | number): string {
 }
 
 /**
- * 同步构造下载资源 URL
+ * 同步构造下载资源 URL（不含 token）。
+ * 鉴权由后端从同源 Cookie（login_token）读取，浏览器原生跳转自动携带，
+ * 无需把长期登录 token 拼进 URL，避免泄露到日志/Referer/浏览器历史。
  */
 export function getDownloadUrl(fileId: string | number): string {
   return (
     panUtil.getUrlPrefix() +
     '/file/download?fileId=' +
-    panUtil.handleId(String(fileId)) +
-    '&authorization=' +
-    (getToken() || '')
+    panUtil.handleId(String(fileId))
   )
 }
 

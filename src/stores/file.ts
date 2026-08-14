@@ -121,6 +121,9 @@ export const useFileStore = defineStore('file', (): FileStore => {
   const hasMore = ref<boolean>(false)
   const isLoadingMore = ref<boolean>(false)
 
+  // 请求序列号：快速切换目录/筛选时，仅采纳最新一次请求的响应，避免旧响应覆盖新数据
+  let requestSeq = 0
+
   const paramParentId = computed<string>(() =>
     parentId.value === '-1' ? defaultParentId.value : parentId.value
   )
@@ -233,7 +236,7 @@ export const useFileStore = defineStore('file', (): FileStore => {
     pageNum.value = 1
     hasMore.value = false
     total.value = 0
-    sortProp.value = 'name'
+    sortProp.value = 'filename'
     sortOrder.value = 'ascending'
   }
 
@@ -282,6 +285,7 @@ export const useFileStore = defineStore('file', (): FileStore => {
   }
 
   function loadFileList(): void {
+    const seq = ++requestSeq
     setTableLoading(true)
     pageNum.value = 1
     if (searchFlag.value) {
@@ -291,12 +295,14 @@ export const useFileStore = defineStore('file', (): FileStore => {
           fileTypes: '-1'
         },
         (res: ApiResponse<IFileVO[]>) => {
+          if (seq !== requestSeq) return // 已有更新的请求，丢弃过期响应
           setFileList(res.data || [])
           setTableLoading(false)
           hasMore.value = false
           total.value = res.data?.length || 0
         },
         (res: ApiResponse<unknown>) => {
+          if (seq !== requestSeq) return
           setTableLoading(false)
           ElMessage.error(res.message)
         }
@@ -312,10 +318,12 @@ export const useFileStore = defineStore('file', (): FileStore => {
           order: getOrder()
         },
         (res: ApiResponse<PageVO<IFileVO>>) => {
+          if (seq !== requestSeq) return // 丢弃过期响应，避免旧目录覆盖新目录
           setTableLoading(false)
           applyPageResponse(res.data, false)
         },
         (res: ApiResponse<unknown>) => {
+          if (seq !== requestSeq) return
           setTableLoading(false)
           ElMessage.error(res.message)
         }
@@ -326,6 +334,7 @@ export const useFileStore = defineStore('file', (): FileStore => {
   function loadMore(): void {
     if (searchFlag.value || !hasMore.value || isLoadingMore.value) return
     isLoadingMore.value = true
+    const seq = ++requestSeq
     const next = pageNum.value + 1
     fileService.list(
       {
@@ -338,10 +347,12 @@ export const useFileStore = defineStore('file', (): FileStore => {
       },
       (res: ApiResponse<PageVO<IFileVO>>) => {
         isLoadingMore.value = false
+        if (seq !== requestSeq) return
         applyPageResponse(res.data, true)
       },
       (res: ApiResponse<unknown>) => {
         isLoadingMore.value = false
+        if (seq !== requestSeq) return
         ElMessage.error(res.message)
       }
     )
