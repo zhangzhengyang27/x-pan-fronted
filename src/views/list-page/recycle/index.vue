@@ -49,7 +49,7 @@ function loadRecycleStat() {
 const typeFilter = ref('-1')
 const typeOptions = [
   { value: '-1', label: '全部', icon: null },
-  { value: '1', label: '文件夹', icon: Folder },
+  { value: '0', label: '文件夹', icon: Folder },
   { value: '2', label: '压缩包', icon: FileArchive },
   { value: '3,4,5,10', label: '文档', icon: FileText },
   { value: '7', label: '图片', icon: ImageIcon },
@@ -70,7 +70,6 @@ function fileIcon(type: number) {
   return (
     {
       0: Folder,
-      1: Folder,
       2: FileArchive,
       3: FileSpreadsheet,
       4: FileText,

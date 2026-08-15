@@ -15,14 +15,15 @@ const open = defineModel('open', { type: Boolean, default: false })
 
 interface TypeOption {
   label: string
-  value: FileType
+  /** 该分类对应的后端文件类型集合（如「文档」覆盖 excel/word/pdf/txt/ppt/csv） */
+  types: FileType[]
 }
 
 const typeOptions: TypeOption[] = [
-  { label: '图片', value: FileType.IMAGE },
-  { label: '文档', value: FileType.DOC },
-  { label: '视频', value: FileType.VIDEO },
-  { label: '音乐', value: FileType.AUDIO }
+  { label: '图片', types: [FileType.IMAGE] },
+  { label: '文档', types: [FileType.EXCEL, FileType.WORD, FileType.PDF, FileType.TXT, FileType.PPT, FileType.CSV] },
+  { label: '视频', types: [FileType.VIDEO] },
+  { label: '音乐', types: [FileType.AUDIO] }
 ]
 
 const filter = ref({
@@ -35,7 +36,6 @@ const filter = ref({
 })
 
 const active = computed(() => filter.value.fileTypes.length > 0)
-const count = computed(() => filter.value.fileTypes.length)
 
 // 全部文件：清空类型筛选（与下方分类互斥）
 const allSelected = computed(() => filter.value.fileTypes.length === 0)
@@ -44,10 +44,21 @@ function selectAll() {
   filter.value.fileTypes = []
 }
 
-function toggleType(type: FileType) {
-  const i = filter.value.fileTypes.indexOf(type)
-  if (i === -1) filter.value.fileTypes.push(type)
-  else filter.value.fileTypes.splice(i, 1)
+function isTypeSelected(opt: TypeOption): boolean {
+  // 该分类下所有类型都被选中才算选中（由于切换是整组添加/移除，等价于任意一个在集合中）
+  return opt.types.some((t) => filter.value.fileTypes.includes(t))
+}
+
+function toggleType(opt: TypeOption) {
+  if (isTypeSelected(opt)) {
+    // 移除该分类的所有类型
+    filter.value.fileTypes = filter.value.fileTypes.filter((t) => !opt.types.includes(t))
+  } else {
+    // 添加该分类的所有类型（去重）
+    const set = new Set(filter.value.fileTypes)
+    opt.types.forEach((t) => set.add(t))
+    filter.value.fileTypes = Array.from(set)
+  }
 }
 
 function apply() {
@@ -105,21 +116,18 @@ function reset() {
 
       <button
         v-for="opt in typeOptions"
-        :key="opt.value"
+        :key="opt.label"
         type="button"
         class="w-full flex items-center justify-between px-4 py-2 text-sm transition-colors"
         :class="
-          filter.fileTypes.includes(opt.value)
+          isTypeSelected(opt)
             ? 'text-primary-500'
             : 'text-(--color-text) hover:bg-(--color-surface-2)'
         "
-        @click="toggleType(opt.value)"
+        @click="toggleType(opt)"
       >
         <span>{{ opt.label }}</span>
-        <Check
-          v-if="filter.fileTypes.includes(opt.value)"
-          :size="14"
-        />
+        <Check v-if="isTypeSelected(opt)" :size="14" />
       </button>
 
       <div class="my-1 border-t border-(--color-border)" />

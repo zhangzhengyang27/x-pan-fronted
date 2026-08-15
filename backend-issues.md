@@ -120,6 +120,36 @@
 - **风险**：若后端对预览 URL 加鉴权（如 cookie/token 校验），`fetch` 可能 401
 - **建议**：后端确认 `/file/preview` 返回的 URL 是否免鉴权；若需鉴权，前端改用 `getDownloadUrl`（带 authorization 参数）fetch
 
+### BE-08 · 图片缩略图（带宽优化，已落地 ✅）
+
+> 背景：`/imgs` 图片时间线页原本把**原图预览流**直接塞进 137px 瓦片，图片一多带宽被吃满。
+> 现已完成前后端改造：列表走按需缩放的缩略图（带磁盘缓存），预览/详情仍走原图。
+
+#### 落地方案（按需缩放 + 磁盘缓存）
+
+**后端（已实现）**
+
+1. `POST /file/preview/url` 新增可选 `width`/`height` 参数：
+   - 不带 → 返回原图流（预览页用，行为不变）。
+   - 带 → 返回的 stream URL 追加 `&width=&height=`，触发缩略图。
+2. `GET /file/preview/stream` 读取 `width`/`height`，图片类型时走缩略图：
+   - 复用已有 `ImageThumbnailUtil.generate(stream, quality, maxW, maxH)`（等比缩放，JPEG quality=0.85）。
+   - 磁盘缓存 `{rpan.root}/{rpan.thumbnail.dir}/{fileId}_{w}x{h}.jpg`，命中直接输出，`Cache-Control: max-age=604800`。
+   - 非图片/解码失败自动回退原图。
+   - ptoken 鉴权不变（尺寸仅作优化参数，不绑定 ptoken，无安全风险）。
+
+**前端（已实现）**
+
+- `resolvePreviewUrl(fileId, size)`：`size` 为数字时追加 `&width=size&height=size`；省略/`'original'` 走原图。
+- `FileThumbnail`：列表瓦片请求 256px 缩略图；`IntersectionObserver`（`rootMargin:200px`）+ `decoding="async"` 强化懒加载。
+- 预览/详情页调用 `resolvePreviewUrl(id)`（不传 size），仍走原图。
+- 后端不支持时静默降级回原图（`catch → getPreviewUrl`），不影响可用性。
+
+#### 遗留项（已解决 ✅）
+
+- **缩略图预热**：`ThumbnailServiceImpl` 新增 `prewarmAsync(fileId, width, height)`，生成与 `serveThumbnailStream` 一致的缓存 key（`{fileId}_{w}x{h}.jpg`）。`UserFileServiceImpl.saveUserFile` 在图片类型落库后异步预热 256x256，首屏列表直接命中缓存，避免同步生成卡顿。
+- **`/file/thumbnail` 接口鉴权缺陷**：`ThumbnailController` 已改为 `@LoginIgnore` + ptoken 签名鉴权（与 `/file/preview/stream` 一致），`<img>` 原生标签可直访。
+
 ### BE-04 · 搜索能力不足
 
 - **现状**：`/file/search` 仅支持文件名 + 扩展名 + 日期范围过滤

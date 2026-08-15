@@ -21,7 +21,7 @@ const types = [
   { value: '3,4,5,6,10', query: 'docs', label: '文档', icon: FileText },
   { value: '9', query: 'videos', label: '视频', icon: Video },
   { value: '8', query: 'musics', label: '音乐', icon: Music },
-  { value: '0', query: 'other', label: '其他', icon: null }
+  { value: '1,2,11,12', query: 'other', label: '其他', icon: null }
 ]
 
 // current 由 route.query.type 驱动，保证高亮与 URL 同步

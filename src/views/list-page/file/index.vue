@@ -52,7 +52,7 @@ const typeQueryMap: Record<string, string> = {
   docs: '3,4,5,6,10',
   videos: '9',
   musics: '8',
-  other: '0'
+  other: '1,2,11,12'
 }
 
 function applyTypeQuery(typeQuery: unknown) {

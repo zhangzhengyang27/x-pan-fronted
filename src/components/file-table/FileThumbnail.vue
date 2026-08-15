@@ -8,7 +8,7 @@
  * 后端若提供 thumbnail 字段（image/video），优先用 thumbnail；
  * 当前无后端支持，图片直接走 preview URL。
  */
-import { ref, computed, watchEffect, onScopeDispose } from 'vue'
+import { ref, computed, watchEffect, onScopeDispose, onMounted, onBeforeUnmount } from 'vue'
 import {
   Folder,
   FileText,
@@ -23,13 +23,16 @@ import {
   LoaderCircle,
   Eye
 } from '@lucide/vue'
-import { resolvePreviewUrl } from '@/utils/preview'
+import { resolvePreviewUrl, invalidatePreviewUrl } from '@/utils/preview'
 import { cn } from '@/utils/classnames'
+import panUtil from '@/utils/common'
 
 const props = defineProps({
   file: { type: Object, required: true },
   size: { type: Number, default: 56 }, // 缩略图正方形边长
-  rounded: { type: String, default: 'rounded-sm' }
+  rounded: { type: String, default: 'rounded-sm' },
+  // 是否请求缩略图（列表场景默认 true）；预览/详情传入 false 走原图
+  thumbnail: { type: Boolean, default: true }
 })
 
 const imageLoaded = ref(false)
@@ -94,10 +97,64 @@ const showImage = computed(() => isImage.value && !imageErrored.value)
 
 // 后端预览直链（图片直出预览流）；后端 thumbnail 字段（P1.8）优先
 // 使用 resolvePreviewUrl 获取带短期签名 token 的预览流，避免 /file/thumbnail 返回空
+// 列表缩略图场景：请求带 width/height 的缩放流（缩略图），避免加载原图占用带宽；
+// 预览/详情场景：thumbnail=false 时请求原图。
 const previewUrl = ref<string | null>(null)
 let disposed = false
 onScopeDispose(() => {
   disposed = true
+})
+
+// 进入视口才发起请求：解决 loading="lazy" 仍会触发首屏外图片请求的问题
+const inViewport = ref(false)
+let rootEl: HTMLElement | null = null
+let observer: IntersectionObserver | null = null
+
+function observe() {
+  if (!isImage.value || typeof IntersectionObserver === 'undefined') {
+    inViewport.value = true
+    return
+  }
+  observer = new IntersectionObserver(
+    (entries) => {
+      if (entries.some((e) => e.isIntersecting)) {
+        inViewport.value = true
+        observer?.disconnect()
+        observer = null
+      }
+    },
+    { rootMargin: '200px' } // 提前 200px 预加载，滚动更顺滑
+  )
+  observer.observe(rootEl!)
+}
+
+function resolve() {
+  if (!isImage.value || !inViewport.value) {
+    return
+  }
+  // 后端已返回缩略图直链（相对路径，如 /file/thumbnail?fileId=xxx），拼服务前缀
+  if (props.file.thumbnail) {
+    const t = props.file.thumbnail
+    previewUrl.value = t.startsWith('http') ? t : panUtil.getUrlPrefix() + t
+    return
+  }
+  const size = props.thumbnail ? 256 : 'original'
+  resolvePreviewUrl(props.file.fileId, size)
+    .then((url) => {
+      if (!disposed) previewUrl.value = url
+    })
+    .catch(() => {
+      if (!disposed) previewUrl.value = null
+    })
+}
+
+onMounted(() => {
+  if (rootEl) observe()
+})
+
+onBeforeUnmount(() => {
+  observer?.disconnect()
+  observer = null
 })
 
 watchEffect(() => {
@@ -105,31 +162,41 @@ watchEffect(() => {
     previewUrl.value = null
     return
   }
-  if (props.file.thumbnail) {
-    previewUrl.value = props.file.thumbnail
-    return
-  }
-  resolvePreviewUrl(props.file.fileId)
-    .then((url) => {
-      if (!disposed) previewUrl.value = url
-    })
-    .catch(() => {
-      if (!disposed) previewUrl.value = null
-    })
+  resolve()
 })
 
 const iconSize = computed(() => Math.max(20, Math.round(props.size * 0.45)))
 
+// ptoken 过期重试：图片加载失败（如 ptoken 5 分钟过期返回 403）时，
+// 失效缓存并重新申请一次，最多重试 1 次，避免无限循环。
+let retryCount = 0
+
 function onImageLoad() {
   imageLoaded.value = true
 }
+
 function onImageError() {
-  imageErrored.value = true
+  if (retryCount >= 1) {
+    imageErrored.value = true
+    return
+  }
+  retryCount++
+  const size = props.thumbnail ? 256 : 'original'
+  invalidatePreviewUrl(props.file.fileId, size)
+  imageLoaded.value = false
+  resolvePreviewUrl(props.file.fileId, size)
+    .then((url) => {
+      if (!disposed) previewUrl.value = url
+    })
+    .catch(() => {
+      if (!disposed) imageErrored.value = true
+    })
 }
 </script>
 
 <template>
   <div
+    ref="rootEl"
     :class="
       cn('relative overflow-hidden flex items-center justify-center shrink-0', rounded, visual.bg)
     "
@@ -145,6 +212,7 @@ function onImageError() {
         class="w-full h-full object-cover"
         :class="imageLoaded ? 'opacity-100' : 'opacity-0'"
         loading="lazy"
+        decoding="async"
         @load="onImageLoad"
         @error="onImageError"
       />

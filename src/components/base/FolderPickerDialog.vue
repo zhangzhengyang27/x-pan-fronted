@@ -66,7 +66,8 @@ async function loadRoot() {
 
 function buildTreeFromStore() {
   // 用 fileStore.fileList 作为顶层，加载时按需展开子节点
-  // 注意：FileType.FOLDER = 1（不是 0），必须用枚举判断
+  // 注意：文件夹的 fileType 为 0（后端 createFolder 传 null → DB 默认值 0），
+  // 与 FileType.FOLDER = 0 对齐，必须用枚举判断。
   tree.value = fileStore.fileList.filter((f) => f.fileType === FileType.FOLDER).map(toTreeNode)
 }
 

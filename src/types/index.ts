@@ -53,13 +53,22 @@ export interface IRegisterReq {
 }
 
 // ─── 文件 ───────────────────────────────────────────────────────
+// 文件类型枚举：与后端 FileTypeEnum 的 code 严格对齐
+// （0 文件夹 1 普通文件 2 压缩文件 3 excel 4 word 5 pdf 6 txt 7 图片 8 音频 9 视频 10 ppt 11 源码 12 csv）
 export enum FileType {
-  FOLDER = 1,
-  IMAGE = 2,
-  VIDEO = 3,
-  AUDIO = 4,
-  DOC = 5,
-  OTHER = 6
+  FOLDER = 0,
+  NORMAL = 1,
+  ARCHIVE = 2,
+  EXCEL = 3,
+  WORD = 4,
+  PDF = 5,
+  TXT = 6,
+  IMAGE = 7,
+  AUDIO = 8,
+  VIDEO = 9,
+  PPT = 10,
+  CODE = 11,
+  CSV = 12
 }
 
 export interface IFileVO {
@@ -69,6 +78,8 @@ export interface IFileVO {
   fileSize: string | number
   fileType: FileType
   fileCover?: string
+  /** 图片缩略图直链（后端 P1.8 返回相对路径，前端拼接服务前缀；未生成时为 null） */
+  thumbnail?: string
   folderFlag: 0 | 1
   createTime: string
   updateTime: string

@@ -206,7 +206,8 @@ function getFileTypeLabel(row: any) {
     4: 'Word',
     5: 'PDF',
     6: '文本',
-    10: 'PPT'
+    10: 'PPT',
+    12: 'CSV'
   }
   if (docTypes[type]) return docTypes[type]
   return '其他'
@@ -264,6 +265,7 @@ function clickFilename(row: Record<string, any>) {
       return openNewPage('/preview/office', 'PreviewOffice', { fileId: panUtil.handleId(row.fileId) }, { filename: row.filename })
     case 5:
     case 6:
+    case 12:
       return openNewPage('/preview/iframe', 'PreviewIframe', { fileId: panUtil.handleId(row.fileId) }, { filename: row.filename })
     case 7:
       return openNewPage('/preview/image', 'PreviewImage', { fileId: panUtil.handleId(row.fileId), parentId: panUtil.handleId(row.parentId || '0') }, { filename: row.filename })

@@ -163,15 +163,18 @@ export function useFileTags() {
 function buildPrompt(file: { filename: string; fileType: number }): string {
   const typeMap: Record<number, string> = {
     0: '文件夹',
-    3: '文档(Office)',
-    4: '文档(PDF)',
-    5: '文本',
+    1: '普通文件',
+    2: '压缩包',
+    3: '文档(Excel)',
+    4: '文档(Word)',
+    5: '文档(PDF)',
     6: '文本',
     7: '图片',
     8: '音频',
     9: '视频',
-    10: '文档(其他)',
-    11: '代码'
+    10: '文档(PPT)',
+    11: '代码',
+    12: '文档(CSV)'
   }
   const typeName = typeMap[file.fileType] || '未知'
   return `文件名：${file.filename}\n文件类型：${typeName}\n\n请输出 3-5 个标签：`

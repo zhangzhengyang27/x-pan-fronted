@@ -42,7 +42,10 @@ export function useUploader() {
       forceChunkSize: true,
       simultaneousUploads: 3,
       fileParameterName: 'file',
-      query: () => ({ parentId: fileStore.paramParentId }),
+      // 用文件 add 时快照的 parentId，避免上传过程中切换目录导致分片落到错误目录
+      query: (file: UploaderFile) => ({
+        parentId: (file as unknown as { __uploadParentId?: string }).__uploadParentId || fileStore.paramParentId
+      }),
       headers: { Authorization: getToken() },
       checkChunkUploadedByResponse: (chunk: UploaderChunk, message: string) => {
         let obj: { data?: { uploadedChunks?: number[] } } = {}
@@ -51,10 +54,12 @@ export function useUploader() {
         } catch {
           /* noop */
         }
-        if (obj.data) {
-          return (obj.data.uploadedChunks || []).indexOf(chunk.offset + 1) >= 0
+        // 仅当接口明确返回 uploadedChunks 且包含当前分片时才视为「已上传」；
+        // 响应异常/字段缺失时返回 false，强制重传该分片，避免误判跳过导致合并出损坏文件
+        if (obj.data && Array.isArray(obj.data.uploadedChunks)) {
+          return obj.data.uploadedChunks.indexOf(chunk.offset + 1) >= 0
         }
-        return true
+        return false
       },
       maxChunkRetries: 0,
       chunkRetryInterval: null,
@@ -80,6 +85,8 @@ export function useUploader() {
     try {
       files.forEach((f) => {
         f.pause()
+        // 绑定 add 时刻的目标目录，上传分片时以它为准，避免切换目录导致落错位置
+        ;(f as unknown as { __uploadParentId?: string }).__uploadParentId = fileStore.paramParentId
         if (f.size > panUtil.getMaxFileSize()) {
           throw new Error(
             '文件：' +
@@ -106,7 +113,7 @@ export function useUploader() {
 
         MD5(f.file, (e, md5) => {
           if (e || !md5) {
-            ElMessage.error('文件：' + f.name + ' 计算指纹失败，已转入普通上传')
+            // 指纹计算失败属正常降级，静默转入普通上传，无需弹错误提示
             resumeWaiting(f.id)
             return
           }
@@ -115,7 +122,7 @@ export function useUploader() {
             { filename: f.name, identifier: md5, parentId: fileStore.paramParentId },
             (res) => {
               if (res.code === 0 && res.data) {
-                ElMessage.success('⚡ 秒传成功：' + f.name)
+                ElMessage.success('上传成功：' + f.name)
                 f.cancel()
                 taskStore.remove(f.id)
                 fileStore.loadFileList()
@@ -129,7 +136,7 @@ export function useUploader() {
             },
             () => {
               // 网络/接口异常：千万不要静默 return，否则文件会永久卡在暂停态
-              ElMessage.warning('秒传校验失败，已转入普通上传：' + f.name)
+              // 秒传校验失败属正常回退，静默转入普通上传，无需提示用户
               resumeWaiting(f.id)
             }
           )
@@ -204,6 +211,7 @@ export function useUploader() {
         status: EFileStatus.FAIL.code,
         statusText: EFileStatus.FAIL.text
       })
+      ElMessage.error(`上传失败：${file.name}`)
     }
   }
 
@@ -230,7 +238,7 @@ export function useUploader() {
         totalSize: item.target.size
       },
       () => {
-        ElMessage.success('文件：' + file.name + ' 上传完成')
+        ElMessage.success('上传成功：' + file.name)
         _uploader?.removeFile(file)
         try {
           useUserStore().usedSpace += file.size || 0
@@ -258,7 +266,7 @@ export function useUploader() {
   }
 
   function finishFile(file: UploaderFile) {
-    ElMessage.success('文件：' + file.name + ' 上传完成')
+    ElMessage.success('上传成功：' + file.name)
     _uploader?.removeFile(file)
     // 累计已用空间（前端估算；后端 UserInfoVO 暂未暴露字段）
     try {
@@ -289,7 +297,7 @@ export function useUploader() {
       uploadedSize: panUtil.translateFileSize(0),
       timeRemaining: panUtil.translateTime(Number.POSITIVE_INFINITY)
     })
-    ElMessage.error(`文件「${file.name}」上传失败，请重试`)
+    ElMessage.error(`上传失败：${file.name}`)
   }
 
   /**

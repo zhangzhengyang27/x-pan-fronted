@@ -44,16 +44,17 @@ function fileIcon(type: number) {
   return (
     {
       0: Folder,
-      1: Folder,
       2: FileArchive,
       3: FileSpreadsheet,
       4: FileText,
       5: FileText,
+      6: FileText,
       7: FileImage,
       8: FileAudio,
       9: FileVideo,
       10: FileBarChart2,
-      11: FileCode
+      11: FileCode,
+      12: FileSpreadsheet
     }[type] || FileText
   )
 }
@@ -62,9 +63,9 @@ function typeLabel(type: number) {
   if (type === 0) return '文件夹'
   if (type === 7) return '图片'
   if (type === 9) return '视频'
-  if (type === 8) return '音乐'
+  if (type === 8) return '音频'
   if (type === 11) return '代码'
-  if ([3, 4, 10].includes(type)) return '文档'
+  if ([3, 4, 5, 6, 10, 12].includes(type)) return '文档'
   return '其他'
 }
 
