@@ -157,9 +157,9 @@ function initUserInfoIfNecessary() {
         fileStore.setDefaultParentId(res.data.rootFileId)
         fileStore.setDefaultParentFilename(res.data.rootFilename)
         userStore.setUsername(res.data.username)
-        // 同步存储空间数据
-        if (res.data.usedSpace !== undefined && res.data.totalSpace !== undefined) {
-          userStore.setQuota(res.data.usedSpace, res.data.totalSpace)
+        // 同步存储空间数据（后端 UserInfoVO 字段为 usedSize/totalSize）
+        if (res.data.usedSize !== undefined && res.data.totalSize !== undefined) {
+          userStore.setQuota(res.data.usedSize, res.data.totalSize)
         }
       },
       (res) => ElMessage.error(res.message)

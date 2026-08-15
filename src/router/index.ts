@@ -207,6 +207,10 @@ router.beforeEach((to, from, next) => {
         fileStore.setDefaultParentId(res.data.rootFileId)
         fileStore.setDefaultParentFilename(res.data.rootFilename)
         userStore.setUsername(res.data.username)
+        // 初始化存储空间（后端字段为 usedSize/totalSize）
+        if (res.data.usedSize !== undefined && res.data.totalSize !== undefined) {
+          userStore.setQuota(res.data.usedSize, res.data.totalSize)
+        }
         finishNext()
       },
       (res) => {
