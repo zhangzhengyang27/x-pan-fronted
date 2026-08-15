@@ -21,7 +21,9 @@ import { useFavorites } from '@/composables/useFavorites'
 import { useRecent } from '@/composables/useRecent'
 import { useMediaQuery } from '@/composables/useMediaQuery'
 import { useFileTags } from '@/composables/useFileTags'
-import { getDownloadUrl, resolvePreviewKind, isOfficeKind } from '@/utils/preview'
+import { getDownloadUrl } from '@/utils/preview'
+import { useDrivePreview } from '@/composables/useDrivePreview'
+import DrivePreviewModal from '@/components/preview/drive-preview-modal.vue'
 import { useUploader } from '@/composables/useUploader'
 import {
   LoaderCircle,
@@ -91,6 +93,14 @@ watch([sortProp, sortOrder], () => {
 
 // 列表数据直接来自 store（后端已完成排序与类型筛选）
 const filteredList = computed(() => fileList.value)
+
+// ─── 文件预览（统一弹窗，替代新开页面） ──────────────────────────────────────
+const preview = useDrivePreview(() => filteredList.value as any[])
+const { state: previewState, openPreview, closePreview, resolvePreviewUrl: resolvePreviewUrlItem } = preview
+
+function previewDownload(item: Record<string, any>) {
+  window.open(getDownloadUrl(item.fileId || item.id), '_blank')
+}
 
 // 重置选择:筛选/目录/排序变化
 watch([filterActive, () => fileStore.parentId], () => {
@@ -256,9 +266,25 @@ function openNewPage(path: string, name: string, params: Record<string, string>,
 }
 
 function clickFilename(row: Record<string, any>) {
+  // 文件夹：进入目录
+  if (row.fileType === 0 || row.type === 'folder') {
+    return goInFolder(panUtil.handleId(row.fileId))
+  }
+  // 图片/视频/音频/PDF/Office/Markdown/代码/文本：统一走内嵌预览弹窗
+  // （不再新开页面；用户如需新窗口可在弹窗底部「新窗口打开」）
+  const opened = openPreview({
+    fileId: row.fileId,
+    id: row.fileId,
+    name: row.filename,
+    filename: row.filename,
+    fileType: row.fileType
+  })
+  if (opened) return
+
+  // 弹窗不支持的格式：按后端 fileType（分类码）降级回新开页面。
+  // 注意：这里不能再用 resolvePreviewKind（它按扩展名判断，与弹窗内部一致，
+  // 对 .psd/.eps/.tga/.tiff 等「后端认图片但前端扩展名表未收录」的格式会误判为 unsupported）。
   switch (row.fileType) {
-    case 0:
-      return goInFolder(panUtil.handleId(row.fileId))
     case 3:
     case 4:
     case 10:
@@ -275,17 +301,6 @@ function clickFilename(row: Record<string, any>) {
       return openNewPage('/preview/video', 'PreviewVideo', { fileId: panUtil.handleId(row.fileId) }, { filename: row.filename })
     case 11:
       return openNewPage('/preview/code', 'PreviewCode', { fileId: panUtil.handleId(row.fileId) }, { filename: row.filename })
-  }
-  // 兜底：后端 fileType 未覆盖时（如 .md/.txt 文本、部分 code 文件），按扩展名判断
-  const kind = resolvePreviewKind({ name: row.filename, fileType: row.fileType })
-  if (kind === 'pdf' || kind === 'markdown' || kind === 'text') {
-    return openNewPage('/preview/iframe', 'PreviewIframe', { fileId: panUtil.handleId(row.fileId) }, { filename: row.filename })
-  }
-  if (kind === 'code') {
-    return openNewPage('/preview/code', 'PreviewCode', { fileId: panUtil.handleId(row.fileId) }, { filename: row.filename })
-  }
-  if (isOfficeKind(kind)) {
-    return openNewPage('/preview/office', 'PreviewOffice', { fileId: panUtil.handleId(row.fileId) }, { filename: row.filename })
   }
 }
 
@@ -1056,6 +1071,14 @@ onBeforeUnmount(() => {
       :file-id="extractDialog.fileId"
       :filename="extractDialog.filename"
       @extracted="onExtracted"
+    />
+
+    <!-- 统一预览弹窗（图片/视频/音频/PDF/Office/代码等，替代新开页面） -->
+    <DrivePreviewModal
+      :state="previewState"
+      :resolve-url="resolvePreviewUrlItem"
+      @close="closePreview"
+      @download="previewDownload"
     />
 
   </div>

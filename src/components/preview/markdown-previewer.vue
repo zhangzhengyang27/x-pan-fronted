@@ -10,7 +10,7 @@ import { onMounted, onBeforeUnmount, ref, watch, nextTick } from 'vue'
 import Vditor from 'vditor'
 import 'vditor/dist/index.css'
 import { useTheme } from '@/composables/useTheme'
-import { getPreviewUrl } from '@/utils/preview'
+import { getPreviewUrl, decodeTextContent } from '@/utils/preview'
 
 const props = defineProps({
   fileId: { type: [String, Number], required: true },
@@ -137,7 +137,10 @@ async function load() {
   try {
     const res = await fetch(resolvedUrl(), { signal: abortCtrl.signal })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    let text = await res.text()
+    // 按编码解码（GBK/UTF-8 自适应），避免中文 Markdown 乱码
+    const buffer = await res.arrayBuffer()
+    const declaredCharset = res.headers.get('content-type')?.match(/charset=([\w-]+)/i)?.[1]
+    let text = decodeTextContent(buffer, declaredCharset)
     if (text.length > MAX_CHARS) {
       text = text.slice(0, MAX_CHARS) + `\n\n> 文件过大，仅展示前 ${MAX_CHARS / 1000}K 字符。`
     }

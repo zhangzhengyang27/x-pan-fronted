@@ -107,7 +107,9 @@ onScopeDispose(() => {
 
 // 进入视口才发起请求：解决 loading="lazy" 仍会触发首屏外图片请求的问题
 const inViewport = ref(false)
-let rootEl: HTMLElement | null = null
+// 注意：模板 ref 必须用 ref() 定义，普通变量（let rootEl = null）无法被模板赋值，
+// 会导致 IntersectionObserver 永不启动、缩略图永不请求。
+const rootEl = ref<HTMLElement | null>(null)
 let observer: IntersectionObserver | null = null
 
 function observe() {
@@ -115,6 +117,7 @@ function observe() {
     inViewport.value = true
     return
   }
+  if (!rootEl.value) return
   observer = new IntersectionObserver(
     (entries) => {
       if (entries.some((e) => e.isIntersecting)) {
@@ -125,7 +128,7 @@ function observe() {
     },
     { rootMargin: '200px' } // 提前 200px 预加载，滚动更顺滑
   )
-  observer.observe(rootEl!)
+  observer.observe(rootEl.value)
 }
 
 function resolve() {
@@ -149,7 +152,7 @@ function resolve() {
 }
 
 onMounted(() => {
-  if (rootEl) observe()
+  if (rootEl.value) observe()
 })
 
 onBeforeUnmount(() => {

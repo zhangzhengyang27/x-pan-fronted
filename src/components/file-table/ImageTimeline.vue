@@ -11,9 +11,9 @@
 import { computed, ref } from 'vue'
 import FileThumbnail from '@/components/file-table/FileThumbnail.vue'
 import { useFileStore } from '@/stores/file'
-import { useRouter } from 'vue-router'
-import panUtil from '@/utils/common'
 import { getDownloadUrl } from '@/utils/preview'
+import { useDrivePreview } from '@/composables/useDrivePreview'
+import DrivePreviewModal from '@/components/preview/drive-preview-modal.vue'
 import { ElMessage } from '@/composables/useToast'
 import { Eye, Download } from '@lucide/vue'
 import type { IFileVO } from '@/types'
@@ -27,7 +27,14 @@ const props = withDefaults(
 )
 
 const fileStore = useFileStore()
-const router = useRouter()
+
+// ─── 图片预览（统一走 DrivePreviewModal 弹窗，与 /files 页一致） ────────────
+const preview = useDrivePreview(() => props.files as IFileVO[])
+const { state: previewState, openPreview: openPreviewModal, closePreview, resolvePreviewUrl } = preview
+
+function previewDownload(item: Record<string, any>) {
+  window.open(getDownloadUrl(item.fileId || item.id), '_blank')
+}
 
 // 当前分组粒度（受控于父组件，也可内部维护）
 const currentGroupMode = ref(props.groupMode)
@@ -136,30 +143,14 @@ function selectAllInGroup(list: IFileVO[]) {
 }
 
 // ─── 点击 / 预览 / 下载 ─────────────────────────────────────────────────
-function openNewPage(
-  path: string,
-  name: string,
-  params: Record<string, string>,
-  query: Record<string, string>
-) {
-  const safeParams: Record<string, string> = {}
-  Object.entries(params).forEach(([key, value]) => {
-    safeParams[key] = value || '0'
-  })
-  const { href } = router.resolve({ name, params: safeParams, query })
-  window.open(href, '_blank')
-}
-
 function openPreview(file: IFileVO) {
-  openNewPage(
-    '/preview/image',
-    'PreviewImage',
-    {
-      fileId: panUtil.handleId(file.fileId),
-      parentId: panUtil.handleId(file.parentId || '0')
-    },
-    { filename: file.filename }
-  )
+  openPreviewModal({
+    fileId: file.fileId,
+    id: file.fileId,
+    name: file.filename,
+    filename: file.filename,
+    fileType: file.fileType
+  })
 }
 
 function download(file: IFileVO, e: MouseEvent) {
@@ -286,6 +277,14 @@ function onCardClick(file: IFileVO) {
         </div>
       </section>
     </div>
+
+    <!-- 统一预览弹窗（与 /files 页一致，替代新开页面） -->
+    <DrivePreviewModal
+      :state="previewState"
+      :resolve-url="resolvePreviewUrl"
+      @close="closePreview"
+      @download="previewDownload"
+    />
   </div>
 </template>
 

@@ -90,7 +90,28 @@ function download() {
   if (currentItem.value) emit('download', currentItem.value)
 }
 function openInNewTab() {
-  if (previewUrl.value) window.open(previewUrl.value, '_blank', 'noopener,noreferrer')
+  const item = currentItem.value
+  if (!item) return
+  const fileId = encodeURIComponent(item.fileId || item.id)
+  const filename = encodeURIComponent(item.name || item.filename || '')
+
+  // 图片/视频/音频：直接打开预览流 URL（浏览器原生渲染）
+  if (['image', 'video', 'audio'].includes(props.state.kind)) {
+    if (previewUrl.value) window.open(previewUrl.value, '_blank', 'noopener,noreferrer')
+    return
+  }
+
+  // Office：打开 office 预览路由（后端转 PDF 后由 PdfPreviewer 渲染）
+  if (isOfficeKind(props.state.kind)) {
+    const url = `${window.location.origin}/preview/office/${fileId}?filename=${filename}`
+    window.open(url, '_blank', 'noopener,noreferrer')
+    return
+  }
+
+  // PDF/Markdown/代码/文本：打开 iframe 预览路由，由对应 Previewer 正确解析渲染，
+  // 避免浏览器把原始 markdown/代码流当 HTML 解析导致乱码或显示源码。
+  const url = `${window.location.origin}/preview/iframe/${fileId}?filename=${filename}`
+  window.open(url, '_blank', 'noopener,noreferrer')
 }
 function handleGalleryIndex(i) {
   // 透传到父组件更新 galleryIndex

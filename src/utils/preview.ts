@@ -241,6 +241,60 @@ export function getFileExtension(filename = ''): string {
   return i >= 0 ? filename.slice(i + 1).toLowerCase() : ''
 }
 
+/**
+ * 按编码解码文件内容为文本（用于 Markdown/代码/文本预览）。
+ * <p>
+ * 后端预览流默认未声明 charset，且中文文本文件常见 GBK/GB2312 编码，
+ * 直接 res.text()（强制 UTF-8）会乱码。这里：
+ * 1. 有 BOM 时按 BOM 识别（UTF-8/UTF-16LE/BE）；
+ * 2. 否则优先 UTF-8 严格解码，出现非法字节序列则回退 GBK（TextDecoder('gbk')，现代浏览器均支持）；
+ * 3. 仍失败则按 UTF-8 宽松解码兜底（丢弃非法字节，尽量不抛错）。
+ *
+ * @param buffer 响应体字节
+ * @param declaredCharset 响应头声明的 charset（可能为空）
+ */
+export function decodeTextContent(buffer: ArrayBuffer, declaredCharset?: string): string {
+  const bytes = new Uint8Array(buffer)
+
+  // 1. BOM 识别
+  if (bytes.length >= 3 && bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf) {
+    return new TextDecoder('utf-8').decode(bytes.subarray(3))
+  }
+  if (bytes.length >= 2 && bytes[0] === 0xff && bytes[1] === 0xfe) {
+    return new TextDecoder('utf-16le').decode(bytes.subarray(2))
+  }
+  if (bytes.length >= 2 && bytes[0] === 0xfe && bytes[1] === 0xff) {
+    return new TextDecoder('utf-16be').decode(bytes.subarray(2))
+  }
+
+  // 2. 响应头显式声明了非 UTF-8 的 charset
+  const declared = declaredCharset?.trim().toLowerCase()
+  if (declared && declared !== 'utf-8' && declared !== 'utf8') {
+    try {
+      return new TextDecoder(declared).decode(bytes)
+    } catch {
+      /* 不支持的编码标签，继续走自动检测 */
+    }
+  }
+
+  // 3. 优先 UTF-8 严格解码（失败说明存在 GBK 等非 UTF-8 字节）
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(bytes)
+  } catch {
+    /* fallthrough */
+  }
+
+  // 4. 回退 GBK（中文文本最常见非 UTF-8 编码）
+  try {
+    return new TextDecoder('gbk').decode(bytes)
+  } catch {
+    /* fallthrough */
+  }
+
+  // 5. 最终兜底：UTF-8 宽松解码（丢弃非法字节）
+  return new TextDecoder('utf-8').decode(bytes)
+}
+
 const SHIKI_LANG_MAP: Record<string, string> = {
   js: 'javascript',
   mjs: 'javascript',

@@ -10,7 +10,8 @@ import {
   getPreviewUrl,
   resolveShikiLanguage,
   getFileExtension,
-  isShikiLangSupported
+  isShikiLangSupported,
+  decodeTextContent
 } from '@/utils/preview'
 import { useTheme } from '@/composables/useTheme'
 import { createHighlighterCore, type HighlighterCore, type LanguageInput } from '@shikijs/core'
@@ -113,7 +114,10 @@ async function load() {
   try {
     const res = await fetch(resolvedUrl(), { signal: abortCtrl.signal })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    let text = await res.text()
+    // 按编码解码（GBK/UTF-8 自适应），避免中文代码/文本乱码
+    const buffer = await res.arrayBuffer()
+    const declaredCharset = res.headers.get('content-type')?.match(/charset=([\w-]+)/i)?.[1]
+    let text = decodeTextContent(buffer, declaredCharset)
     if (text.length > MAX_CHARS) {
       text = text.slice(0, MAX_CHARS)
       truncated.value = true

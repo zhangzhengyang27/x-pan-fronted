@@ -24,10 +24,20 @@ import BaseTable from '@/components/base/BaseTable.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseTooltip from '@/components/base/BaseTooltip.vue'
 import { useRouter } from 'vue-router'
-import { resolvePreviewUrl } from '@/utils/preview'
+import { getDownloadUrl } from '@/utils/preview'
+import { useDrivePreview } from '@/composables/useDrivePreview'
+import DrivePreviewModal from '@/components/preview/drive-preview-modal.vue'
 
 const router = useRouter()
 const { favorites, toggle, refresh } = useFavorites()
+
+// ─── 文件预览（统一走 DrivePreviewModal 弹窗，与 /files 页一致） ────────────
+const preview = useDrivePreview(() => favorites.value as any[])
+const { state: previewState, openPreview, closePreview, resolvePreviewUrl: resolvePreviewUrlItem } = preview
+
+function previewDownload(item: Record<string, any>) {
+  window.open(getDownloadUrl(item.fileId || item.id), '_blank')
+}
 
 const selected = ref<string[]>([])
 const tableLoading = ref(true)
@@ -81,28 +91,15 @@ function openFile(row: any) {
     router.push({ path: '/files', query: { dir: row.fileId } })
     return
   }
-  // 视频：用签名直链新窗口直接播放
-  if (row.fileType === 9) {
-    resolvePreviewUrl(row.fileId)
-      .then((url) => window.open(url, '_blank', 'noopener,noreferrer'))
-      .catch(() => ElMessage.error('获取预览链接失败'))
-    return
-  }
-  // 预览：跳转到对应预览路由
-  const map: Record<number, string> = {
-    3: '/preview/office',
-    4: '/preview/office',
-    10: '/preview/office',
-    7: '/preview/image',
-    8: '/preview/music',
-    11: '/preview/code'
-  }
-  const p = map[row.fileType]
-  if (p) {
-    router.push({ path: `${p}/${row.fileId}` })
-  } else {
-    ElMessage.info('该类型暂不支持预览')
-  }
+  // 统一走内嵌预览弹窗（与 /files 页一致）
+  const opened = openPreview({
+    fileId: row.fileId,
+    id: row.fileId,
+    name: row.filename,
+    filename: row.filename,
+    fileType: row.fileType
+  })
+  if (!opened) ElMessage.info('该类型暂不支持预览')
 }
 
 function onToggleFavorite(row: any) {
@@ -190,5 +187,13 @@ onMounted(loadTableData)
         </template>
       </BaseTable>
     </div>
+
+    <!-- 统一预览弹窗（与 /files 页一致，替代新开页面） -->
+    <DrivePreviewModal
+      :state="previewState"
+      :resolve-url="resolvePreviewUrlItem"
+      @close="closePreview"
+      @download="previewDownload"
+    />
   </div>
 </template>
