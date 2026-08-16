@@ -76,6 +76,8 @@ const fileService = {
       extensions?: string
       dateFrom?: string
       dateTo?: string
+      sizeMin?: number
+      sizeMax?: number
     },
     resolve: Callback<IFileVO[]>,
     reject: Callback<unknown>
@@ -183,7 +185,26 @@ const fileService = {
       .delete<unknown, ApiResponse<unknown>>('/file/version', { params })
       .then(resolve)
       .catch(reject)
+  },
+
+  /** 提取文件纯文本（供 AI 摘要，后端 text-extract 接口） */
+  textExtract(
+    fileId: string,
+    resolve: Callback<TextExtractVO>,
+    reject: Callback<unknown>
+  ) {
+    http
+      .get<unknown, ApiResponse<TextExtractVO>>(`/file/${fileId}/text-extract`)
+      .then(resolve)
+      .catch(reject)
   }
+}
+
+export interface TextExtractVO {
+  text: string
+  truncated: boolean
+  extractedBy: string
+  totalChars: number
 }
 
 export default fileService

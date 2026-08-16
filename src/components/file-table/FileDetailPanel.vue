@@ -57,7 +57,7 @@ const emit = defineEmits<{
 
 const router = useRouter()
 const { isFavorite, toggle: toggleFavorite } = useFavorites()
-const { loading: tagLoading, autoTag, getTags, addTag, removeTag, userTags } = useFileTags()
+const { loading: tagLoading, autoTag, getTags, addTag, removeTag, loadTags } = useFileTags()
 
 // ─── 文件预览 ──────────────────────────────────────────────────────────────
 const preview = useDrivePreview(() => (props.file ? [props.file] : []))
@@ -323,14 +323,15 @@ function openLocation() {
   })
 }
 
-// 监听文件变化,加载标签
+// 监听文件变化,从后端加载标签（fileId 本身已是后端加密串，直接传给 tag API）
 watch(
   () => props.file,
   (f) => {
-    if (f) {
-      // 确保加载标签
+    if (f && f.fileType !== 0) {
+      loadTags(f.fileId)
     }
-  }
+  },
+  { immediate: true }
 )
 </script>
 

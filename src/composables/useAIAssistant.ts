@@ -137,28 +137,28 @@ export function useAIAssistant() {
       parsed = { keyword: input }
     }
 
-    // 调后端搜索
+    // 调后端搜索（大小下限/上限转字节后交由后端过滤，去掉前端二次过滤）
     return new Promise<string>((resolve) => {
-      const params: Record<string, unknown> = {
+      const params: {
+        keyword: string
+        fileTypes?: string
+        dateFrom?: string
+        dateTo?: string
+        sizeMin?: number
+        sizeMax?: number
+      } = {
         keyword: parsed.keyword || '',
         fileTypes: parsed.fileType != null ? String(parsed.fileType) : '-1'
       }
       if (parsed.dateFrom) params.dateFrom = parsed.dateFrom
       if (parsed.dateTo) params.dateTo = parsed.dateTo
+      if (parsed.sizeMinMB != null) params.sizeMin = parsed.sizeMinMB * 1024 * 1024
+      if (parsed.sizeMaxMB != null) params.sizeMax = parsed.sizeMaxMB * 1024 * 1024
 
       fileService.search(
         params,
         (res) => {
-          let list: IFileVO[] = res.data || []
-          // 前端二次过滤大小（后端可能不支持）
-          if (parsed.sizeMinMB != null) {
-            const min = parsed.sizeMinMB * 1024 * 1024
-            list = list.filter((r) => Number(r.fileSize || 0) >= min)
-          }
-          if (parsed.sizeMaxMB != null) {
-            const max = parsed.sizeMaxMB * 1024 * 1024
-            list = list.filter((r) => Number(r.fileSize || 0) <= max)
-          }
+          const list: IFileVO[] = res.data || []
 
           fileStore.setSearchFlag(true)
           fileStore.setSearchKey(parsed.keyword || input)
@@ -194,30 +194,80 @@ export function useAIAssistant() {
   }
 
   /**
-   * 执行摘要意图：基于选中文件名列表做分类整理（无法读取内容，需后端支持）
+   * 执行摘要意图：先提取选中文件内容（后端 text-extract），再喂 LLM 做内容摘要。
+   * 提取失败的文件（图片/视频/压缩包等）降级为「仅文件名」提示。
    */
   async function executeSummarize(
     input: string,
     ctx: AIContext,
     onChunk: (delta: string) => void
   ): Promise<string> {
-    const fileList = ctx.selectedFiles
+    const files = ctx.selectedFiles
+    onChunk('🔍 正在提取文件内容…\n\n')
+
+    // 逐个提取文本内容（最多前 5 个文件，避免上下文过长）
+    const MAX_SUMMARIZE_FILES = 5
+    const contents: { filename: string; text: string }[] = []
+    const unextractable: string[] = []
+
+    for (const f of files.slice(0, MAX_SUMMARIZE_FILES)) {
+      const text = await extractFileText(f)
+      if (text) {
+        contents.push({ filename: f.filename || '', text })
+      } else {
+        unextractable.push(f.filename || '')
+      }
+    }
+
+    // 拼接 system prompt
+    const contentSections = contents
+      .map((c, i) => {
+        // 截断单文件内容到 6000 字符，避免超出 LLM 上下文
+        const t = c.text.length > 6000 ? c.text.slice(0, 6000) + '\n…(内容过长已截断)' : c.text
+        return `【文件 ${i + 1}：${c.filename}】\n${t}`
+      })
+      .join('\n\n')
+
+    const fileListHint = files
       .map((f, i) => `${i + 1}. ${f.filename} (${f.fileSizeDesc || '未知大小'})`)
       .join('\n')
 
-    const messages: LLMMessage[] = [
-      {
-        role: 'system',
-        content: `你是网盘文件整理助手。用户选中了以下文件，请基于文件名做分类整理、命名规律分析、存储建议。
-注意：当前无法读取文件内容，只能基于文件名分析。如用户要求内容摘要，请提示需后端支持文本提取。
+    let systemContent = `你是网盘文件整理助手。用户选中了以下文件，请基于「文件内容」做内容摘要、要点提炼、分类整理。
 
-选中的文件：
-${fileList}`
-      },
-      { role: 'user', content: input }
+选中的文件清单：
+${fileListHint}`
+
+    if (contentSections) {
+      systemContent += `\n\n以下是已成功提取的文件内容：\n${contentSections}`
+    }
+    if (unextractable.length > 0) {
+      systemContent += `\n\n注意：以下文件无法提取文本内容（可能是图片/视频/压缩包等），请基于文件名说明即可：${unextractable.join('、')}`
+    }
+    if (files.length > MAX_SUMMARIZE_FILES) {
+      systemContent += `\n\n（另有 ${files.length - MAX_SUMMARIZE_FILES} 个文件因数量限制未提取内容，仅基于文件名分析）`
+    }
+
+    const messages: LLMMessage[] = [
+      { role: 'system', content: systemContent },
+      { role: 'user', content: input || '请总结这些文件的内容要点' }
     ]
 
     return chat(messages, { temperature: 0.5, stream: true, onChunk })
+  }
+
+  /**
+   * 提取单个文件的纯文本（调用后端 text-extract）。
+   * 成功返回文本，失败/不支持返回空字符串。
+   */
+  function extractFileText(f: IFileVO): Promise<string> {
+    return new Promise((resolve) => {
+      if (!f.fileId) return resolve('')
+      fileService.textExtract(
+        f.fileId,
+        (res) => resolve(res.data?.text || ''),
+        () => resolve('') // 提取失败（图片/视频/无权限等）降级
+      )
+    })
   }
 
   /**

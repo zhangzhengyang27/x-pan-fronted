@@ -1,11 +1,12 @@
 /**
  * useFileTags —— 文件智能打标（P3-2）
  *
- * 双引擎策略：
+ * 标签数据源统一走后端 x_pan_file_tag 表（list / addTag / removeTag），
+ * 不再依赖 localStorage（历史遗留的 localStorage 缓存已废弃）。
+ *
+ * 自动打标双引擎策略：
  *   1. 优先调用 DeepSeek（若已配置 API Key）—— 语义标签，更智能
  *   2. DeepSeek 未配置或失败时，降级调用后端 POST /file/auto-tag —— 规则匹配，兜底
- *
- * 标签统一持久化到 localStorage（按 fileId 索引），后端规则打标还会落库 x_pan_file_tag。
  *
  * 能力边界：
  * - 文件名/扩展名 → 语义标签（"工作文档""会议记录""设计素材"等）✅
@@ -14,9 +15,9 @@
  */
 import { ref } from 'vue'
 import { useLLM } from '@/composables/useLLM'
-import fileTagService from '@/api/file/tag'
+import fileTagService, { type FileTagItem } from '@/api/file/tag'
+import { ElMessage } from '@/composables/useToast'
 
-const TAGS_STORAGE = 'xpan_file_tags'
 const MAX_TAGS = 5
 
 export interface FileTag {
@@ -25,36 +26,13 @@ export interface FileTag {
   createdAt: number
 }
 
-// 内存缓存 + localStorage 持久化
-const tagsCache = new Map<string, FileTag>()
-
-function loadCache(): void {
-  try {
-    const raw = localStorage.getItem(TAGS_STORAGE)
-    if (!raw) return
-    const arr: FileTag[] = JSON.parse(raw)
-    for (const item of arr) {
-      tagsCache.set(item.fileId, item)
-    }
-  } catch {
-    /* ignore */
-  }
-}
-
-function saveCache(): void {
-  try {
-    const arr = Array.from(tagsCache.values())
-    localStorage.setItem(TAGS_STORAGE, JSON.stringify(arr))
-  } catch {
-    /* ignore */
-  }
-}
-
-loadCache()
-
 export function useFileTags() {
   const { chat, isConfigured } = useLLM()
   const loading = ref(false)
+  /** 当前文件的标签列表（后端数据源，含 id + tagName + tagSource） */
+  const userTags = ref<FileTagItem[]>([])
+  /** 当前加载标签的文件 id（避免并发串扰） */
+  const currentFileId = ref('')
 
   /**
    * 引擎 1：DeepSeek 语义打标
@@ -87,25 +65,38 @@ export function useFileTags() {
   /**
    * 引擎 2：后端规则打标（降级方案）
    * 调用 POST /file/auto-tag，后端基于文件名/类型规则匹配并落库。
-   * @returns 标签数组（失败返回空数组）
+   * 返回后端最新标签列表。
    */
-  function autoTagByBackend(fileId: string): Promise<string[]> {
+  function autoTagByBackend(fileId: string): Promise<FileTagItem[]> {
     return new Promise((resolve) => {
       fileTagService.autoTag(
         fileId,
-        (res) => {
-          const tags = (res.data || []).map((t) => t.tagName).filter(Boolean)
-          resolve(tags)
-        },
+        (res) => resolve(res.data || []),
         () => resolve([])
       )
     })
   }
 
+  /** 从后端加载指定文件的标签列表（手动标签 + 自动标签都走后端数据源） */
+  function loadTags(fileId: string | number): void {
+    const fid = String(fileId)
+    currentFileId.value = fid
+    fileTagService.list(
+      fid,
+      (res) => {
+        if (currentFileId.value !== fid) return
+        userTags.value = res.data || []
+      },
+      () => {
+        userTags.value = []
+      }
+    )
+  }
+
   /**
    * 对文件自动打标（双引擎：DeepSeek 优先，降级后端规则）
    * @param file 文件对象（需含 fileId, filename, fileType）
-   * @returns 标签数组（两个引擎都失败返回空数组）
+   * @returns 标签名数组（两个引擎都失败返回空数组）
    */
   async function autoTag(file: {
     fileId: string | number
@@ -113,51 +104,108 @@ export function useFileTags() {
     fileType: number
   }): Promise<string[]> {
     const fid = String(file.fileId)
-
-    // 命中缓存直接返回
-    const cached = tagsCache.get(fid)
-    if (cached) return cached.tags
-
     loading.value = true
     try {
-      let tags: string[] = []
-
-      // 1. 优先 DeepSeek（若已配置）
+      // 1. 优先 DeepSeek（若已配置）：生成语义标签后逐个落库（手动标签 tagSource=1 由后端决定，这里走后端 auto-tag 落库）
+      let llmTags: string[] = []
       if (isConfigured.value) {
         try {
-          tags = await autoTagByLLM(file)
+          llmTags = await autoTagByLLM(file)
         } catch {
-          tags = []
+          llmTags = []
         }
       }
 
+      // DeepSeek 生成的标签逐个调用 addTag 落库
+      for (const tag of llmTags) {
+        await addTagSilently(fid, tag)
+      }
+
       // 2. DeepSeek 未配置或未生成 → 降级后端规则打标
-      if (tags.length === 0) {
-        tags = await autoTagByBackend(fid)
+      if (llmTags.length === 0) {
+        userTags.value = await autoTagByBackend(fid)
       }
 
-      if (tags.length > 0) {
-        const entry: FileTag = { fileId: fid, tags, createdAt: Date.now() }
-        tagsCache.set(fid, entry)
-        saveCache()
-      }
-
-      return tags
+      return userTags.value.map((t) => t.tagName)
     } finally {
       loading.value = false
     }
   }
 
+  /** 静默添加标签（不弹 toast，用于自动打标批量落库，重复/超限时忽略） */
+  function addTagSilently(fileId: string, tagName: string): Promise<void> {
+    return new Promise((resolve) => {
+      fileTagService.addTag(
+        fileId,
+        tagName,
+        (res) => {
+          if (res.data) {
+            userTags.value = [...userTags.value, res.data]
+          }
+          resolve()
+        },
+        () => resolve() // 重复/超限等错误静默忽略
+      )
+    })
+  }
+
+  /** 手动添加标签（带错误提示） */
+  async function addTag(fileId: string | number, tagName: string): Promise<boolean> {
+    const fid = String(fileId)
+    const name = tagName.trim()
+    if (!name) return false
+    return new Promise((resolve) => {
+      fileTagService.addTag(
+        fid,
+        name,
+        (res) => {
+          if (res.data) {
+            userTags.value = [...userTags.value, res.data]
+          }
+          ElMessage.success('标签已添加')
+          resolve(true)
+        },
+        (err) => {
+          ElMessage.error((err as { message?: string })?.message || '添加标签失败')
+          resolve(false)
+        }
+      )
+    })
+  }
+
+  /** 删除标签（按 tagName 在 userTags 中找到对应 id 后走后端删除） */
+  async function removeTag(fileId: string | number, tagName: string): Promise<boolean> {
+    const target = userTags.value.find((t) => t.tagName === tagName)
+    if (!target) return false
+    return new Promise((resolve) => {
+      fileTagService.removeTag(
+        target.id,
+        () => {
+          userTags.value = userTags.value.filter((t) => t.id !== target.id)
+          resolve(true)
+        },
+        (err) => {
+          ElMessage.error((err as { message?: string })?.message || '删除标签失败')
+          resolve(false)
+        }
+      )
+    })
+  }
+
+  /** 向后兼容：返回标签名数组（FileDetailPanel 的 fileTags computed 使用） */
   function getTags(fileId: string | number): string[] {
-    return tagsCache.get(String(fileId))?.tags || []
+    const fid = String(fileId)
+    if (currentFileId.value !== fid) return []
+    return userTags.value.map((t) => t.tagName)
   }
 
-  function clearTags(fileId: string | number): void {
-    tagsCache.delete(String(fileId))
-    saveCache()
+  /** 清空当前标签（切换文件时重置） */
+  function clearTags(): void {
+    userTags.value = []
+    currentFileId.value = ''
   }
 
-  return { loading, autoTag, getTags, clearTags }
+  return { loading, userTags, autoTag, getTags, addTag, removeTag, loadTags, clearTags }
 }
 
 function buildPrompt(file: { filename: string; fileType: number }): string {
