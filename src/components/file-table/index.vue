@@ -21,7 +21,9 @@ import { useFavorites } from '@/composables/useFavorites'
 import { useRecent } from '@/composables/useRecent'
 import { useMediaQuery } from '@/composables/useMediaQuery'
 import { useFileTags } from '@/composables/useFileTags'
-import { getDownloadUrl } from '@/utils/preview'
+import { getDownloadUrl, invalidatePreviewUrl } from '@/utils/preview'
+import { removeThumbnailFromCache } from '@/utils/thumbnail-cache'
+import { invalidateVideoCoverCache } from '@/composables/useVideoCover'
 import { useDrivePreview } from '@/composables/useDrivePreview'
 import DrivePreviewModal from '@/components/preview/drive-preview-modal.vue'
 import { useUploader } from '@/composables/useUploader'
@@ -360,6 +362,20 @@ async function batchDownload(rows: Record<string, any>[]) {
   )
 }
 
+// ─── 媒体缓存失效 ────────────────────────────────────────────────────────────
+// 文件删除/重命名/移动后，清除对应的缩略图/封面缓存（IndexedDB、内存、视频封面），
+// 避免展示过期的旧位图。重命名可能改变扩展名进而改变 fileType，需一并失效。
+function invalidateMediaCache(rows: Record<string, any>[]) {
+  rows.forEach((r) => {
+    const id = r.fileId
+    if (!id) return
+    removeThumbnailFromCache(id)
+    invalidatePreviewUrl(id, 256)
+    invalidatePreviewUrl(id, 'original')
+    invalidateVideoCoverCache(String(id))
+  })
+}
+
 // ─── 批量删除 ────────────────────────────────────────────────────────────────
 function batchDelete(rows: Record<string, any>[]) {
   if (!rows?.length) return
@@ -367,6 +383,7 @@ function batchDelete(rows: Record<string, any>[]) {
   fileService.delete(
     { fileIds },
     () => {
+      invalidateMediaCache(rows)
       ElMessage.success(`已删除 ${rows.length} 个文件`)
       selected.value = []
       fileStore.loadFileList()
@@ -597,6 +614,10 @@ function openMoveDialog(rows: any[]) {
 }
 
 function onMoveComplete() {
+  // 移动可能改变文件所在目录，需失效其缩略图/封面缓存（移动后 fileId 不变，但保险起见清理）
+  const movedRows = moveDialog.value.row
+  if (Array.isArray(movedRows)) invalidateMediaCache(movedRows)
+  else if (movedRows) invalidateMediaCache([movedRows])
   ElMessage.success('已移动到目标文件夹')
   moveDialog.value.open = false
   fileStore.loadFileList()
@@ -730,6 +751,7 @@ async function promptRename(row: any) {
     fileService.update(
       { fileId: row.fileId, filename: newName.trim() },
       () => {
+        invalidateMediaCache([row])
         ElMessage.success('重命名成功')
         fileStore.loadFileList()
       },
@@ -775,6 +797,7 @@ async function batchRename(rows: Record<string, any>[]) {
       })
     }
     ElMessage.success(`批量重命名完成，成功 ${successCount}/${rows.length} 个`)
+    invalidateMediaCache(rows)
     fileStore.loadFileList()
   } catch {
     // 取消

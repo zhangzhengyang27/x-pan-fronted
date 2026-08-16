@@ -9,7 +9,7 @@
  * 避免大量视频同时加载造成的带宽/CPU 压力。
  */
 import { onBeforeUnmount } from 'vue'
-import { resolvePreviewUrl, invalidatePreviewUrl } from '@/utils/preview'
+import { resolvePreviewUrl, resolveVideoCoverUrl, invalidatePreviewUrl } from '@/utils/preview'
 
 // dataURL 缓存：fileId -> cover dataURL（会话级，避免重复采样）
 const coverCache = new Map<string, string>()
@@ -17,6 +17,15 @@ const coverCache = new Map<string, string>()
 const COVER_CACHE_MAX = 500
 // 封面生成最大重试次数（总尝试 = MAX_RETRY + 1）
 const COVER_MAX_RETRY = 2
+
+/**
+ * 清除指定文件的视频封面缓存（模块级，供文件删除/移动等操作后失效调用）。
+ * 注意：各组件实例内部的 triggered 集合无法从这里清除，
+ * 但 coverCache 命中会直接返回，因此删除 coverCache 后下一次进入视口会重新生成。
+ */
+export function invalidateVideoCoverCache(fileId: string): void {
+  coverCache.delete(fileId)
+}
 
 export function useVideoCover() {
   // fileId -> 是否已进入视口并触发过生成
@@ -80,12 +89,34 @@ export function useVideoCover() {
   }
 
   async function generateCoverWithRetry(fileId: string, retriesLeft: number): Promise<string | null> {
+    // 优先尝试后端 FFmpeg 封面（磁盘缓存，无需前端抽帧）；不可用则降级 canvas 采样
+    const serverCover = await generateServerCover(fileId)
+    if (serverCover) return serverCover
+
     const dataUrl = await generateCover(fileId)
     if (dataUrl) return dataUrl
     if (retriesLeft <= 0) return null
     // 失效可能过期的 ptoken 缓存，重试时重新申请
     invalidatePreviewUrl(fileId)
     return generateCoverWithRetry(fileId, retriesLeft - 1)
+  }
+
+  /** 尝试获取后端视频封面直链（FFmpeg 生成）；失败返回 null 触发 canvas 降级 */
+  async function generateServerCover(fileId: string): Promise<string | null> {
+    try {
+      const url = await resolveVideoCoverUrl(fileId)
+      if (!url) return null
+      // 探测封面是否可用（后端 FFmpeg 缺失会返回 404）
+      const ok = await new Promise<boolean>((resolve) => {
+        const img = new Image()
+        img.onload = () => resolve(true)
+        img.onerror = () => resolve(false)
+        img.src = url
+      })
+      return ok ? url : null
+    } catch {
+      return null
+    }
   }
 
   /** 提取单帧封面：seek 到 10% 时间点绘制到 canvas */
@@ -153,7 +184,13 @@ export function useVideoCover() {
     observers.clear()
   }
 
+  /** 清除指定文件的封面缓存（文件删除/移动/更新后失效，重新生成） */
+  function removeCover(fileId: string) {
+    coverCache.delete(fileId)
+    triggered.delete(fileId)
+  }
+
   onBeforeUnmount(dispose)
 
-  return { watch, dispose }
+  return { watch, dispose, removeCover }
 }

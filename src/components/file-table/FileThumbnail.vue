@@ -24,6 +24,12 @@ import {
   Eye
 } from '@lucide/vue'
 import { resolvePreviewUrl, invalidatePreviewUrl } from '@/utils/preview'
+import {
+  getThumbnailFromMemory,
+  getThumbnailFromCache,
+  putThumbnailToCache
+} from '@/utils/thumbnail-cache'
+import { useVideoCover } from '@/composables/useVideoCover'
 import { cn } from '@/utils/classnames'
 import panUtil from '@/utils/common'
 
@@ -93,7 +99,21 @@ const visual = computed(() => {
 })
 
 const isImage = computed(() => props.file.fileType === 7)
+const isVideo = computed(() => props.file.fileType === 9)
 const showImage = computed(() => isImage.value && !imageErrored.value)
+
+// ─── 视频封面（fileType=9）：后端 FFmpeg 封面优先，降级 canvas 采样 ──────────
+const videoCover = ref<string | null>(null)
+const { watch: watchVideoCover } = useVideoCover()
+
+function resolveVideoCover() {
+  if (!isVideo.value || !inViewport.value || videoCover.value) return
+  if (rootEl.value) {
+    watchVideoCover(props.file.fileId, rootEl.value, (url) => {
+      if (!disposed && url) videoCover.value = url
+    })
+  }
+}
 
 // 后端预览直链（图片直出预览流）；后端 thumbnail 字段（P1.8）优先
 // 使用 resolvePreviewUrl 获取带短期签名 token 的预览流，避免 /file/thumbnail 返回空
@@ -113,7 +133,7 @@ const rootEl = ref<HTMLElement | null>(null)
 let observer: IntersectionObserver | null = null
 
 function observe() {
-  if (!isImage.value || typeof IntersectionObserver === 'undefined') {
+  if ((!isImage.value && !isVideo.value) || typeof IntersectionObserver === 'undefined') {
     inViewport.value = true
     return
   }
@@ -142,8 +162,29 @@ function resolve() {
     return
   }
   const size = props.thumbnail ? 256 : 'original'
+
+  // 优先命中内存缓存（同步，避免闪烁）
+  const memHit = getThumbnailFromMemory(props.file.fileId, size)
+  if (memHit) {
+    previewUrl.value = memHit
+    imageLoaded.value = true
+    imageErrored.value = false
+    return
+  }
+
   resolvePreviewUrl(props.file.fileId, size)
-    .then((url) => {
+    .then(async (url) => {
+      if (disposed) return
+      // 缩略图场景：先从 IndexedDB 读取位图缓存，命中则用 blob URL（跳过拉流）
+      if (props.thumbnail) {
+        const cached = await getThumbnailFromCache(props.file.fileId, size)
+        if (!disposed && cached) {
+          previewUrl.value = cached
+          imageLoaded.value = true
+          imageErrored.value = false
+          return
+        }
+      }
       if (!disposed) previewUrl.value = url
     })
     .catch(() => {
@@ -161,6 +202,11 @@ onBeforeUnmount(() => {
 })
 
 watchEffect(() => {
+  if (isVideo.value) {
+    // 视频：触发封面解析（后端 FFmpeg 优先，降级 canvas 采样）
+    resolveVideoCover()
+    return
+  }
   if (!isImage.value) {
     previewUrl.value = null
     return
@@ -176,6 +222,32 @@ let retryCount = 0
 
 function onImageLoad() {
   imageLoaded.value = true
+  // 缩略图加载成功后，把已拉取的位图写入 IndexedDB 缓存，供后续复用（避免 ptoken 变化导致重复拉流）
+  if (props.thumbnail && previewUrl.value) {
+    cacheCurrentPreview()
+  }
+}
+
+/**
+ * 把当前预览 URL 对应的图片位图写入缓存。
+ * 用 fetch 拉取 Blob（浏览器会命中后端/浏览器缓存），成功后存入 IndexedDB。
+ * 失败静默忽略，不影响主流程。
+ */
+function cacheCurrentPreview() {
+  const url = previewUrl.value
+  if (!url) return
+  // 已经是 blob URL（来自缓存），无需再缓存
+  if (url.startsWith('blob:')) return
+  const size = props.thumbnail ? 256 : 'original'
+  fetch(url)
+    .then((res) => {
+      if (!res.ok) throw new Error(`http ${res.status}`)
+      return res.blob()
+    })
+    .then((blob) => putThumbnailToCache(props.file.fileId, size, blob))
+    .catch(() => {
+      /* 忽略：缓存写入失败不影响展示 */
+    })
 }
 
 function onImageError() {
@@ -232,6 +304,25 @@ function onImageError() {
       >
         <Eye :size="10" /> 图
       </span>
+    </template>
+
+    <!-- 视频：封面缩略图（后端 FFmpeg 优先，降级 canvas 采样；失败回退图标） -->
+    <template v-else-if="isVideo">
+      <img
+        v-if="videoCover"
+        :src="videoCover"
+        :alt="file.filename"
+        class="w-full h-full object-cover"
+        loading="lazy"
+        decoding="async"
+      />
+      <component
+        v-else
+        :is="visual.icon"
+        :size="iconSize"
+        class="transition-transform group-hover:scale-110"
+        :class="visual.text"
+      />
     </template>
 
     <!-- 其他类型：图标 -->
