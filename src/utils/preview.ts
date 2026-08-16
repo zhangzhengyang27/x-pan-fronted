@@ -4,6 +4,7 @@
  */
 import panUtil from '@/utils/common'
 import { getToken } from '@/utils/cookie'
+import { resolvePreviewPlugin } from '@/utils/preview-plugin'
 
 export type PreviewKind =
   | 'image'
@@ -17,9 +18,12 @@ export type PreviewKind =
   | 'pptx'
   | 'markdown'
   | 'text'
+  | 'csv'
+  | 'archive'
+  | 'xmind'
   | 'unsupported'
 
-interface PreviewInput {
+export interface PreviewInput {
   name?: string
   filename?: string
   mimeType?: string
@@ -28,11 +32,11 @@ interface PreviewInput {
   type?: string
 }
 
-const IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'ico', 'heic', 'avif']
-const VIDEO_EXTS = ['mp4', 'webm', 'mov', 'mkv', 'avi', 'wmv', 'flv', 'ogv']
-const AUDIO_EXTS = ['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a', 'wma']
-const PDF_EXTS = ['pdf']
-const CODE_EXTS = [
+export const IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'ico', 'heic', 'avif']
+export const VIDEO_EXTS = ['mp4', 'webm', 'mov', 'mkv', 'avi', 'wmv', 'flv', 'ogv']
+export const AUDIO_EXTS = ['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a', 'wma']
+export const PDF_EXTS = ['pdf']
+export const CODE_EXTS = [
   'js',
   'ts',
   'tsx',
@@ -80,6 +84,15 @@ function extOf(name = ''): string {
 
 export function resolvePreviewKind(input: PreviewInput): PreviewKind {
   if (input.fileType === 0 || input.type === 'folder') return 'unsupported'
+  // 插件化重构：查注册表（内置插件在 plugins/preview/index.ts 注册）。
+  // 注册表为空（尚未注册）时回退旧 if/else 判定，保证调用方在任何时机都可用。
+  const plugin = resolvePreviewPlugin(input)
+  if (plugin) return plugin.id as PreviewKind
+  return legacyResolvePreviewKind(input)
+}
+
+/** 旧的 if/else 判定（保留作为「注册表为空」时的兜底，行为与重构前一致） */
+function legacyResolvePreviewKind(input: PreviewInput): PreviewKind {
   const ext = (input.extension || extOf(input.name || input.filename || '')).toLowerCase()
   if (IMAGE_EXTS.includes(ext)) return 'image'
   if (VIDEO_EXTS.includes(ext)) return 'video'
@@ -175,6 +188,31 @@ export function resolvePreviewUrl(
   }
   urlCache.set(cacheKey, p)
   return p
+}
+
+/**
+ * 解析视频封面直链（后端 FFmpeg 抽帧生成的 JPEG）。
+ *
+ * 复用 resolvePreviewUrl 签发的 ptoken（绑定 PREVIEW_FILE_ID，任意预览端点通用），
+ * 把 stream 直链中的 ptoken 抽取出来拼成 /file/video-cover?fileId=xxx&ptoken=yyy。
+ * 后端 FFmpeg 不可用时会返回 404，调用方应降级为前端 canvas 采样。
+ *
+ * @param fileId 文件 id
+ */
+export async function resolveVideoCoverUrl(
+  fileId: string | number | undefined
+): Promise<string | null> {
+  if (fileId === undefined) return null
+  try {
+    const streamUrl = await resolvePreviewUrl(fileId)
+    // 从 stream 直链抽取 ptoken（URL 形如 /file/preview/stream?fileId=xxx&ptoken=yyy）
+    const parsed = new URL(streamUrl, window.location.origin)
+    const ptoken = parsed.searchParams.get('ptoken')
+    if (!ptoken) return null
+    return `${panUtil.getUrlPrefix()}/file/video-cover?fileId=${encodeURIComponent(String(fileId))}&ptoken=${encodeURIComponent(ptoken)}`
+  } catch {
+    return null
+  }
 }
 
 /**

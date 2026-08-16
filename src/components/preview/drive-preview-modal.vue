@@ -8,18 +8,11 @@
  */
 import { computed, defineAsyncComponent, ref, watch } from 'vue'
 import { Download, ExternalLink, AlertCircle } from '@lucide/vue'
-import { resolvePreviewUrl, isOfficeKind } from '@/utils/preview'
+import { resolvePreviewUrl } from '@/utils/preview'
+import { getPreviewPluginById } from '@/utils/preview-plugin'
 import ImageGalleryPreviewer from './image-gallery-previewer.vue'
 import BaseModal from '@/components/base/BaseModal.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
-
-// 懒加载（保证只打包进需要的 chunk）
-const VideoPreviewer = defineAsyncComponent(() => import('./video-previewer.vue'))
-const AudioPreviewer = defineAsyncComponent(() => import('./audio-previewer.vue'))
-const PdfPreviewer = defineAsyncComponent(() => import('./pdf-previewer.vue'))
-const OfficePreviewer = defineAsyncComponent(() => import('./office-previewer.vue'))
-const MarkdownPreviewer = defineAsyncComponent(() => import('./markdown-previewer.vue'))
-const CodePreviewer = defineAsyncComponent(() => import('./code-previewer.vue'))
 
 const props = defineProps({
   state: { type: Object, required: true }, // {open, item, kind, galleryItems, galleryIndex}
@@ -37,21 +30,19 @@ const urlError = ref('')
 const isImage = computed(() => props.state.kind === 'image')
 const currentItem = computed(() => props.state.item)
 
-const modalWidth = computed(() => {
-  const W = { audio: 560, video: 920 } as Record<string, number>
-  return W[props.state.kind] ?? 960
-})
+// 插件化：按当前 kind 反查插件（kind 就是 plugin.id），尺寸/渲染/新窗口策略统一从插件读取
+const plugin = computed(() => getPreviewPluginById(props.state.kind))
 
-const contentHeight = computed(() => {
-  switch (props.state.kind) {
-    case 'video':
-      return '520px'
-    case 'audio':
-      return '220px'
-    default:
-      return '68vh'
-  }
-})
+const modalWidth = computed(() => plugin.value?.modal?.width ?? 960)
+
+const contentHeight = computed(() => plugin.value?.modal?.height ?? '68vh')
+
+// 懒加载渲染组件（替代原来的 6 个 defineAsyncComponent 声明）
+const ActiveComponent = computed(() =>
+  plugin.value && !plugin.value.fullscreen
+    ? defineAsyncComponent(plugin.value.component)
+    : null
+)
 
 const fileName = computed(() => currentItem.value?.name || currentItem.value?.filename || '')
 
@@ -92,28 +83,21 @@ function download() {
 function openInNewTab() {
   const item = currentItem.value
   if (!item) return
-  const fileId = encodeURIComponent(item.fileId || item.id)
-  const filename = encodeURIComponent(item.name || item.filename || '')
-
-  // 图片/视频/音频：直接打开预览流 URL（浏览器原生渲染）
-  if (['image', 'video', 'audio'].includes(props.state.kind)) {
-    if (previewUrl.value) window.open(previewUrl.value, '_blank', 'noopener,noreferrer')
-    return
+  // 插件化：新窗口策略下沉到各插件的 openInNewTab（未配置则 fallback 到 iframe 路由）
+  const fn = plugin.value?.openInNewTab
+  if (fn) {
+    fn(item, previewUrl.value)
+  } else {
+    const fileId = encodeURIComponent(String(item.fileId ?? item.id))
+    const filename = encodeURIComponent(item.name || item.filename || '')
+    window.open(
+      `${window.location.origin}/preview/iframe/${fileId}?filename=${filename}`,
+      '_blank',
+      'noopener,noreferrer'
+    )
   }
-
-  // Office：打开 office 预览路由（后端转 PDF 后由 PdfPreviewer 渲染）
-  if (isOfficeKind(props.state.kind)) {
-    const url = `${window.location.origin}/preview/office/${fileId}?filename=${filename}`
-    window.open(url, '_blank', 'noopener,noreferrer')
-    return
-  }
-
-  // PDF/Markdown/代码/文本：打开 iframe 预览路由，由对应 Previewer 正确解析渲染，
-  // 避免浏览器把原始 markdown/代码流当 HTML 解析导致乱码或显示源码。
-  const url = `${window.location.origin}/preview/iframe/${fileId}?filename=${filename}`
-  window.open(url, '_blank', 'noopener,noreferrer')
 }
-function handleGalleryIndex(i) {
+function handleGalleryIndex(i: number) {
   // 透传到父组件更新 galleryIndex
   if (props.state) props.state.galleryIndex = i
 }
@@ -154,40 +138,25 @@ function handleGalleryIndex(i) {
         {{ urlError }}
       </div>
       <template v-else-if="previewUrl && currentItem">
+        <!-- 插件表驱动：<component :is> 替代原 v-if 链，统一传齐异构 props -->
         <div v-if="state.kind === 'video'" class="h-full w-full">
-          <VideoPreviewer
+          <component
+            :is="ActiveComponent"
             :url="previewUrl || undefined"
             :file-id="currentItem.fileId || currentItem.id"
             :title="fileName"
+            :filename="fileName"
+            :kind="state.kind"
           />
         </div>
-        <AudioPreviewer
-          v-else-if="state.kind === 'audio'"
+        <component
+          v-else-if="ActiveComponent"
+          :is="ActiveComponent"
           :url="previewUrl || undefined"
           :file-id="currentItem.fileId || currentItem.id"
           :title="fileName"
-        />
-        <PdfPreviewer
-          v-else-if="state.kind === 'pdf'"
-          :url="previewUrl || undefined"
-          :file-id="currentItem.fileId || currentItem.id"
-        />
-        <OfficePreviewer
-          v-else-if="isOfficeKind(state.kind)"
-          :url="previewUrl || undefined"
-          :file-id="currentItem.fileId || currentItem.id"
-          :kind="state.kind"
-        />
-        <MarkdownPreviewer
-          v-else-if="state.kind === 'markdown'"
-          :url="previewUrl || undefined"
-          :file-id="currentItem.fileId || currentItem.id"
-        />
-        <CodePreviewer
-          v-else-if="state.kind === 'code' || state.kind === 'text'"
-          :url="previewUrl || undefined"
-          :file-id="currentItem.fileId || currentItem.id"
           :filename="fileName"
+          :kind="state.kind"
         />
         <div
           v-else

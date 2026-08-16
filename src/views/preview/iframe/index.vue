@@ -5,20 +5,26 @@
  * 注：file-table 双击已经走 DrivePreviewModal 弹窗；
  * 此路由保留主要为了兼容外部链接直接打开。
  */
-import { computed, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { Download } from '@lucide/vue'
 import { getDownloadUrl, resolvePreviewKind, resolvePreviewUrl } from '@/utils/preview'
+import { getPreviewPluginById } from '@/utils/preview-plugin'
 import BaseButton from '@/components/base/BaseButton.vue'
-import PdfPreviewer from '@/components/preview/pdf-previewer.vue'
-import MarkdownPreviewer from '@/components/preview/markdown-previewer.vue'
-import CodePreviewer from '@/components/preview/code-previewer.vue'
 
 const route = useRoute()
 const fileId = computed(() => route.params.fileId)
 const filename = computed(() => route.query.filename || route.params.filename || 'preview')
 const kind = computed(() => resolvePreviewKind({ name: filename.value, fileType: null }))
 const downloadUrl = computed(() => getDownloadUrl(fileId.value))
+
+// 插件化：iframe 路由仅承载「可独立路由渲染」的插件（pdf/markdown/code/text/csv）
+const plugin = computed(() => getPreviewPluginById(kind.value))
+const ActiveComponent = computed(() =>
+  plugin.value && !plugin.value.fullscreen
+    ? defineAsyncComponent(plugin.value.component)
+    : null
+)
 
 // 统一走签名 URL（与 DrivePreviewModal 一致），避免长期 token 进 URL
 const previewUrl = ref('')
@@ -50,10 +56,9 @@ watch(
       </a>
     </header>
     <main class="flex-1 min-h-0 overflow-hidden">
-      <PdfPreviewer v-if="kind === 'pdf'" :url="previewUrl || undefined" :file-id="fileId" />
-      <MarkdownPreviewer v-else-if="kind === 'markdown'" :url="previewUrl || undefined" :file-id="fileId" />
-      <CodePreviewer
-        v-else-if="kind === 'code' || kind === 'text'"
+      <component
+        v-if="ActiveComponent"
+        :is="ActiveComponent"
         :url="previewUrl || undefined"
         :file-id="fileId"
         :filename="filename"

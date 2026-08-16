@@ -4,6 +4,7 @@ import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
 import './styles/tokens.css'
+import { registerBuiltinPreviewPlugins } from '@/plugins/preview'
 import { initTheme } from '@/composables/useTheme'
 import { useWebSocket } from '@/composables/useWebSocket'
 import { getToken } from '@/utils/cookie'
@@ -15,6 +16,9 @@ app.config.errorHandler = (err, instance, info) => {
 }
 app.use(createPinia())
 app.use(router)
+
+// 注册内置预览插件（预览体系插件化：resolvePreviewKind 改为查注册表）
+registerBuiltinPreviewPlugins()
 
 // 初始化主题（在挂载前同步读取 localStorage，避免 FOUC）
 initTheme()
