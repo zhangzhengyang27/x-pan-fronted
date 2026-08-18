@@ -17,7 +17,7 @@ const props = defineProps({
 const fileStore = useFileStore()
 const { multipleSelection } = storeToRefs(fileStore)
 
-async function doDelete(fileIds: string) {
+async function doDelete(fileIds: string[]) {
   try {
     await ElMessageBox.confirm('文件删除后将保存在回收站，您可以随时恢复，是否继续？', '删除文件', {
       confirmButtonText: '删除',
@@ -39,11 +39,11 @@ async function doDelete(fileIds: string) {
 
 function onClick() {
   if (props.item) {
-    doDelete(props.item.fileId)
+    doDelete([props.item.fileId])
     return
   }
   if (multipleSelection.value?.length > 0) {
-    const ids = multipleSelection.value.map((i) => i.fileId).join('__,__')
+    const ids = multipleSelection.value.map((i) => i.fileId)
     doDelete(ids)
     return
   }

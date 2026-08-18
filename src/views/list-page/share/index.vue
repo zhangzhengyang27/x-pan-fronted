@@ -74,7 +74,7 @@ function fallbackCopy(text) {
   }
 }
 
-function doCancelShares(shareIds) {
+function doCancelShares(shareIds: string[]) {
   ElMessageBox.confirm('确定取消分享?取消后链接将失效', '取消分享', {
     confirmButtonText: '确认',
     cancelButtonText: '取消',
@@ -82,7 +82,7 @@ function doCancelShares(shareIds) {
   })
     .then(() => {
       shareService.cancelShare(
-        { shareId: shareIds },
+        { shareIds },
         () => {
           ElMessage.success('取消分享成功')
           loadTableData()
@@ -95,12 +95,12 @@ function doCancelShares(shareIds) {
 
 function cancelShares() {
   if (selected.value.length === 0) return ElMessage.error('请选择要取消的分享')
-  const ids = selected.value.filter(Boolean).join(',')
+  const ids = selected.value.filter(Boolean) as string[]
   doCancelShares(ids)
 }
 
 function cancelShare(row) {
-  doCancelShares(row.shareId)
+  doCancelShares([row.shareId])
 }
 
 onMounted(loadTableData)

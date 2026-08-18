@@ -366,9 +366,9 @@ function saveFiles(newItem) {
 }
 
 function doSaveFiles(targetParentId) {
-  let fileIds = ''
-  if (item.value) fileIds = item.value.fileId
-  else fileIds = multipleSelection.value.map((it) => it.fileId).join('__,__')
+  let fileIds: string[] = []
+  if (item.value) fileIds = [item.value.fileId]
+  else fileIds = multipleSelection.value.map((it) => it.fileId)
   shareService.saveShareFiles({ fileIds, targetParentId }, (res) => {
     if (res.code === 0) {
       ElMessage.success('保存成功')

@@ -167,7 +167,7 @@ async function doConfirm() {
     shareName: form.shareName,
     shareType: parseInt(form.shareType, 10),
     shareDayType: parseInt(form.shareDayType, 10),
-    shareFileIds: ids.join('__,__')
+    shareFileIds: ids
   }
   if (form.shareCode) payload.shareCode = form.shareCode
   if (form.downloadLimit !== '' && form.downloadLimit >= 0)

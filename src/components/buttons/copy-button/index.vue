@@ -49,7 +49,7 @@ function onConfirm({ targetId }) {
   loading.value = true
   fileService.copy(
     {
-      fileIds: fileIds.join('__,__'),
+      fileIds,
       targetParentId: targetId || ''
     },
     () => {

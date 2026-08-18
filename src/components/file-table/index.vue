@@ -342,7 +342,7 @@ async function batchDownload(rows: Record<string, any>[]) {
     return
   }
   ElMessage.info(`正在打包 ${rows.length} 个文件...`)
-  const fileIds = rows.map((r) => r.fileId).join('__,__')
+  const fileIds = rows.map((r) => r.fileId)
   fileService.archiveDownload(
     { fileIds },
     (res) => {
@@ -379,7 +379,7 @@ function invalidateMediaCache(rows: Record<string, any>[]) {
 // ─── 批量删除 ────────────────────────────────────────────────────────────────
 function batchDelete(rows: Record<string, any>[]) {
   if (!rows?.length) return
-  const fileIds = rows.map((r) => r.fileId).join('__,__')
+  const fileIds = rows.map((r) => r.fileId)
   fileService.delete(
     { fileIds },
     () => {
@@ -810,7 +810,7 @@ async function shareWithQRCode(row: any) {
   if (!target) return
   try {
     shareService.createShare(
-      { fileId: target.fileId },
+      { shareFileIds: [target.fileId] },
       (res) => {
         const shareId = res.data?.shareId || res.data
         const url = window.location.origin + '/share/' + shareId

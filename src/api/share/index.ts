@@ -20,7 +20,7 @@ const shareService = {
     http.post<unknown, ApiResponse<IShareVO>>('/share', data).then(resolve).catch(reject)
   },
 
-  cancelShare(data: { shareId: string }, resolve: Callback<unknown>, reject: Callback<unknown>) {
+  cancelShare(data: { shareIds: string[] }, resolve: Callback<unknown>, reject: Callback<unknown>) {
     http.delete<unknown, ApiResponse<unknown>>('/share', { data }).then(resolve).catch(reject)
   },
 
@@ -33,7 +33,7 @@ const shareService = {
   },
 
   saveShareFiles(
-    data: { shareId: string; fileIds: string; targetParentId: string },
+    data: { shareId: string; fileIds: string[]; targetParentId: string },
     resolve: SimpleCallback<unknown>
   ) {
     simpleHttp.post<unknown, SA<unknown>>('/share/save', data).then(resolve)

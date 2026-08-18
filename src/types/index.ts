@@ -128,7 +128,7 @@ export interface IFileSearchReq {
 
 // ─── 分享 ───────────────────────────────────────────────────────
 export interface IShareCreateReq {
-  fileIds: string // __,__ 分隔的文件ID串
+  shareFileIds: string[] // 加密文件ID数组
   shareType: number // 1=公开 2=需要提取码 3=指定用户
   shareCode?: string
   expireHours?: number

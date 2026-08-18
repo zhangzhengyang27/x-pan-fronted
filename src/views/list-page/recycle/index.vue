@@ -143,7 +143,7 @@ function cleanRecycle() {
     '清空回收站',
     { confirmButtonText: '确认清空', cancelButtonText: '取消', type: 'danger' }
   ).then(() => {
-    doDelete(tableData.value.map((f: any) => f.fileId).join('__,__'))
+    doDelete(tableData.value.map((f: any) => f.fileId))
   }).catch(() => {})
 }
 
@@ -166,7 +166,7 @@ function formatSize(bytes: number) {
   return `${v.toFixed(v >= 100 ? 0 : v >= 10 ? 1 : 2)} ${units[i]}`
 }
 
-function doDelete(fileIds: string) {
+function doDelete(fileIds: string[]) {
   recycleService.deleteRecycle(
     { fileIds },
     () => {
@@ -177,7 +177,7 @@ function doDelete(fileIds: string) {
   )
 }
 
-function doRestore(fileIds: string) {
+function doRestore(fileIds: string[]) {
   recycleService.restoreRecycle(
     { fileIds },
     (res: any) => {
@@ -190,7 +190,7 @@ function doRestore(fileIds: string) {
 
 function restoreRecycle() {
   if (selected.value.length === 0) return ElMessage.error('请选择要还原的文件')
-  const ids = selected.value.filter(Boolean).join('__,__')
+  const ids = selected.value.filter(Boolean) as string[]
   doRestore(ids)
 }
 
@@ -206,7 +206,7 @@ function batchDeleteSelected() {
     '批量彻底删除',
     { confirmButtonText: '确认删除', cancelButtonText: '取消', type: 'danger' }
   ).then(() => {
-    doDelete(selected.value.filter(Boolean).join('__,__'))
+    doDelete(selected.value.filter(Boolean) as string[])
   }).catch(() => {})
 }
 
@@ -217,7 +217,7 @@ function restoreAllFiltered() {
     '批量还原',
     { confirmButtonText: '确认还原', cancelButtonText: '取消' }
   ).then(() => {
-    const ids = filteredTableData.value.map((r: any) => r.fileId).join('__,__')
+    const ids = filteredTableData.value.map((r: any) => r.fileId)
     doRestore(ids)
   }).catch(() => {})
 }
@@ -349,12 +349,12 @@ onMounted(() => {
         <template #cell-actions="{ row }">
           <div class="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
             <BaseTooltip text="还原">
-              <BaseButton variant="primary" size="sm" @click="doRestore(row.fileId)">
+              <BaseButton variant="primary" size="sm" @click="doRestore([row.fileId])">
                 <RefreshCw :size="14" :stroke-width="2" />
               </BaseButton>
             </BaseTooltip>
             <BaseTooltip text="彻底删除">
-              <BaseButton variant="danger" size="sm" @click="doDelete(row.fileId)">
+              <BaseButton variant="danger" size="sm" @click="doDelete([row.fileId])">
                 <Trash2 :size="14" :stroke-width="2" />
               </BaseButton>
             </BaseTooltip>

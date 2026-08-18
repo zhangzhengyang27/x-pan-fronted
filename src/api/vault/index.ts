@@ -58,8 +58,8 @@ const vaultService = {
     http.get<unknown, ApiResponse<IFileVO[]>>('/vault/files').then(resolve).catch(reject)
   },
 
-  /** 移入保险箱（fileIds 为逗号分隔的加密文件ID串，与后端 COMMON_SEPARATOR 约定一致） */
-  move(fileIds: string, resolve: Callback<unknown>, reject: Callback<unknown>) {
+  /** 移入保险箱（fileIds 为加密文件ID数组，与后端 List<String> 契约一致） */
+  move(fileIds: string[], resolve: Callback<unknown>, reject: Callback<unknown>) {
     http
       .post<unknown, ApiResponse<unknown>>('/vault/move', { fileIds })
       .then(resolve)

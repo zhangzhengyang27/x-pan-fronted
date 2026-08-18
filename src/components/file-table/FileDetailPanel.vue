@@ -108,7 +108,7 @@ async function share() {
   try {
     await new Promise<void>((resolve, reject) => {
       shareService.createShare(
-        { fileId: props.file!.fileId },
+        { shareFileIds: [props.file!.fileId] },
         (res) => {
           const shareId = res.data?.shareId || res.data
           const url = window.location.origin + '/share/' + shareId
@@ -188,7 +188,7 @@ async function deleteFile() {
     return
   }
   fileService.delete(
-    { fileIds: props.file.fileId },
+    { fileIds: [props.file.fileId] },
     () => {
       ElMessage.success('已删除')
       emit('refresh')
@@ -220,7 +220,7 @@ function onMoveComplete() {
 function moveToVault() {
   if (!props.file) return
   vaultService.move(
-    panUtil.handleId(props.file.fileId),
+    [panUtil.handleId(props.file.fileId)],
     () => {
       ElMessage.success('已移入保险箱')
       emit('refresh')

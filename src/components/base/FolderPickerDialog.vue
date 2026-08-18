@@ -124,8 +124,7 @@ async function submit() {
   if (!props.row) return
   submitting.value = true
   const rows = Array.isArray(props.row) ? props.row : [props.row]
-  const ids = rows.map((r) => r.fileId)
-  const fileIds = ids.join('__,__')
+  const fileIds = rows.map((r) => r.fileId)
 
   const api = isMove.value ? fileService.transfer : fileService.copy
   api(
