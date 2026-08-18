@@ -228,8 +228,8 @@ export interface AppEvents {
   'xpan:open-mobile-nav': void
   'xpan:close-mobile-nav': void
   'xpan:reload-files': void
-  'xpan:open-share': { fileIds: string }
-  'xpan:open-folder-picker': { mode: 'move' | 'copy'; fileIds: string }
+  'xpan:open-share': { fileIds: string[] }
+  'xpan:open-folder-picker': { mode: 'move' | 'copy'; fileIds: string[] }
   'xpan:show-shortcuts': void
   'xpan:open-ai': void
 }
