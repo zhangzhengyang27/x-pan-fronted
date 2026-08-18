@@ -134,7 +134,7 @@
    - 带 → 返回的 stream URL 追加 `&width=&height=`，触发缩略图。
 2. `GET /file/preview/stream` 读取 `width`/`height`，图片类型时走缩略图：
    - 复用已有 `ImageThumbnailUtil.generate(stream, quality, maxW, maxH)`（等比缩放，JPEG quality=0.85）。
-   - 磁盘缓存 `{rpan.root}/{rpan.thumbnail.dir}/{fileId}_{w}x{h}.jpg`，命中直接输出，`Cache-Control: max-age=604800`。
+   - 磁盘缓存 `{xpan.root}/{xpan.thumbnail.dir}/{fileId}_{w}x{h}.jpg`，命中直接输出，`Cache-Control: max-age=604800`。
    - 非图片/解码失败自动回退原图。
    - ptoken 鉴权不变（尺寸仅作优化参数，不绑定 ptoken，无安全风险）。
 

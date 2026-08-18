@@ -5,7 +5,7 @@
  * 不依赖后端接口，纯前端 canvas 采样。
  *
  * 限制：
- * - CORS：视频需同源或支持 CORS（R Pan 经 vite proxy 同源，无此问题）
+ * - CORS：视频需同源或支持 CORS（X Pan 经 vite proxy 同源，无此问题）
  * - 性能：采样 N 帧需 seek N 次，约 2-5 秒（20 帧以内）
  * - 精度：不如后端预生成，但对标夸克的进度条 hover 预览已足够
  *

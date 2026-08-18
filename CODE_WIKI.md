@@ -1,6 +1,6 @@
-# R Pan · Code Wiki
+# X Pan · Code Wiki
 
-> 本文档为 **R Pan（X-Pan）私人分布式存储系统** 的结构化代码百科，覆盖项目整体架构、主要模块职责、关键类与函数说明、依赖关系与运行方式。
+> 本文档为 **X Pan（X-Pan）私人分布式存储系统** 的结构化代码百科，覆盖项目整体架构、主要模块职责、关键类与函数说明、依赖关系与运行方式。
 > 文档分前端（`r_pan_portal`，主体）与后端（`r_pan_parent`，概览）两部分。
 
 ---
@@ -33,7 +33,7 @@
 
 ## 1. 项目简介
 
-R Pan（仓库内称 **X-Pan**）是一个面向个人的、可扩展的分布式云存储系统，提供文件管理、分片上传/秒传/断点续传、分享链接、离线下载、回收站、文件版本历史、WebSocket 实时通知等能力。
+X Pan（仓库内称 **X-Pan**）是一个面向个人的、可扩展的分布式云存储系统，提供文件管理、分片上传/秒传/断点续传、分享链接、离线下载、回收站、文件版本历史、WebSocket 实时通知等能力。
 
 仓库由两个子工程组成：
 
@@ -591,14 +591,14 @@ cd r_pan_parent
 mysql -u root -p < server/src/main/resources/sql/schema.sql
 
 # 必填：JWT 密钥
-export RPAN_JWT_SECRET=$(head -c 48 /dev/urandom | base64)
+export XPAN_JWT_SECRET=$(head -c 48 /dev/urandom | base64)
 
 # 编译 + 启动
 mvn clean install -DskipTests
 mvn -pl server spring-boot:run     # 默认 8081
 ```
 
-配置文件：`server/src/main/resources/application.yaml.example`（DB/Redis/MyBatis-Plus/Actuator/Swagger）。关键环境变量：`DB_HOST/DB_PORT/DB_USERNAME/DB_PASSWORD`、`REDIS_HOST/REDIS_PORT/REDIS_PASSWORD`、`RPAN_JWT_SECRET`。
+配置文件：`server/src/main/resources/application.yaml.example`（DB/Redis/MyBatis-Plus/Actuator/Swagger）。关键环境变量：`DB_HOST/DB_PORT/DB_USERNAME/DB_PASSWORD`、`REDIS_HOST/REDIS_PORT/REDIS_PASSWORD`、`XPAN_JWT_SECRET`。
 
 ### 9.4 Docker
 
@@ -635,7 +635,7 @@ mvn -pl server spring-boot:run     # 默认 8081
 - **包结构**：`com.xiaoye.pan.server.modules.{module}.{layer}`。
 - **Service 入参**：用 `XxxContext` 聚合；Controller 收 `PO`。
 - **VO 转换**：MapStruct `XxxConverter` 统一处理。
-- **异常**：业务异常抛 `RPanBusinessException`，`GlobalExceptionHandler` 统一返回 + 脱敏。
+- **异常**：业务异常抛 `XPanBusinessException`，`GlobalExceptionHandler` 统一返回 + 脱敏。
 - **日志**：禁止打印密码/token；MDC 注入 `userId/requestId/traceId`。
 - **Git 提交**：`feat/fix/docs/refactor/ci/test/chore(scope): ...`。
 

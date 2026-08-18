@@ -119,7 +119,7 @@ function refreshShareInfo(data) {
   shareCodeHeader.value = u + '的分享：' + data.shareName
   shareDate.value = data.createTime
   shareExpireDate.value = data.shareDay === 0 ? '永久有效' : data.shareEndTime
-  tableData.value = data.rPanUserFileVOList
+  tableData.value = data.xPanUserFileVOList
   shareUrl.value = window.location.origin + '/share/' + route.params.shareId
   generateQR(shareUrl.value)
   downloadCount.value = data.downloadCount || 0
@@ -504,7 +504,7 @@ onUnmounted(() => {
             <BaseButton variant="primary" size="lg" block @click="saveFiles(undefined)">
               <span class="inline-flex items-center gap-2">
                 <Save :size="16" :stroke-width="2" />
-                保存到我的 R 盘
+                保存到我的 X 盘
               </span>
             </BaseButton>
           </div>
@@ -631,7 +631,7 @@ onUnmounted(() => {
     </BaseModal>
 
     <!-- 文件夹选择 -->
-    <BaseModal v-model:open="treeDialogVisible" title="保存到我的 R 盘" size="md">
+    <BaseModal v-model:open="treeDialogVisible" title="保存到我的 X 盘" size="md">
       <div class="max-h-96 overflow-y-auto">
         <BaseTree
           v-if="treeData.length > 0"
