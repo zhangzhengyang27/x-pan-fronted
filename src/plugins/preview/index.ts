@@ -18,13 +18,12 @@ import {
   resolveOfficeKind
 } from '@/utils/preview'
 
-/** 从文件输入提取小写扩展名（不含点） */
+/** 从文件输入提取小写扩展名（不含点）；文件名用 filename（与后端契约对齐） */
 function extOf(input: {
-  name?: string
   filename?: string
   extension?: string
 }): string {
-  const raw = input.extension || input.name || input.filename || ''
+  const raw = input.extension || input.filename || ''
   const i = raw.lastIndexOf('.')
   return i >= 0 ? raw.slice(i + 1).toLowerCase() : ''
 }
@@ -75,8 +74,8 @@ export function registerBuiltinPreviewPlugins(): void {
     component: () => import('@/components/preview/pdf-previewer.vue'),
     modal: { width: 960, height: '68vh' },
     openInNewTab: (item) => {
-      const fileId = encodeURIComponent(String(item.fileId ?? item.id))
-      const filename = encodeURIComponent(item.name || item.filename || '')
+      const fileId = encodeURIComponent(String(item.fileId))
+      const filename = encodeURIComponent(item.filename || '')
       window.open(
         `${window.location.origin}/preview/iframe/${fileId}?filename=${filename}`,
         '_blank',
@@ -92,8 +91,8 @@ export function registerBuiltinPreviewPlugins(): void {
     component: () => import('@/components/preview/markdown-previewer.vue'),
     modal: { width: 960, height: '68vh' },
     openInNewTab: (item) => {
-      const fileId = encodeURIComponent(String(item.fileId ?? item.id))
-      const filename = encodeURIComponent(item.name || item.filename || '')
+      const fileId = encodeURIComponent(String(item.fileId))
+      const filename = encodeURIComponent(item.filename || '')
       window.open(
         `${window.location.origin}/preview/iframe/${fileId}?filename=${filename}`,
         '_blank',
@@ -109,8 +108,8 @@ export function registerBuiltinPreviewPlugins(): void {
     component: () => import('@/components/preview/office-previewer.vue'),
     modal: { width: 960, height: '68vh' },
     openInNewTab: (item) => {
-      const fileId = encodeURIComponent(String(item.fileId ?? item.id))
-      const filename = encodeURIComponent(item.name || item.filename || '')
+      const fileId = encodeURIComponent(String(item.fileId))
+      const filename = encodeURIComponent(item.filename || '')
       window.open(
         `${window.location.origin}/preview/office/${fileId}?filename=${filename}`,
         '_blank',
@@ -124,8 +123,8 @@ export function registerBuiltinPreviewPlugins(): void {
     component: () => import('@/components/preview/office-previewer.vue'),
     modal: { width: 960, height: '68vh' },
     openInNewTab: (item) => {
-      const fileId = encodeURIComponent(String(item.fileId ?? item.id))
-      const filename = encodeURIComponent(item.name || item.filename || '')
+      const fileId = encodeURIComponent(String(item.fileId))
+      const filename = encodeURIComponent(item.filename || '')
       window.open(
         `${window.location.origin}/preview/office/${fileId}?filename=${filename}`,
         '_blank',
@@ -139,8 +138,8 @@ export function registerBuiltinPreviewPlugins(): void {
     component: () => import('@/components/preview/office-previewer.vue'),
     modal: { width: 960, height: '68vh' },
     openInNewTab: (item) => {
-      const fileId = encodeURIComponent(String(item.fileId ?? item.id))
-      const filename = encodeURIComponent(item.name || item.filename || '')
+      const fileId = encodeURIComponent(String(item.fileId))
+      const filename = encodeURIComponent(item.filename || '')
       window.open(
         `${window.location.origin}/preview/office/${fileId}?filename=${filename}`,
         '_blank',
@@ -159,8 +158,8 @@ export function registerBuiltinPreviewPlugins(): void {
     component: () => import('@/components/preview/code-previewer.vue'),
     modal: { width: 960, height: '68vh' },
     openInNewTab: (item) => {
-      const fileId = encodeURIComponent(String(item.fileId ?? item.id))
-      const filename = encodeURIComponent(item.name || item.filename || '')
+      const fileId = encodeURIComponent(String(item.fileId))
+      const filename = encodeURIComponent(item.filename || '')
       window.open(
         `${window.location.origin}/preview/iframe/${fileId}?filename=${filename}`,
         '_blank',
@@ -177,8 +176,8 @@ export function registerBuiltinPreviewPlugins(): void {
     component: () => import('@/components/preview/code-previewer.vue'),
     modal: { width: 960, height: '68vh' },
     openInNewTab: (item) => {
-      const fileId = encodeURIComponent(String(item.fileId ?? item.id))
-      const filename = encodeURIComponent(item.name || item.filename || '')
+      const fileId = encodeURIComponent(String(item.fileId))
+      const filename = encodeURIComponent(item.filename || '')
       window.open(
         `${window.location.origin}/preview/iframe/${fileId}?filename=${filename}`,
         '_blank',
@@ -194,8 +193,8 @@ export function registerBuiltinPreviewPlugins(): void {
     component: () => import('@/components/preview/csv-previewer.vue'),
     modal: { width: 1080, height: '68vh' },
     openInNewTab: (item) => {
-      const fileId = encodeURIComponent(String(item.fileId ?? item.id))
-      const filename = encodeURIComponent(item.name || item.filename || '')
+      const fileId = encodeURIComponent(String(item.fileId))
+      const filename = encodeURIComponent(item.filename || '')
       window.open(
         `${window.location.origin}/preview/iframe/${fileId}?filename=${filename}`,
         '_blank',
@@ -222,8 +221,8 @@ export function registerBuiltinPreviewPlugins(): void {
     component: () => import('@/components/preview/xmind-previewer.vue'),
     modal: { width: 900, height: '68vh' },
     openInNewTab: (item) => {
-      const fileId = encodeURIComponent(String(item.fileId ?? item.id))
-      const filename = encodeURIComponent(item.name || item.filename || '')
+      const fileId = encodeURIComponent(String(item.fileId))
+      const filename = encodeURIComponent(item.filename || '')
       window.open(
         `${window.location.origin}/preview/iframe/${fileId}?filename=${filename}`,
         '_blank',

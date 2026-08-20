@@ -11,6 +11,7 @@ import axios, {
   type InternalAxiosRequestConfig
 } from 'axios'
 import { ElMessage } from '@/composables/useToast'
+import { getShareToken, getToken } from '@/utils/cookie'
 import panUtil from '@/utils/common'
 import type { ApiResponse } from '@/types'
 
@@ -31,6 +32,13 @@ simpleHttp.interceptors.request.use(
     if (config.data && typeof config.data !== 'string') {
       config.data = JSON.stringify(config.data)
     }
+    // 分享页凭证：自动携带 Share-Token，供后端 @NeedShareCode 切面校验，
+    // 避免提取码校验成功后详情/文件列表/保存仍被拦截。token 缺失或过期时由页面引导重新输入提取码。
+    const shareToken = getShareToken()
+    if (shareToken) config.headers['Share-Token'] = shareToken
+    // 若已登录（如"保存到我的网盘"），顺带携带登录凭证；对 @LoginIgnore 的公开接口无副作用
+    const token = getToken()
+    if (token) config.headers['Authorization'] = token
     config.headers['X-Pan-Trace-Id'] = genTraceId()
     return config
   },

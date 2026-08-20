@@ -8,7 +8,27 @@ import Cookies from 'js-cookie'
 
 const LOGIN_TOKEN = 'login_token'
 const SHARE_TOKEN = 'share_token'
+const CLIENT_ID_KEY = 'client_id'
 const EMPTY_STR = ''
+
+/**
+ * 生成一个随机的 clientId（多端并存登录时用于区分当前会话）。
+ * 存储于 cookie（长期有效），与登录 token 独立，登录/登出不清除。
+ */
+function genClientId(): string {
+  const rand = Math.random().toString(36).slice(2, 10) + Date.now().toString(36)
+  return 'web-' + rand
+}
+
+/** 读取本端稳定 clientId；不存在则生成并持久化 */
+export function getClientId(): string {
+  let id = Cookies.get(CLIENT_ID_KEY)
+  if (!id) {
+    id = genClientId()
+    Cookies.set(CLIENT_ID_KEY, id, { expires: 365, sameSite: 'Lax' })
+  }
+  return id
+}
 
 /** 写入登录 token（默认 1 天，SameSite=Lax 防 CSRF） */
 export function setToken(token: string): void {

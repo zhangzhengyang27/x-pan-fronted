@@ -19,12 +19,14 @@ const tableData = ref([])
 const selected = ref([])
 const tableLoading = ref(true)
 
+// 列字段与后端 XPanShareUrlListVO 契约对齐：
+// shareName（分享名称）/ shareEndTime（过期时间）/ visitCount（浏览次数）
 const columns = [
-  { key: 'filename', title: '分享名称', width: 'auto' },
+  { key: 'shareName', title: '分享名称', width: 'auto' },
   { key: 'shareType', title: '分享类型', width: 120, align: 'center' },
   { key: 'shareCode', title: '提取码', width: 100, align: 'center' },
   { key: 'expireTime', title: '过期时间', width: 160, align: 'center' },
-  { key: 'browseCount', title: '浏览次数', width: 100, align: 'center' },
+  { key: 'visitCount', title: '浏览次数', width: 100, align: 'center' },
   { key: 'actions', title: '操作', width: 160, align: 'right' }
 ]
 
@@ -47,9 +49,11 @@ function loadTableData() {
 }
 
 function copyShare(row) {
+  // 用浏览器当前地址动态拼接分享链接，避免数据库 shareUrl 指向后端端口（如 127.0.0.1:8081）打不开前端分享页面
+  const url = `${window.location.origin}/share/${row.shareId}`
   const text = row.shareCode
-    ? `链接：${row.shareUrl}\n提取码：${row.shareCode}\n赶快分享给小伙伴吧！`
-    : `链接：${row.shareUrl}\n赶快分享给小伙伴吧！`
+    ? `链接：${url}\n提取码：${row.shareCode}\n赶快分享给小伙伴吧！`
+    : `链接：${url}\n赶快分享给小伙伴吧！`
   if (navigator.clipboard && window.isSecureContext) {
     navigator.clipboard.writeText(text).then(() => ElMessage.success('链接已复制')).catch(() => fallbackCopy(text))
   } else {
@@ -131,13 +135,13 @@ function isPublicShare(row) {
 }
 
 function isExpired(row) {
-  if (!row.expireAt) return false
-  return new Date(row.expireAt).getTime() < Date.now()
+  if (!row.shareEndTime) return false
+  return new Date(row.shareEndTime).getTime() < Date.now()
 }
 
 function formatExpireTime(row) {
-  if (!row.expireAt) return '永久'
-  return row.expireAt.split(' ')[0]
+  if (!row.shareEndTime) return '永久'
+  return row.shareEndTime.split(' ')[0]
 }
 </script>
 
@@ -217,10 +221,10 @@ function formatExpireTime(row) {
       empty-text="还没有分享过文件"
       @update:selected="(v) => (selected = v)"
     >
-      <template #cell-filename="{ row }">
+      <template #cell-shareName="{ row }">
         <div class="flex items-center gap-3">
           <Share2 :size="18" :stroke-width="2" class="shrink-0" style="color: var(--color-primary-500);" />
-          <span class="truncate text-(--color-text)">{{ row.filename || row.fileName || '未命名' }}</span>
+          <span class="truncate text-(--color-text)">{{ row.shareName || '未命名' }}</span>
         </div>
       </template>
 
@@ -251,10 +255,10 @@ function formatExpireTime(row) {
         </span>
       </template>
 
-      <template #cell-browseCount="{ row }">
+      <template #cell-visitCount="{ row }">
         <span class="inline-flex items-center gap-1 tabular-nums text-sm text-(--color-text)">
           <Eye :size="12" :stroke-width="2" style="color: var(--color-text-muted);" />
-          {{ row.downloadCount || 0 }}
+          {{ row.visitCount ?? 0 }}
         </span>
       </template>
 

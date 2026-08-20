@@ -38,10 +38,8 @@ import {
   History,
   Shield,
   Share2,
-  QrCode,
   FileArchive
 } from '@lucide/vue'
-import shareService from '@/api/share'
 import vaultService from '@/api/vault'
 import { FileType } from '@/types'
 import { isArchive } from '@/utils/common'
@@ -54,11 +52,25 @@ const props = withDefaults(
   { view: 'list' }
 )
 
+// 右键菜单「分享」→ 由父级打开两步式分享表单
+const emit = defineEmits<{
+  (e: 'share', row: any): void
+}>()
+
 const router = useRouter()
 const fileStore = useFileStore()
 const breadcrumbStore = useBreadcrumbStore()
-const { fileList, tableLoading, searchFlag, hasMore, isLoadingMore, total, sortProp, sortOrder } =
-  storeToRefs(fileStore)
+const {
+  fileList,
+  tableLoading,
+  searchFlag,
+  hasMore,
+  isLoadingMore,
+  total,
+  sortProp,
+  sortOrder,
+  clipboard
+} = storeToRefs(fileStore)
 
 const selected = ref<string[]>([]) // 多选 fileId
 const isMobile = useMediaQuery('(max-width: 768px)').matches
@@ -101,7 +113,7 @@ const preview = useDrivePreview(() => filteredList.value as any[])
 const { state: previewState, openPreview, closePreview, resolvePreviewUrl: resolvePreviewUrlItem } = preview
 
 function previewDownload(item: Record<string, any>) {
-  window.open(getDownloadUrl(item.fileId || item.id), '_blank')
+  window.open(getDownloadUrl(item.fileId), '_blank')
 }
 
 // 重置选择:筛选/目录/排序变化
@@ -226,8 +238,11 @@ function getFileTypeLabel(row: any) {
 }
 
 function handleSelectionChange(keys: string[]) {
-  selected.value = keys
-  const rows = fileList.value.filter((r) => keys.includes(r.fileId))
+  // 只保留当前列表里真实存在且 fileId 有效的选中项，剔除脏 key，
+  // 避免选中快照与渲染列表脱节导致分享等操作拿到缺失字段的对象
+  const validKeys = keys.filter((k) => !!k && fileList.value.some((r) => r.fileId === k))
+  selected.value = validKeys
+  const rows = fileList.value.filter((r) => validKeys.includes(r.fileId))
   fileStore.setMultipleSelection(rows)
 }
 
@@ -268,16 +283,14 @@ function openNewPage(path: string, name: string, params: Record<string, string>,
 }
 
 function clickFilename(row: Record<string, any>) {
-  // 文件夹：进入目录
-  if (row.fileType === 0 || row.type === 'folder') {
+  // 文件夹：进入目录（后端统一用 fileType === 0 判断，type === 'folder' 为冗余字段）
+  if (row.fileType === 0) {
     return goInFolder(panUtil.handleId(row.fileId))
   }
   // 图片/视频/音频/PDF/Office/Markdown/代码/文本：统一走内嵌预览弹窗
   // （不再新开页面；用户如需新窗口可在弹窗底部「新窗口打开」）
   const opened = openPreview({
     fileId: row.fileId,
-    id: row.fileId,
-    name: row.filename,
     filename: row.filename,
     fileType: row.fileType
   })
@@ -334,7 +347,7 @@ async function batchDownload(rows: Record<string, any>[]) {
     const url = getDownloadUrl(r.fileId)
     const a = document.createElement('a')
     a.href = url
-    a.download = r.filename || r.name || ''
+    a.download = r.filename || ''
     a.target = '_blank'
     document.body.appendChild(a)
     a.click()
@@ -482,6 +495,24 @@ function onKeyDown(e: KeyboardEvent) {
     batchDelete(selectedRows.value)
     return
   }
+  const mod = e.ctrlKey || e.metaKey
+  const k = e.key.toLowerCase()
+  const rows = selectedRows.value.length ? selectedRows.value : []
+  if (mod && k === 'x' && rows.length > 0) {
+    e.preventDefault()
+    cutFiles(rows)
+    return
+  }
+  if (mod && k === 'c' && rows.length > 0) {
+    e.preventDefault()
+    copyFiles(rows)
+    return
+  }
+  if (mod && k === 'v' && hasClipboard.value) {
+    e.preventDefault()
+    doPaste()
+    return
+  }
 }
 
 // ─── 滚动加载 ───────────────────────────────────────────────────────────────
@@ -528,6 +559,21 @@ watch([() => filteredList.value.length, hasMore], () => {
     }
   })
 })
+
+// 列表刷新/翻页后，基于最新 fileList 重新校验选中项，剔除已不存在的脏 key，
+// 保证 store 的 multipleSelection 始终是当前列表中的完整对象（供分享/详情等使用）
+watch(
+  () => fileList.value,
+  (list) => {
+    const keys = selected.value
+    if (!keys.length) return
+    const validKeys = keys.filter((k) => !!k && list.some((r) => r.fileId === k))
+    if (validKeys.length !== keys.length) {
+      selected.value = validKeys
+    }
+    fileStore.setMultipleSelection(list.filter((r) => validKeys.includes(r.fileId)))
+  }
+)
 
 // ─── 框选 ──────────────────────────────────────────────────────────────────
 const selBox = ref({ active: false, x1: 0, y1: 0, x2: 0, y2: 0 })
@@ -659,6 +705,35 @@ function onCtxSelect(item: any) {
   if (item && typeof item.action === 'function') item.action()
 }
 
+// ─── 剪贴板（剪切/复制/粘贴） ─────────────────────────────────────────
+const hasClipboard = computed(() => !!clipboard.value && clipboard.value.files.length > 0)
+const clipboardText = computed(() => {
+  if (!hasClipboard.value) return '粘贴'
+  const cb = clipboard.value!
+  const n = cb.files.length
+  return cb.mode === 'cut' ? `粘贴（移动 ${n} 项）` : `粘贴（复制 ${n} 项）`
+})
+
+/** 剪切选中项 */
+function cutFiles(files: any[]) {
+  fileStore.cutFiles(files)
+  ElMessage.success('已剪切，到目标目录粘贴')
+}
+/** 复制选中项 */
+function copyFiles(files: any[]) {
+  fileStore.copyFiles(files)
+  ElMessage.success('已复制，到目标目录粘贴')
+}
+/** 粘贴（移动到/复制到当前目录） */
+async function doPaste() {
+  const res = await fileStore.paste()
+  if (res.success) {
+    ElMessage.success('粘贴成功')
+  } else {
+    ElMessage.error(res.message || '粘贴失败')
+  }
+}
+
 const ctxItems = computed(() => {
   const r = ctxMenu.value.row
   if (!r) return []
@@ -702,11 +777,30 @@ const ctxItems = computed(() => {
       action: () => openMoveDialog(multiRows)
     },
     {
+      key: 'cut',
+      label: isMulti ? `剪切 ${selectedRows.value.length} 项` : '剪切',
+      shortcut: 'Ctrl+X',
+      action: () => cutFiles(multiRows)
+    },
+    {
+      key: 'copyClip',
+      label: isMulti ? `复制 ${selectedRows.value.length} 项` : '复制',
+      shortcut: 'Ctrl+C',
+      action: () => copyFiles(multiRows)
+    },
+    {
+      key: 'paste',
+      label: clipboardText,
+      shortcut: 'Ctrl+V',
+      disabled: !hasClipboard,
+      action: () => doPaste()
+    },
+    {
       key: 'share',
       label: '分享',
       icon: Share2,
       disabled: isFolder,
-      action: () => shareWithQRCode(r)
+      action: () => emit('share', r)
     },
     {
       key: 'extract',
@@ -738,7 +832,7 @@ const ctxItems = computed(() => {
 
 // ─── 重命名 ────────────────────────────────────────────────────────────────
 async function promptRename(row: any) {
-  const oldName = row.filename || row.name || ''
+  const oldName = row.filename || ''
   try {
     const { value: newName } = await ElMessageBox.prompt('请输入新的文件名', '重命名', {
       inputValue: oldName,
@@ -764,7 +858,7 @@ async function promptRename(row: any) {
 
 async function batchRename(rows: Record<string, any>[]) {
   if (!rows?.length) return
-  const base = rows[0].filename || rows[0].name || 'file'
+  const base = rows[0].filename || 'file'
   const dotIdx = base.lastIndexOf('.')
   const baseName = dotIdx > 0 ? base.slice(0, dotIdx) : base
   const ext = dotIdx > 0 ? base.slice(dotIdx) : ''
@@ -785,8 +879,8 @@ async function batchRename(rows: Record<string, any>[]) {
     let successCount = 0
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i]
-      const dot = (row.filename || row.name || '').lastIndexOf('.')
-      const e = dot > 0 ? (row.filename || row.name || '').slice(dot) : ''
+      const dot = (row.filename || '').lastIndexOf('.')
+      const e = dot > 0 ? (row.filename || '').slice(dot) : ''
       const newName = `${value.trim()}(${i + 1})${e}`
       await new Promise((resolve) => {
         fileService.update(
@@ -804,49 +898,6 @@ async function batchRename(rows: Record<string, any>[]) {
   }
 }
 
-// ─── 分享 ──────────────────────────────────────────────────────────────────
-async function shareWithQRCode(row: any) {
-  const target = row || selectedRows.value[0]
-  if (!target) return
-  try {
-    shareService.createShare(
-      { shareFileIds: [target.fileId] },
-      (res) => {
-        const shareId = res.data?.shareId || res.data
-        const url = window.location.origin + '/share/' + shareId
-        showQRModal(url, target.filename || target.name || '分享')
-      },
-      () => ElMessage.error('创建分享失败')
-    )
-  } catch {
-    ElMessage.error('分享失败')
-  }
-}
-
-async function showQRModal(url: string, title: string) {
-  try {
-    const { toDataURL } = await import('qrcode')
-    const qrDataUrl = await toDataURL(url, { width: 220, margin: 2 })
-    const modal = document.createElement('div')
-    modal.style.cssText =
-      'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);'
-    modal.innerHTML = `
-      <div style="background:var(--color-surface);border-radius:20px;padding:28px;max-width:340px;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,0.25);width:90%;">
-        <p style="font-size:16px;font-weight:600;margin:0 0 4px;color:var(--color-text);">${title}</p>
-        <p style="font-size:12px;color:var(--color-text-muted);margin:0 0 20px;">扫码获取分享链接</p>
-        <img src="${qrDataUrl}" width="220" height="220" style="border-radius:12px;display:block;margin:0 auto;" />
-        <p style="font-size:11px;color:var(--color-text-muted);margin:16px 0 0;word-break:break-all;line-height:1.5;">${url}</p>
-        <button style="margin-top:20px;padding:10px 32px;background:var(--color-primary-500);color:#fff;border:none;border-radius:12px;cursor:pointer;font-size:14px;font-weight:500;">关闭</button>
-      </div>
-    `
-    modal.querySelector('button')!.onclick = () => modal.remove()
-    modal.onclick = (e) => { if (e.target === modal) modal.remove() }
-    document.body.appendChild(modal)
-  } catch {
-    ElMessage.error('二维码生成失败')
-  }
-}
-
 // 暴露方法给父组件（列表/网格视图切换、筛选、快捷键操作、批量选择）
 defineExpose({
   applyFilter,
@@ -861,7 +912,6 @@ defineExpose({
   batchDownload,
   batchDelete,
   batchRename,
-  shareWithQRCode,
   toggleFavorite,
   selectAll,
   clearSelection

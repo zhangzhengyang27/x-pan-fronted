@@ -26,6 +26,15 @@ export interface PageVO<T = unknown> {
   hasMore?: boolean
 }
 
+// ─── 文件夹树（对应后端 FolderTreeNodeVO，字段契约固定）───────────────
+export interface IFolderTreeNode {
+  /** 文件夹ID（加密字符串） */
+  id: string
+  label: string
+  parentId?: string
+  children?: IFolderTreeNode[]
+}
+
 // ─── 用户 ───────────────────────────────────────────────────────
 export interface IUserInfo {
   userId: string
@@ -135,20 +144,26 @@ export interface IShareCreateReq {
   downloadLimit?: number
 }
 
+// IShareVO 对齐后端分享相关 VO（XPanShareUrlVO / XPanShareUrlListVO / ShareDetailVO）。
+// 注意：分享列表的分享名称是 shareName（无 filename/fileName），过期时间是 shareEndTime，
+// 浏览次数是 visitCount，均有确定的契约，前端不应再使用 expireAt/fileName/filename 兜底。
 export interface IShareVO {
   shareId: string
+  shareName?: string
   shareCode: string
-  shareUrl: string
+  shareUrl?: string
   shareType: number
-  downloadCount: number
-  downloadLimit?: number
-  expireAt?: string
+  shareStatus?: number
+  shareDayType?: number
+  shareEndTime?: string
   createTime: string
+  downloadCount?: number
+  downloadLimit?: number
+  visitCount?: number
+  saveCount?: number
+  /** 兼容创建/详情接口可能附带的文件信息 */
   fileList?: IFileVO[]
   fileId?: string
-  fileName?: string
-  filename?: string
-  _statusText?: string
 }
 
 export interface IShareStatsVO {
@@ -167,9 +182,10 @@ export interface IRecycleItemVO extends IFileVO {
 /** 后端 status: 0=待开始 1=下载中 2=已完成 3=失败 4=已取消 */
 export type OfflineTaskStatusCode = 0 | 1 | 2 | 3 | 4
 
+// IOfflineTaskVO 对齐后端 OfflineTaskVO 契约：任务ID 是 taskId（Long，序列化为 number）。
+// 后端没有 id / errorMessage 字段，前端不应再使用。
 export interface IOfflineTaskVO {
-  id: string
-  taskId?: string // 兼容字段
+  taskId: string
   url: string
   filename: string
   totalSize: number
@@ -178,7 +194,6 @@ export interface IOfflineTaskVO {
   status: OfflineTaskStatusCode
   statusText?: string
   errorMsg?: string
-  errorMessage?: string // 兼容字段
   fileId?: string
   createTime: string
   finishTime?: string

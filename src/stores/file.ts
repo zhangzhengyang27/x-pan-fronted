@@ -19,6 +19,7 @@ export interface FileStore {
   defaultParentFilename: Ref<string>
   fileList: Ref<IFileVO[]>
   multipleSelection: Ref<IFileVO[]>
+  clipboard: Ref<{ mode: 'cut' | 'copy'; files: IFileVO[] } | null>
   fileTypes: Ref<string>
   searchFlag: Ref<boolean>
   searchKey: Ref<string>
@@ -44,6 +45,10 @@ export interface FileStore {
   setFileList: (list: IFileVO[]) => void
   appendFileList: (more: IFileVO[]) => void
   setMultipleSelection: (sel: IFileVO[]) => void
+  cutFiles: (files: IFileVO[]) => void
+  copyFiles: (files: IFileVO[]) => void
+  clearClipboard: () => void
+  paste: () => Promise<{ success: boolean; message?: string }>
   setFileTypes: (types: string) => void
   setSearchFlag: (flag: boolean) => void
   setSearchKey: (key: string) => void
@@ -98,6 +103,8 @@ export const useFileStore = defineStore('file', (): FileStore => {
   const defaultParentFilename = ref<string>('')
   const fileList = ref<IFileVO[]>([])
   const multipleSelection = ref<IFileVO[]>([])
+  // 剪贴板：{ mode: 'cut' | 'copy', files } —— 用于"剪切/复制 → 粘贴"
+  const clipboard = ref<{ mode: 'cut' | 'copy'; files: IFileVO[] } | null>(null)
   const fileTypes = ref<string>('-1')
   const searchFlag = ref<boolean>(false)
   const searchKey = ref<string>('')
@@ -124,8 +131,26 @@ export const useFileStore = defineStore('file', (): FileStore => {
   // 请求序列号：快速切换目录/筛选时，仅采纳最新一次请求的响应，避免旧响应覆盖新数据
   let requestSeq = 0
 
+  /**
+   * 计算实际传给后端的 parentId。
+   *
+   * 后端语义（FileController.parseParentId + XPanUserFileMapper 的 parentId != -1 分支）：
+   *   - 传 "-1"            → 跳过 parent_id 过滤，按类型"全盘跨目录"查询（分类页/图片页用）
+   *   - 传真实根目录 ID    → 仅查该根目录一层（"全部文件"页用）
+   *
+   * 此前的实现把 parentId === '-1' 一律替换成 defaultParentId（根目录 ID），
+   * 导致所有分类页都退化为"只查根目录一层"，子目录里的图片/视频/文档等无法展示。
+   *
+   * 修复：当 parentId 为哨兵 '-1' 时，若处于"分类视图"（fileTypes 为具体类型，非 '-1'），
+   * 则透传 '-1' 字面量给后端触发全盘查询；仅在"全部文件"页（fileTypes 也是 '-1'）时，
+   * 才退回根目录 ID，保持原有行为。这与移动端 FileService.list(parentId: '-1') 的语义一致。
+   */
   const paramParentId = computed<string>(() =>
-    parentId.value === '-1' ? defaultParentId.value : parentId.value
+    parentId.value === '-1'
+      ? fileTypes.value === '-1'
+        ? defaultParentId.value
+        : '-1'
+      : parentId.value
   )
 
   // ─── 排序状态（默认按名称升序，与工具栏一致） ───────────────────────────────
@@ -200,6 +225,43 @@ export const useFileStore = defineStore('file', (): FileStore => {
   function setMultipleSelection(sel: IFileVO[]): void {
     multipleSelection.value = sel
   }
+
+  /** 剪切：把选中文件放入剪贴板（cut 模式） */
+  function cutFiles(files: IFileVO[]): void {
+    if (!files || files.length === 0) return
+    clipboard.value = { mode: 'cut', files }
+  }
+  /** 复制：把选中文件放入剪贴板（copy 模式） */
+  function copyFiles(files: IFileVO[]): void {
+    if (!files || files.length === 0) return
+    clipboard.value = { mode: 'copy', files }
+  }
+  /** 清空剪贴板 */
+  function clearClipboard(): void {
+    clipboard.value = null
+  }
+  /** 粘贴：cut→移动，copy→复制，目标为当前目录 parentId */
+  async function paste(): Promise<{ success: boolean; message?: string }> {
+    const cb = clipboard.value
+    if (!cb || cb.files.length === 0) {
+      return { success: false, message: '剪贴板为空' }
+    }
+    const fileIds = cb.files.map((f) => f.fileId)
+    const targetParentId = parentId.value
+    try {
+      if (cb.mode === 'cut') {
+        await fileService.transfer({ fileIds, targetParentId })
+      } else {
+        await fileService.copy({ fileIds, targetParentId })
+      }
+      clearClipboard()
+      await loadFileList()
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, message: e?.message || '粘贴失败' }
+    }
+  }
+
   function setFileTypes(types: string): void {
     fileTypes.value = types
     pageNum.value = 1
@@ -411,6 +473,7 @@ export const useFileStore = defineStore('file', (): FileStore => {
     defaultParentFilename,
     fileList,
     multipleSelection,
+    clipboard,
     fileTypes,
     searchFlag,
     searchKey,
@@ -431,6 +494,10 @@ export const useFileStore = defineStore('file', (): FileStore => {
     setFileList,
     appendFileList,
     setMultipleSelection,
+    cutFiles,
+    copyFiles,
+    clearClipboard,
+    paste,
     setFileTypes,
     setSearchFlag,
     setSearchKey,

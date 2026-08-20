@@ -68,7 +68,7 @@ const KIND_META: Record<FileKind, { label: string; desc: string }> = {
 // ─── 类型筛选后的文件 ────────────────────────────────────────────
 const filtered = computed(() => {
   if (activeTab.value === 'all') return props.files
-  return props.files.filter((f) => getFileKind({ name: f.filename, fileType: f.fileType }) === activeTab.value)
+  return props.files.filter((f) => getFileKind({ filename: f.filename, fileType: f.fileType }) === activeTab.value)
 })
 
 // ─── 卡片分组视图：按文档子类型分组 ──────────────────────────────
@@ -76,7 +76,7 @@ const DOC_ORDER: FileKind[] = ['doc', 'excel', 'ppt', 'pdf', 'text']
 const groups = computed(() => {
   const map: Record<FileKind, IFileVO[]> = { doc: [], excel: [], ppt: [], pdf: [], text: [], folder: [], image: [], video: [], audio: [], archive: [], code: [], other: [] }
   filtered.value.forEach((f) => {
-    const k = getFileKind({ name: f.filename, fileType: f.fileType })
+    const k = getFileKind({ filename: f.filename, fileType: f.fileType })
     if (map[k]) map[k].push(f)
   })
   return DOC_ORDER.map((k) => ({ kind: k, files: map[k] })).filter((g) => g.files.length > 0)
@@ -131,7 +131,7 @@ function formatSize(size: string | number | undefined): string {
 function openPreview(row: IFileVO) {
   const id = panUtil.handleId(row.fileId)
   const query = { filename: row.filename }
-  const k = getFileKind({ name: row.filename, fileType: row.fileType })
+  const k = getFileKind({ filename: row.filename, fileType: row.fileType })
   if (k === 'pdf' || k === 'text') {
     router.push({ name: 'PreviewIframe', params: { fileId: id }, query })
   } else {
@@ -148,7 +148,7 @@ const ICONS: Record<string, any> = {
   text: FileText
 }
 function iconOf(row: IFileVO) {
-  const k = getFileKind({ name: row.filename, fileType: row.fileType })
+  const k = getFileKind({ filename: row.filename, fileType: row.fileType })
   return ICONS[k] || FileIcon
 }
 </script>
@@ -265,7 +265,7 @@ function iconOf(row: IFileVO) {
             </div>
             <div class="min-w-0 flex-1">
               <p class="text-xs font-medium text-(--color-text) truncate">{{ f.filename }}</p>
-              <p class="mt-0.5 text-[11px] text-(--color-text-muted)">{{ KIND_META[getFileKind({ name: f.filename, fileType: f.fileType })].label }} · {{ formatSize(f.fileSize) }}</p>
+              <p class="mt-0.5 text-[11px] text-(--color-text-muted)">{{ KIND_META[getFileKind({ filename: f.filename, fileType: f.fileType })].label }} · {{ formatSize(f.fileSize) }}</p>
             </div>
             <div class="hidden group-hover:flex items-center gap-1 shrink-0">
               <button type="button" class="w-6 h-6 rounded-sm flex items-center justify-center text-(--color-text-muted) hover:text-(--color-text) hover:bg-(--color-surface-2)" title="预览" @click.stop="openPreview(f)">

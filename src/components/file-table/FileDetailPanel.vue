@@ -37,12 +37,10 @@ import { useDrivePreview } from '@/composables/useDrivePreview'
 import { useFavorites } from '@/composables/useFavorites'
 import { useRouter } from 'vue-router'
 import fileService from '@/api/file'
-import shareService from '@/api/share'
 import vaultService from '@/api/vault'
 import panUtil, { isArchive } from '@/utils/common'
 import { getDownloadUrl } from '@/utils/preview'
 import { ElMessage, ElMessageBox } from '@/composables/useToast'
-import QRCode from 'qrcode'
 
 const props = defineProps<{
   file: Record<string, any> | null
@@ -53,6 +51,7 @@ const emit = defineEmits<{
   (e: 'update:open', v: boolean): void
   (e: 'close'): void
   (e: 'refresh'): void
+  (e: 'share'): void
 }>()
 
 const router = useRouter()
@@ -100,53 +99,10 @@ function download() {
 }
 
 // ─── 分享 ──────────────────────────────────────────────────────────────────
-const shareLoading = ref(false)
-
-async function share() {
+// 由父级打开两步式分享表单（ShareButton：配置分享名/有效期/提取码 → 链接+提取码+二维码）
+function share() {
   if (!props.file) return
-  shareLoading.value = true
-  try {
-    await new Promise<void>((resolve, reject) => {
-      shareService.createShare(
-        { shareFileIds: [props.file!.fileId] },
-        (res) => {
-          const shareId = res.data?.shareId || res.data
-          const url = window.location.origin + '/share/' + shareId
-          showQRModal(url, props.file!.filename)
-          resolve()
-        },
-        () => {
-          ElMessage.error('创建分享失败')
-          reject(new Error())
-        }
-      )
-    })
-  } finally {
-    shareLoading.value = false
-  }
-}
-
-async function showQRModal(url: string, title: string) {
-  try {
-    const qrDataUrl = await QRCode.toDataURL(url, { width: 220, margin: 2 })
-    const modal = document.createElement('div')
-    modal.style.cssText =
-      'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);'
-    modal.innerHTML = `
-      <div style="background:var(--color-surface);border-radius:20px;padding:28px;max-width:340px;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,0.25);width:90%;">
-        <p style="font-size:16px;font-weight:600;margin:0 0 4px;color:var(--color-text);">${title}</p>
-        <p style="font-size:12px;color:var(--color-text-muted);margin:0 0 20px;">扫码获取分享链接</p>
-        <img src="${qrDataUrl}" width="220" height="220" style="border-radius:12px;display:block;margin:0 auto;" />
-        <p style="font-size:11px;color:var(--color-text-muted);margin:16px 0 0;word-break:break-all;line-height:1.5;">${url}</p>
-        <button style="margin-top:20px;padding:10px 32px;background:var(--color-primary-500);color:#fff;border:none;border-radius:12px;cursor:pointer;font-size:14px;font-weight:500;">关闭</button>
-      </div>
-    `
-    modal.querySelector('button')!.onclick = () => modal.remove()
-    modal.onclick = (e) => { if (e.target === modal) modal.remove() }
-    document.body.appendChild(modal)
-  } catch {
-    ElMessage.error('二维码生成失败')
-  }
+  emit('share')
 }
 
 // ─── 重命名 ─────────────────────────────────────────────────────────────────
@@ -309,8 +265,8 @@ const fileMeta = computed(() => {
     type: typeMap[f.fileType] || '未知',
     size: f.fileSizeDesc || panUtil.translateFileSize(f.fileSize || 0) || '-',
     location: f.parentFilename || '根目录',
-    created: formatDate(f.createTime || f.createdAt || ''),
-    modified: formatDate(f.updateTime || f.updatedAt || '')
+    created: formatDate(f.createTime || ''),
+    modified: formatDate(f.updateTime || '')
   }
 })
 
@@ -424,8 +380,7 @@ watch(
               @click="share"
             >
               <span class="size-9 rounded-full bg-primary-500/10 text-primary-500 group-hover:bg-primary-500 group-hover:text-white flex items-center justify-center transition-colors">
-                <LoaderCircle v-if="shareLoading" :size="17" class="animate-spin" />
-                <Share2 v-else :size="17" :stroke-width="2" />
+                <Share2 :size="17" :stroke-width="2" />
               </span>
               <span class="text-[11px]">分享</span>
             </button>
@@ -601,7 +556,7 @@ watch(
         :state="preview.state"
         :resolve-url="preview.resolvePreviewUrl"
         @close="preview.closePreview"
-        @download="(item: any) => { const url = getDownloadUrl(item.fileId || item.id); window.open(url, '_blank') }"
+        @download="(item: any) => { const url = getDownloadUrl(item.fileId); window.open(url, '_blank') }"
       />
 
       <!-- 历史版本 -->

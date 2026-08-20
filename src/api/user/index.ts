@@ -77,6 +77,25 @@ const userService = {
 
   infoWithoutPageJump(resolve: Callback<IUserInfo>) {
     simpleHttp.get<unknown, ApiResponse<IUserInfo>>('/user').then(resolve)
+  },
+
+  updateQuota(data: { totalSize: number }, resolve: Callback<unknown>, reject: Callback<unknown>) {
+    http.put<unknown, ApiResponse<unknown>>('/user/quota', data).then(resolve).catch(reject)
+  },
+
+  setAvatar(data: { fileId: string }, resolve: Callback<unknown>, reject: Callback<unknown>) {
+    http.put<unknown, ApiResponse<unknown>>('/user/avatar', data).then(resolve).catch(reject)
+  },
+
+  uploadAvatar(file: File, resolve: Callback<string>, reject: Callback<unknown>) {
+    const form = new FormData()
+    form.append('file', file)
+    http
+      .post<unknown, ApiResponse<string>>('/user/avatar/upload', form, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+      .then(resolve)
+      .catch(reject)
   }
 }
 

@@ -23,8 +23,6 @@ const { state, closePreview } = preview
 function openPlay(row: IFileVO) {
   preview.openPreview({
     fileId: row.fileId,
-    id: row.fileId,
-    name: row.filename,
     filename: row.filename,
     fileType: row.fileType
   })
@@ -54,7 +52,7 @@ function openPlay(row: IFileVO) {
       v-if="state.open"
       :state="state"
       @close="closePreview"
-      @download="(row: any) => window.open(getDownloadUrl(row.fileId || row.id), '_blank')"
+      @download="(row: any) => window.open(getDownloadUrl(row.fileId), '_blank')"
     />
   </div>
 </template>

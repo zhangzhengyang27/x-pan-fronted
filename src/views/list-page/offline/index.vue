@@ -40,7 +40,7 @@ const dialogOpen = ref(false)
 type TaskStatus = 0 | 1 | 2 | 3 | 4
 
 function taskKey(t: IOfflineTaskVO): string {
-  return String(t.id ?? (t as unknown as { taskId?: string }).taskId ?? '')
+  return String(t.taskId)
 }
 
 function loadTasks(): void {

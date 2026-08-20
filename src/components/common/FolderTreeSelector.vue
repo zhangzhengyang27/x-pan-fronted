@@ -36,13 +36,14 @@ const error = ref('')
 const selectedId = ref(null)
 const selectedLabel = ref('根目录')
 
-// 把后端数据转成 BaseTree 格式
-function normalizeTree(nodes) {
+// 后端 FolderTreeNodeVO 字段契约固定为 { id, label, parentId, children }（id 为加密字符串）。
+// 直接使用契约字段，去掉多字段名猜测（id??fileId / name??label??filename）式的防御性兜底。
+function normalizeTree(nodes: any[]): any[] {
   return (nodes || []).map((n) => ({
-    id: n.id ?? n.fileId,
-    label: n.name ?? n.label ?? n.filename ?? '未命名',
+    id: n.id,
+    label: n.label ?? '未命名',
     children: normalizeTree(n.children || []),
-    disabled: props.excludeIds.includes(n.id ?? n.fileId)
+    disabled: props.excludeIds.includes(n.id)
   }))
 }
 

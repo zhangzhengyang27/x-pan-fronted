@@ -33,7 +33,7 @@ const preview = useDrivePreview(() => props.files as IFileVO[])
 const { state: previewState, openPreview: openPreviewModal, closePreview, resolvePreviewUrl } = preview
 
 function previewDownload(item: Record<string, any>) {
-  window.open(getDownloadUrl(item.fileId || item.id), '_blank')
+  window.open(getDownloadUrl(item.fileId), '_blank')
 }
 
 // 当前分组粒度（受控于父组件，也可内部维护）
@@ -146,8 +146,6 @@ function selectAllInGroup(list: IFileVO[]) {
 function openPreview(file: IFileVO) {
   openPreviewModal({
     fileId: file.fileId,
-    id: file.fileId,
-    name: file.filename,
     filename: file.filename,
     fileType: file.fileType
   })

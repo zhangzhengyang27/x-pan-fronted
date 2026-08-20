@@ -44,7 +44,7 @@ const ActiveComponent = computed(() =>
     : null
 )
 
-const fileName = computed(() => currentItem.value?.name || currentItem.value?.filename || '')
+const fileName = computed(() => currentItem.value?.filename || '')
 
 // 监听状态变化加载 URL
 // 用请求令牌避免快速切换文件时旧请求后到覆盖新值（竞态）
@@ -63,7 +63,7 @@ watch(
     try {
       const url = props.resolveUrl
         ? await props.resolveUrl(item)
-        : await resolvePreviewUrl(item.fileId || item.id)
+        : await resolvePreviewUrl(item.fileId)
       if (token === urlToken) previewUrl.value = url
     } catch {
       if (token === urlToken) urlError.value = '预览链接获取失败，请重试或直接下载。'
@@ -88,8 +88,8 @@ function openInNewTab() {
   if (fn) {
     fn(item, previewUrl.value)
   } else {
-    const fileId = encodeURIComponent(String(item.fileId ?? item.id))
-    const filename = encodeURIComponent(item.name || item.filename || '')
+    const fileId = encodeURIComponent(String(item.fileId))
+    const filename = encodeURIComponent(item.filename || '')
     window.open(
       `${window.location.origin}/preview/iframe/${fileId}?filename=${filename}`,
       '_blank',
@@ -143,7 +143,7 @@ function handleGalleryIndex(i: number) {
           <component
             :is="ActiveComponent"
             :url="previewUrl || undefined"
-            :file-id="currentItem.fileId || currentItem.id"
+            :file-id="currentItem.fileId"
             :title="fileName"
             :filename="fileName"
             :kind="state.kind"
@@ -153,7 +153,7 @@ function handleGalleryIndex(i: number) {
           v-else-if="ActiveComponent"
           :is="ActiveComponent"
           :url="previewUrl || undefined"
-          :file-id="currentItem.fileId || currentItem.id"
+          :file-id="currentItem.fileId"
           :title="fileName"
           :filename="fileName"
           :kind="state.kind"

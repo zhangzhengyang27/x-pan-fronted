@@ -11,26 +11,26 @@
  */
 import type { Component } from 'vue'
 
-/** 与 preview.ts 的 PreviewInput 对齐（避免循环依赖，这里独立声明） */
+/**
+ * 预览文件输入。
+ * 字段契约与后端 XPanUserFileVO 对齐：文件ID 是 fileId、文件名是 filename。
+ * 后端文件对象不存在 id / name 字段，因此这里不再声明冗余的 id / name（此前
+ * fileId ?? id、name || filename 的兜底分支恒走 fileId / filename，属于无效防御）。
+ */
 export interface PreviewInput {
-  name?: string
   filename?: string
   mimeType?: string
   extension?: string
   fileType?: number
-  type?: string
 }
 
 /** 预览文件项（与 useDrivePreview 的 PreviewItem 对齐） */
 export interface PreviewItem {
   fileId?: string | number
-  id?: string | number
-  name?: string
   filename?: string
   mimeType?: string
   extension?: string
   fileType?: number
-  type?: string
   [key: string]: unknown
 }
 
@@ -109,8 +109,8 @@ export const DEFAULT_OPEN_IN_NEW_TAB = {
   },
   /** office：打开 /preview/office 路由（后端转 PDF 后由 PdfPreviewer 渲染） */
   office: (item: PreviewItem) => {
-    const fileId = encodeURIComponent(String(item.fileId ?? item.id))
-    const filename = encodeURIComponent(item.name || item.filename || '')
+    const fileId = encodeURIComponent(String(item.fileId))
+    const filename = encodeURIComponent(item.filename || '')
     window.open(
       `${window.location.origin}/preview/office/${fileId}?filename=${filename}`,
       '_blank',
@@ -119,8 +119,8 @@ export const DEFAULT_OPEN_IN_NEW_TAB = {
   },
   /** pdf/markdown/code/text：打开 /preview/iframe 路由，由对应 Previewer 正确解析渲染 */
   iframe: (item: PreviewItem) => {
-    const fileId = encodeURIComponent(String(item.fileId ?? item.id))
-    const filename = encodeURIComponent(item.name || item.filename || '')
+    const fileId = encodeURIComponent(String(item.fileId))
+    const filename = encodeURIComponent(item.filename || '')
     window.open(
       `${window.location.origin}/preview/iframe/${fileId}?filename=${filename}`,
       '_blank',

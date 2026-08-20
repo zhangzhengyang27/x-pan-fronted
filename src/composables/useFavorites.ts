@@ -37,7 +37,6 @@ export function useFavorites() {
         favorites.value = (res.data || []).map((it) => ({
           fileId: it.fileId,
           filename: it.filename,
-          name: it.filename,
           fileType: it.fileType,
           fileSizeDesc: it.fileSizeDesc,
           updateTime: it.favoriteTime,
@@ -79,7 +78,7 @@ export function useFavorites() {
       // 收藏：乐观加入 + 调后端
       favorites.value.unshift({
         fileId: file.fileId,
-        filename: file.filename || file.name,
+        filename: file.filename,
         fileType: file.fileType,
         fileSizeDesc: file.fileSizeDesc,
         updateTime: file.updateTime,

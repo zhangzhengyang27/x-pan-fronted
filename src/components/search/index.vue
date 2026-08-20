@@ -252,12 +252,11 @@ function doSearch() {
   )
 }
 
-// 点击建议项：直接预览/进入
+// 点击建议项：执行搜索并进入结果列表
 function clickSuggestion(item) {
   showSuggest.value = false
-  searchKey.value = item.filename || item.name || ''
-  // 触发 file-table 的预览逻辑：通过自定义事件
-  window.dispatchEvent(new CustomEvent('x-pan:quick-preview', { detail: item }))
+  searchKey.value = item.filename || ''
+  doSearch()
 }
 </script>
 
@@ -321,7 +320,7 @@ function clickSuggestion(item) {
             @mousedown.prevent="clickSuggestion(item)"
           >
             <span class="size-2 rounded-full bg-primary-500 shrink-0" />
-            <span class="truncate flex-1 text-(--color-text)">{{ item.filename || item.name }}</span>
+            <span class="truncate flex-1 text-(--color-text)">{{ item.filename }}</span>
             <span class="text-xs text-(--color-text-muted) shrink-0">{{ item.fileSizeDesc }}</span>
           </button>
         </template>

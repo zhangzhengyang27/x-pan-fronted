@@ -24,16 +24,16 @@ const shareService = {
     http.delete<unknown, ApiResponse<unknown>>('/share', { data }).then(resolve).catch(reject)
   },
 
-  checkShareCode(data: { shareId: string; code: string }, resolve: SimpleCallback<unknown>) {
+  checkShareCode(data: { shareId: string; shareCode: string }, resolve: SimpleCallback<unknown>) {
     simpleHttp.post<unknown, SA<unknown>>('/share/code/check', data).then(resolve)
   },
 
-  getShareFiles(params: { shareId: string }, resolve: SimpleCallback<IFileVO[]>) {
+  getShareFiles(params: { parentId: string }, resolve: SimpleCallback<IFileVO[]>) {
     simpleHttp.get<unknown, SA<IFileVO[]>>('/share/file/list', { params }).then(resolve)
   },
 
   saveShareFiles(
-    data: { shareId: string; fileIds: string[]; targetParentId: string },
+    data: { fileIds: string[]; targetParentId: string },
     resolve: SimpleCallback<unknown>
   ) {
     simpleHttp.post<unknown, SA<unknown>>('/share/save', data).then(resolve)

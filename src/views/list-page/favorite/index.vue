@@ -36,7 +36,7 @@ const preview = useDrivePreview(() => favorites.value as any[])
 const { state: previewState, openPreview, closePreview, resolvePreviewUrl: resolvePreviewUrlItem } = preview
 
 function previewDownload(item: Record<string, any>) {
-  window.open(getDownloadUrl(item.fileId || item.id), '_blank')
+  window.open(getDownloadUrl(item.fileId), '_blank')
 }
 
 const selected = ref<string[]>([])
@@ -94,8 +94,6 @@ function openFile(row: any) {
   // 统一走内嵌预览弹窗（与 /files 页一致）
   const opened = openPreview({
     fileId: row.fileId,
-    id: row.fileId,
-    name: row.filename,
     filename: row.filename,
     fileType: row.fileType
   })

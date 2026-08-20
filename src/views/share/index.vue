@@ -16,6 +16,7 @@ import {
 } from '@/utils/cookie'
 import shareService from '@/api/share'
 import { onMounted, onUnmounted, reactive, ref, computed } from 'vue'
+import { toDataURL } from 'qrcode'
 import { ElMessage } from '@/composables/useToast'
 import { useRoute } from 'vue-router'
 
@@ -128,7 +129,7 @@ function refreshShareInfo(data) {
 }
 
 const shareUrl = ref('')
-const qrSvg = ref('')
+const qrDataUrl = ref('')
 const copyOk = ref(false)
 async function copyShareLink() {
   try {
@@ -140,38 +141,17 @@ async function copyShareLink() {
   }
 }
 
-function generateQR(text) {
-  const size = 21
-  const cells = []
-  for (let y = 0; y < size; y++) {
-    const row = []
-    for (let x = 0; x < size; x++) {
-      const hash = (x * 31 + y * 17 + text.charCodeAt((x + y) % text.length)) & 0xff
-      row.push(hash % 2 === 0)
-    }
-    cells.push(row)
+// 生成真实可扫描的二维码（使用已安装的 qrcode 库，替代此前手写的伪二维码）
+async function generateQR(text: string) {
+  try {
+    qrDataUrl.value = await toDataURL(text, {
+      width: 320,
+      margin: 2,
+      errorCorrectionLevel: 'M'
+    })
+  } catch {
+    qrDataUrl.value = ''
   }
-  const corners = [[0, 0], [size - 7, 0], [0, size - 7]]
-  for (const [cy, cx] of corners) {
-    for (let y = 0; y < 7; y++) {
-      for (let x = 0; x < 7; x++) {
-        if (cy + y < size && cx + x < size) {
-          const onBorder = y === 0 || y === 6 || x === 0 || x === 6
-          const inner = y >= 2 && y <= 4 && x >= 2 && x <= 4
-          cells[cy + y][cx + x] = onBorder || inner
-        }
-      }
-    }
-  }
-  const rects = []
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      if (cells[y][x]) {
-        rects.push(`<rect x="${x}" y="${y}" width="1" height="1"/>`)
-      }
-    }
-  }
-  qrSvg.value = `<svg viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%"><rect width="${size}" height="${size}" fill="#fff"/>${rects.join('')}</svg>`
 }
 
 const qrDialogVisible = ref(false)
@@ -275,7 +255,9 @@ function doCheckShareCode() {
 }
 
 function handleSelectionChange(keys) {
-  const rows = tableData.value.filter((r, i) => keys.includes(r.fileId ?? i))
+  // keys 由 BaseTable 按 rowKey=fileId 生成；fileId 对分享文件必存在，
+  // 用 index 兜底反而与 keys 不匹配，直接按 fileId 过滤即可。
+  const rows = tableData.value.filter((r) => keys.includes(r.fileId))
   multipleSelection.value = rows
 }
 
@@ -651,9 +633,11 @@ onUnmounted(() => {
     <!-- 分享二维码弹窗 -->
     <BaseModal v-model:open="qrDialogVisible" title="分享二维码" size="sm">
       <div class="text-center py-2">
-        <div
-          class="w-48 h-48 mx-auto rounded-sm bg-white p-2 shadow-sm border border-(--color-border)"
-          v-html="qrSvg"
+        <img
+          v-if="qrDataUrl"
+          :src="qrDataUrl"
+          alt="分享二维码"
+          class="w-48 h-48 mx-auto rounded-sm bg-white p-2 shadow-sm border border-(--color-border) object-contain"
         />
         <div class="mt-4 flex items-center gap-2">
           <input

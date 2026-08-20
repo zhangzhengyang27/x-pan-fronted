@@ -23,7 +23,8 @@ export const SORT_FIELDS: SortFieldOption[] = [
 ]
 
 function valueOf(item: Record<string, any>, prop: string): number | string {
-  if (prop === 'name') return item.filename || item.name || ''
+  // 排序字段 key 与后端字段对齐（filename），名称排序直接取 filename
+  if (prop === 'filename') return item.filename || ''
   const v = item[prop]
   return v ?? ''
 }

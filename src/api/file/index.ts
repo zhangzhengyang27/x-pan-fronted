@@ -5,7 +5,7 @@
 'use strict'
 
 import http, { type ApiResponse } from '@/utils/http'
-import type { IFileVO, IFileVersionVO, PageVO } from '@/types'
+import type { IFileVO, IFileVersionVO, IFolderTreeNode, PageVO } from '@/types'
 
 type Callback<T> = (res: ApiResponse<T>) => void
 
@@ -49,8 +49,8 @@ const fileService = {
     http.delete<unknown, ApiResponse<unknown>>('/file', { data }).then(resolve).catch(reject)
   },
 
-  getFolderTree(resolve: Callback<unknown>, reject: Callback<unknown>) {
-    http.get<unknown, ApiResponse<unknown>>('/file/folder/tree').then(resolve).catch(reject)
+  getFolderTree(resolve: Callback<IFolderTreeNode[]>, reject: Callback<unknown>) {
+    http.get<unknown, ApiResponse<IFolderTreeNode[]>>('/file/folder/tree').then(resolve).catch(reject)
   },
 
   transfer(

@@ -23,13 +23,16 @@ export type PreviewKind =
   | 'xmind'
   | 'unsupported'
 
+/**
+ * 预览文件输入，字段与后端 XPanUserFileVO 对齐。
+ * 文件ID 用 fileId、文件名用 filename；后端没有 name / type 字段，已移除。
+ * 文件夹统一用 fileType === 0 判断（type === 'folder' 为前端臆造的冗余字段）。
+ */
 export interface PreviewInput {
-  name?: string
   filename?: string
   mimeType?: string
   extension?: string
   fileType?: number
-  type?: string
 }
 
 export const IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'ico', 'heic', 'avif']
@@ -83,7 +86,7 @@ function extOf(name = ''): string {
 }
 
 export function resolvePreviewKind(input: PreviewInput): PreviewKind {
-  if (input.fileType === 0 || input.type === 'folder') return 'unsupported'
+  if (input.fileType === 0) return 'unsupported'
   // 插件化重构：查注册表（内置插件在 plugins/preview/index.ts 注册）。
   // 注册表为空（尚未注册）时回退旧 if/else 判定，保证调用方在任何时机都可用。
   const plugin = resolvePreviewPlugin(input)
@@ -93,7 +96,7 @@ export function resolvePreviewKind(input: PreviewInput): PreviewKind {
 
 /** 旧的 if/else 判定（保留作为「注册表为空」时的兜底，行为与重构前一致） */
 function legacyResolvePreviewKind(input: PreviewInput): PreviewKind {
-  const ext = (input.extension || extOf(input.name || input.filename || '')).toLowerCase()
+  const ext = (input.extension || extOf(input.filename || '')).toLowerCase()
   if (IMAGE_EXTS.includes(ext)) return 'image'
   if (VIDEO_EXTS.includes(ext)) return 'video'
   if (AUDIO_EXTS.includes(ext)) return 'audio'

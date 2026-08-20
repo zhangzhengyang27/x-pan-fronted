@@ -23,7 +23,7 @@ import {
 import { resolvePreviewUrl } from '@/utils/preview'
 
 const props = defineProps({
-  items: { type: Array, default: () => [] }, // [{fileId, name, ...}]
+  items: { type: Array, default: () => [] }, // [{fileId, filename, ...}]
   activeIndex: { type: Number, default: 0 },
   /** 'inline' 显示在 modal 内 / 'fullscreen' 浮层 */
   mode: { type: String, default: 'fullscreen' }
@@ -171,7 +171,7 @@ onBeforeUnmount(() => {
       class="h-14 px-5 flex items-center justify-between bg-black/60 backdrop-blur border-b border-white/5 z-10"
     >
       <div class="flex items-center gap-3 min-w-0 flex-1">
-        <span class="text-sm font-medium truncate">{{ currentItem?.name || '' }}</span>
+        <span class="text-sm font-medium truncate">{{ currentItem?.filename || '' }}</span>
         <span v-if="items.length" class="text-xs text-white/50 tabular-nums shrink-0"
           >{{ activeIndex + 1 }} / {{ items.length }}</span
         >
@@ -258,7 +258,7 @@ onBeforeUnmount(() => {
       <img
         v-else-if="currentSrc"
         :src="currentSrc"
-        :alt="currentItem.name"
+        :alt="currentItem.filename"
         class="max-w-full max-h-full select-none transition-transform duration-200"
         :style="{ transform: `scale(${scale}) rotate(${rotation}deg)` }"
         draggable="false"
@@ -280,13 +280,13 @@ onBeforeUnmount(() => {
             ? 'border-primary-400 opacity-100 scale-105'
             : 'border-transparent opacity-60 hover:opacity-100'
         "
-        :aria-label="it.name"
+        :aria-label="it.filename"
         @click="pick(i)"
       >
         <img
           v-if="urlMap[it.fileId]"
           :src="urlMap[it.fileId]"
-          :alt="it.name"
+          :alt="it.filename"
           class="w-full h-full object-cover"
         />
         <div v-else class="w-full h-full bg-white/10 animate-pulse" />
@@ -320,7 +320,7 @@ onBeforeUnmount(() => {
     <img
       v-if="currentSrc"
       :src="currentSrc"
-      :alt="currentItem?.name"
+      :alt="currentItem?.filename"
       class="max-h-full max-w-full object-contain"
     />
     <div v-else class="size-10 rounded-xl bg-(--color-surface) animate-pulse" />

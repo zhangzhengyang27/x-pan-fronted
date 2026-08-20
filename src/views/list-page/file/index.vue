@@ -21,8 +21,10 @@ import {
   MoreHorizontal,
   Check,
   Minus,
-  RefreshCw
+  RefreshCw,
+  ClipboardPaste
 } from '@lucide/vue'
+import ShareButton from '@/components/buttons/share-button/index.vue'
 import FileButtonGroup from '@/components/file-button-group/index.vue'
 import BreadCrumb from '@/components/breadcrumb/index.vue'
 import FileTable from '@/components/file-table/index.vue'
@@ -58,6 +60,13 @@ const typeQueryMap: Record<string, string> = {
 function applyTypeQuery(typeQuery: unknown) {
   const key = Array.isArray(typeQuery) ? typeQuery[0] : typeQuery
   const fileTypes = typeQueryMap[key as string] || '-1'
+  if (fileTypes === '-1') {
+    // 全部类型：显式回到根目录，避免残留的 parentId（如来自分类页的 '-1' 哨兵）影响查询上下文
+    fileStore.setParentId(defaultParentId.value)
+  } else {
+    // 具体分类：用 '-1' 哨兵触发后端"全盘按类型跨目录"查询
+    fileStore.setParentId('-1')
+  }
   fileStore.setFileTypes(fileTypes)
   fileStore.loadFileList()
 }
@@ -67,6 +76,7 @@ const view = ref('list')
 const isDragOver = ref(false)
 const dragEnterCount = ref(0)
 const fileTableRef = ref(null)
+const shareButtonRef = ref<InstanceType<typeof ShareButton> | null>(null)
 const { addFiles } = useUploader()
 
 // ─── 全局快捷键（来自 useShortcuts 派发） ───────────────────────────────────
@@ -141,6 +151,16 @@ function toggleSelectAll() {
   }
 }
 
+/** 粘贴（移动/复制到当前目录），复用 file store 剪贴板 */
+async function doPaste() {
+  const res = await fileStore.paste()
+  if (res.success) {
+    ElMessage.success('粘贴成功')
+  } else {
+    ElMessage.error(res.message || '粘贴失败')
+  }
+}
+
 function onBatchDownload() {
   const table = fileTableRef.value as any
   const rows = selectedRows.value
@@ -177,17 +197,28 @@ function onBatchRename() {
 
 function onBatchShare() {
   const table = fileTableRef.value as any
-  if (!selectedRows.value.length) {
+  const rows = table?.selectedRows || selectedRows.value
+  if (!rows.length) {
     ElMessage.warning('请先选择文件')
     return
   }
-  table?.shareWithQRCode?.()
+  shareButtonRef.value?.openModal(rows)
+}
+
+function onShareRow(row: any) {
+  shareButtonRef.value?.openModal(row)
+}
+
+// 详情面板「分享」：传入当前文件打开表单
+function onShareDetail() {
+  if (detailFile.value) shareButtonRef.value?.openModal(detailFile.value)
 }
 
 function onMoreAction(key: string) {
   moreMenuOpen.value = false
   const table = fileTableRef.value as any
-  const rows = selectedRows.value
+  // 统一从 file-table 的真实选中行取数，避免依赖 store 快照（可能含缺失字段的脏数据）
+  const rows = table?.selectedRows || selectedRows.value
   switch (key) {
     case 'rename':
       onBatchRename()
@@ -390,8 +421,20 @@ onUnmounted(() => {
               分享
             </button>
           </BaseTooltip>
+          <ShareButton ref="shareButtonRef" hide-trigger size="small" />
           <CopyButton round-flag size="small" />
           <TransferButton round-flag size="small" />
+          <BaseTooltip text="粘贴" position="bottom">
+            <button
+              type="button"
+              class="h-8 px-2 rounded-sm text-sm inline-flex items-center gap-1 text-(--color-text) hover:bg-(--color-surface-2) disabled:opacity-40 disabled:cursor-not-allowed"
+              :disabled="!fileStore.clipboard"
+              @click="doPaste"
+            >
+              <ClipboardPaste :size="16" />
+              粘贴
+            </button>
+          </BaseTooltip>
           <BaseTooltip text="删除" position="bottom">
             <button
               type="button"
@@ -489,7 +532,7 @@ onUnmounted(() => {
     </div>
 
     <!-- 文件表格 -->
-    <FileTable ref="fileTableRef" class="flex-1 min-h-0">
+    <FileTable ref="fileTableRef" class="flex-1 min-h-0" @share="onShareRow">
       <template #after-list>
         <!-- 空白处上传提示（跟随文件列表之后） -->
         <div
@@ -528,6 +571,7 @@ onUnmounted(() => {
     @update:open="(v: boolean) => detailOpen = v"
     @close="detailOpen = false"
     @refresh="fileStore.loadFileList()"
+    @share="onShareDetail"
   />
 </div>
 

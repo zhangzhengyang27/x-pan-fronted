@@ -10,7 +10,9 @@ import { Cloud, Sun, Moon, Keyboard, Menu, Sparkles } from '@lucide/vue'
 import { useRoute } from 'vue-router'
 import { useTheme } from '@/composables/useTheme'
 import PanUserInfo from '@/components/user-info/index.vue'
+import NotificationBell from '@/components/base/NotificationBell.vue'
 import PanTaskList from '@/components/task-list/index.vue'
+import { getToken } from '@/utils/cookie'
 import PanSearch from '@/components/search/index.vue'
 import BaseTooltip from '@/components/base/BaseTooltip.vue'
 import AIAssistant from '@/components/base/AIAssistant.vue'
@@ -122,6 +124,9 @@ function openAI() {
             <Moon v-else :size="15" :stroke-width="1.75" />
           </button>
         </BaseTooltip>
+
+        <!-- 通知铃铛（登录后显示） -->
+        <NotificationBell v-if="!!getToken()" />
 
         <!-- 用户信息 -->
         <PanUserInfo />

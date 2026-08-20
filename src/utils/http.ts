@@ -15,7 +15,7 @@ import axios, {
   type AxiosResponse,
   type InternalAxiosRequestConfig
 } from 'axios'
-import { clearToken, getToken, setToken } from '@/utils/cookie'
+import { clearToken, getClientId, getToken, setToken } from '@/utils/cookie'
 import { ElMessage, ElMessageBox } from '@/composables/useToast'
 import panUtil from '@/utils/common'
 import { useBreadcrumbStore } from '@/stores/breadcrumb'
@@ -67,6 +67,8 @@ http.interceptors.request.use(
     }
     const token = getToken()
     if (token) config.headers['Authorization'] = token
+    // 多端并存登录：每端带稳定 clientId，后端按 userId_clientId 隔离会话
+    config.headers['X-Client-Id'] = getClientId()
     config.headers['X-Pan-Trace-Id'] = genTraceId()
     return config
   },

@@ -11,15 +11,17 @@ import {
   isPreviewable
 } from '@/utils/preview'
 
+/**
+ * 预览文件项，字段与后端 XPanUserFileVO 对齐。
+ * 文件ID 用 fileId、文件名用 filename；后端没有 id / name / type 字段，已移除。
+ * 文件夹统一用 fileType === 0 判断。
+ */
 export interface PreviewItem {
   fileId?: string | number
-  id?: string | number
-  name?: string
   filename?: string
   mimeType?: string
   extension?: string
   fileType?: number
-  type?: string
   [key: string]: unknown
 }
 
@@ -49,14 +51,13 @@ export function useDrivePreview(getSiblingItems: () => PreviewItem[]) {
    * @returns 是否成功打开（unsupported 时返回 false，由调用方降级）
    */
   function openPreview(item: PreviewItem): boolean {
-    if (item.fileType === 0 || item.type === 'folder') return false
+    if (item.fileType === 0) return false
 
     const kind = resolvePreviewKind({
-      name: item.name || item.filename,
+      filename: item.filename,
       mimeType: item.mimeType,
       extension: item.extension,
-      fileType: item.fileType,
-      type: item.type
+      fileType: item.fileType
     })
     if (!isPreviewable(kind)) return false
 
@@ -67,18 +68,17 @@ export function useDrivePreview(getSiblingItems: () => PreviewItem[]) {
     if (kind === 'image') {
       const siblings = getSiblingItems() || []
       state.galleryItems = siblings.filter((s) => {
-        if (s.fileType === 0 || s.type === 'folder') return false
+        if (s.fileType === 0) return false
         const k = resolvePreviewKind({
-          name: s.name || s.filename,
+          filename: s.filename,
           mimeType: s.mimeType,
           extension: s.extension,
-          fileType: s.fileType,
-          type: s.type
+          fileType: s.fileType
         })
         return k === 'image'
       })
       const idx = state.galleryItems.findIndex(
-        (s) => (s.fileId || s.id) === (item.fileId || item.id)
+        (s) => s.fileId === item.fileId
       )
       state.galleryIndex = idx >= 0 ? idx : 0
     } else {
@@ -97,7 +97,7 @@ export function useDrivePreview(getSiblingItems: () => PreviewItem[]) {
   }
 
   function resolvePreviewUrl(item: PreviewItem) {
-    return resolvePreviewUrlUtil(item.fileId || item.id)
+    return resolvePreviewUrlUtil(item.fileId)
   }
 
   return {

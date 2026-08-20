@@ -6,7 +6,7 @@
 import { reactive, ref, onMounted, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
-import { ChevronDown, LogOut, KeyRound, User, Monitor, Info } from '@lucide/vue'
+import { ChevronDown, LogOut, KeyRound, User, Monitor, Info, Camera } from '@lucide/vue'
 import userService from '@/api/user'
 import { clearToken, getToken } from '@/utils/cookie'
 import { useUserStore } from '@/stores/user'
@@ -24,7 +24,12 @@ import BaseButton from '@/components/base/BaseButton.vue'
 import DeviceManagerDialog from '@/components/base/DeviceManagerDialog.vue'
 
 const userStore = useUserStore()
-const { username } = storeToRefs(userStore)
+const { username, avatar, usedSpace, totalSpace, usedPercent } = storeToRefs(userStore)
+
+// 头像直链 URL（后端 avatar 已是可访问的图片 URL，方案1独立存储）
+const avatarUrl = computed(() => avatar.value || '')
+const avatarInput = ref<HTMLInputElement | null>(null)
+const avatarUploading = ref(false)
 const breadcrumbStore = useBreadcrumbStore()
 const fileStore = useFileStore()
 const navbarStore = useNavbarStore()
@@ -104,6 +109,7 @@ function openProfile() {
         profile.username = res.data.username || profile.username
         profile.rootFileId = res.data.rootFileId || profile.rootFileId
         profile.rootFilename = res.data.rootFilename || profile.rootFilename
+        if (res.data.avatar) userStore.setAvatar(res.data.avatar)
       },
       () => {}
     )
@@ -115,6 +121,85 @@ function resetChangePasswordForm() {
   changePasswordForm.password = ''
   changePasswordForm.newPassword = ''
   changePasswordForm.reNewPassword = ''
+}
+
+// ─── 空间容量（配额）调整 ─────────────────────────────────
+const quotaVisible = ref(false)
+const quotaInputGB = ref<number | null>(null)
+const quotaSaving = ref(false)
+
+/** 字节 → 可读大小 */
+function formatSize(bytes: number): string {
+  if (!bytes || bytes <= 0) return '0 B'
+  const units = ['B', 'KB', 'MB', 'GB', 'TB']
+  const i = Math.min(units.length - 1, Math.floor(Math.log(bytes) / Math.log(1024)))
+  return `${(bytes / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 1)} ${units[i]}`
+}
+
+// ─── 头像上传 ────────────────────────────────────────────────
+function triggerAvatarUpload() {
+  avatarInput.value?.click()
+}
+
+function onAvatarFileChange(e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (!file) return
+  if (file.size > 2 * 1024 * 1024) {
+    ElMessage.error('头像文件不能超过 2MB')
+    return
+  }
+  avatarUploading.value = true
+  userService.uploadAvatar(
+    file,
+    (res) => {
+      avatarUploading.value = false
+      userStore.setAvatar(res.data)
+      ElNotification.success({ title: '成功', message: '头像已更新' })
+    },
+    (err: any) => {
+      avatarUploading.value = false
+      ElMessage.error(err?.message || '头像上传失败')
+    }
+  )
+}
+
+/** 打开容量调整弹窗，默认填当前总量（GB） */
+function openQuotaEditor() {
+  quotaInputGB.value = Math.max(1, Math.round(totalSpace.value / (1024 * 1024 * 1024)))
+  quotaVisible.value = true
+}
+
+/** 保存新的空间容量 */
+async function saveQuota() {
+  const gb = Number(quotaInputGB.value)
+  if (!gb || gb <= 0) {
+    return ElMessage.error('请输入有效的容量（GB）')
+  }
+  const maxGb = 10 * 1024 // 10TB
+  if (gb > maxGb) {
+    return ElMessage.error(`容量不能超过 ${maxGb} GB（10TB）`)
+  }
+  const newTotal = gb * 1024 * 1024 * 1024
+  const used = usedSpace.value || 0
+  if (newTotal < used) {
+    return ElMessage.error('容量不能小于当前已用空间')
+  }
+  quotaSaving.value = true
+  userService.updateQuota(
+    { totalSize: newTotal },
+    () => {
+      quotaSaving.value = false
+      quotaVisible.value = false
+      userStore.setQuota(used, newTotal)
+      ElNotification.success({ title: '成功', message: '空间容量已更新' })
+    },
+    (res: any) => {
+      quotaSaving.value = false
+      ElMessage.error(res.message || '调整容量失败')
+    }
+  )
 }
 
 function doChangePassword() {
@@ -157,6 +242,7 @@ function initUserInfoIfNecessary() {
         fileStore.setDefaultParentId(res.data.rootFileId)
         fileStore.setDefaultParentFilename(res.data.rootFilename)
         userStore.setUsername(res.data.username)
+        if (res.data.avatar) userStore.setAvatar(res.data.avatar)
         // 同步存储空间数据（后端 UserInfoVO 字段为 usedSize/totalSize）
         if (res.data.usedSize !== undefined && res.data.totalSize !== undefined) {
           userStore.setQuota(res.data.usedSize, res.data.totalSize)
@@ -195,9 +281,15 @@ onMounted(initUserInfoIfNecessary)
           class="flex items-center gap-2 px-2.5 h-9 rounded-sm hover:bg-(--color-surface-2) transition-colors text-sm"
         >
           <span
-            class="size-7 rounded-full bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center text-primary-700 dark:text-primary-300"
+            class="size-7 rounded-full bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center overflow-hidden"
           >
-            <User :size="14" />
+            <img
+              v-if="avatarUrl"
+              :src="avatarUrl"
+              alt="avatar"
+              class="size-full object-cover"
+            />
+            <User v-else :size="14" />
           </span>
           <span class="hidden sm:inline text-(--color-text) max-w-[120px] truncate">{{
             username || '已登录'
@@ -289,6 +381,36 @@ onMounted(initUserInfoIfNecessary)
       size="sm"
     >
       <div class="flex flex-col gap-3 text-sm">
+        <!-- 头像 -->
+        <div class="flex items-center gap-3 py-1">
+          <span
+            class="size-12 rounded-full bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center overflow-hidden shrink-0"
+          >
+            <img v-if="avatarUrl" :src="avatarUrl" alt="avatar" class="size-full object-cover" />
+            <User v-else :size="22" />
+          </span>
+          <div class="flex flex-col gap-1">
+            <span class="text-(--color-text) font-medium truncate">{{
+              profile.username || username || '未设置'
+            }}</span>
+            <button
+              type="button"
+              class="inline-flex items-center gap-1 text-xs text-(--color-primary) hover:underline disabled:opacity-50"
+              :disabled="avatarUploading"
+              @click="triggerAvatarUpload"
+            >
+              <Camera :size="12" />
+              {{ avatarUploading ? '上传中...' : avatar ? '更换头像' : '设置头像' }}
+            </button>
+          </div>
+          <input
+            ref="avatarInput"
+            type="file"
+            accept="image/*"
+            class="hidden"
+            @change="onAvatarFileChange"
+          />
+        </div>
         <div class="flex items-center justify-between py-2 border-b border-(--color-border)">
           <span class="text-(--color-text-muted)">用户名</span>
           <span class="font-medium text-(--color-text) truncate max-w-[60%]">{{
@@ -307,9 +429,47 @@ onMounted(initUserInfoIfNecessary)
             profile.rootFilename || '-'
           }}</span>
         </div>
+        <!-- 空间容量 -->
+        <div class="py-2 border-t border-(--color-border)">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-(--color-text-muted)">空间容量</span>
+            <button
+              type="button"
+              class="text-xs text-(--color-primary) hover:underline"
+              @click="openQuotaEditor"
+            >
+              调整
+            </button>
+          </div>
+          <div class="h-2 w-full rounded-full bg-(--color-surface-2) overflow-hidden">
+            <div
+              class="h-full rounded-full bg-(--color-primary) transition-all"
+              :style="{ width: `${usedPercent}%` }"
+            ></div>
+          </div>
+          <div class="mt-1 text-xs text-(--color-text-muted)">
+            已用 {{ formatSize(usedSpace) }} / {{ formatSize(totalSpace) }}
+          </div>
+        </div>
       </div>
       <template #footer>
         <BaseButton variant="primary" @click="profileVisible = false">知道了</BaseButton>
+      </template>
+    </BaseModal>
+
+    <!-- 空间容量调整弹窗 -->
+    <BaseModal v-model:open="quotaVisible" title="调整空间容量" size="sm">
+      <div class="flex flex-col gap-3 text-sm">
+        <p class="text-(--color-text-muted)">
+          当前已用 {{ formatSize(usedSpace) }}，总容量 {{ formatSize(totalSpace) }}。设置新的总容量（GB），不能小于已用空间，上限 10TB。
+        </p>
+        <BaseField label="总容量（GB）" required>
+          <BaseInput v-model.number="quotaInputGB" type="number" placeholder="请输入总容量（GB）" />
+        </BaseField>
+      </div>
+      <template #footer>
+        <BaseButton variant="secondary" @click="quotaVisible = false">取消</BaseButton>
+        <BaseButton variant="primary" :loading="quotaSaving" @click="saveQuota">保存</BaseButton>
       </template>
     </BaseModal>
   </div>

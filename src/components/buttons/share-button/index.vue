@@ -11,6 +11,7 @@
  */
 import { reactive, ref, nextTick } from 'vue'
 import { Share2, Copy, Check, QrCode, Lock } from '@lucide/vue'
+import { toDataURL } from 'qrcode'
 import { ElMessage } from '@/composables/useToast'
 import { useFileStore } from '@/stores/file'
 import { storeToRefs } from 'pinia'
@@ -22,7 +23,9 @@ import BaseSelect from '@/components/base/BaseSelect.vue'
 
 const props = defineProps({
   size: { type: String, default: 'sm' },
-  item: { type: Object, default: null }
+  item: { type: Object, default: null },
+  // 为 true 时不渲染自带触发按钮，仅作为弹窗容器（由外部通过 ref.openModal 触发）
+  hideTrigger: { type: Boolean, default: false }
 })
 
 const fileStore = useFileStore()
@@ -34,6 +37,9 @@ const step = ref(1)
 const loading = ref(false)
 const copied = ref(false)
 const shareNameInputRef = ref(null)
+// 外部通过 ref.openModal(file | file[]) 传入的目标文件；为空时回退到 props.item / 多选
+const currentItem = ref<any>(null)
+const currentItems = ref<any[]>([])
 
 const form = reactive({
   shareName: '',
@@ -60,45 +66,20 @@ const result = reactive({
   shareCode: ''
 })
 
-const qrSvg = ref('')
+const qrDataUrl = ref('')
 const showQR = ref(false)
 
-function generateQR(text) {
-  const size = 21
-  const cells = []
-  for (let y = 0; y < size; y++) {
-    const row = []
-    for (let x = 0; x < size; x++) {
-      const hash = (x * 31 + y * 17 + text.charCodeAt((x + y) % text.length)) & 0xff
-      row.push(hash % 2 === 0)
-    }
-    cells.push(row)
+// 生成真实可扫描的二维码（使用已安装的 qrcode 库，替代此前手写的伪二维码）
+async function generateQR(text: string) {
+  try {
+    qrDataUrl.value = await toDataURL(text, {
+      width: 320,
+      margin: 2,
+      errorCorrectionLevel: 'M'
+    })
+  } catch {
+    qrDataUrl.value = ''
   }
-  const corners = [
-    [0, 0],
-    [size - 7, 0],
-    [0, size - 7]
-  ]
-  for (const [cy, cx] of corners) {
-    for (let y = 0; y < 7; y++) {
-      for (let x = 0; x < 7; x++) {
-        if (cy + y < size && cx + x < size) {
-          const onBorder = y === 0 || y === 6 || x === 0 || x === 6
-          const inner = y >= 2 && y <= 4 && x >= 2 && x <= 4
-          cells[cy + y][cx + x] = onBorder || inner
-        }
-      }
-    }
-  }
-  const rects = []
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      if (cells[y][x]) {
-        rects.push(`<rect x="${x}" y="${y}" width="1" height="1"/>`)
-      }
-    }
-  }
-  qrSvg.value = `<svg viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%"><rect width="${size}" height="${size}" fill="#fff"/>${rects.join('')}</svg>`
 }
 
 function handleFilename(name) {
@@ -113,23 +94,36 @@ function randomCode() {
   return s
 }
 
-async function openModal() {
-  if (!props.item && (!multipleSelection.value || multipleSelection.value.length === 0)) {
+async function openModal(item?: any) {
+  // 兼容：传入单个对象、对象数组，或为空时回退到 props.item / store 多选
+  let list: any[] = []
+  if (Array.isArray(item)) list = item
+  else if (item) list = [item]
+  else if (props.item) list = [props.item]
+  else list = multipleSelection.value || []
+  // 过滤掉缺失 fileId 的脏数据，确保提交的 ID 有效
+  list = list.filter((i) => i && i.fileId)
+  if (list.length === 0) {
     ElMessage.error('请选择要分享的文件')
     return
   }
-  if (props.item) {
-    title.value = `分享文件（${handleFilename(props.item.filename)}）`
-  } else if (multipleSelection.value.length === 1) {
-    title.value = `分享文件（${handleFilename(multipleSelection.value[0].filename)}）`
+  currentItem.value = list.length === 1 ? list[0] : null
+  currentItems.value = list
+  const fileName = list[0].filename || '分享'
+  if (list.length === 1) {
+    title.value = `分享文件（${handleFilename(list[0].filename || '分享')}）`
   } else {
-    title.value = `分享文件（${handleFilename(multipleSelection.value[0].filename)}等）`
+    title.value = `分享文件（${handleFilename(list[0].filename || '分享')}等）`
   }
   step.value = 1
-  form.shareName = ''
+  // 默认填充文件名作为分享名称，减少用户输入；清空旧错误避免红框残留
+  form.shareName = fileName
   form.shareDayType = '0'
   form.shareCode = randomCode()
   form.downloadLimit = ''
+  errors.shareName = ''
+  errors.shareCode = ''
+  errors.downloadLimit = ''
   result.shareUrl = ''
   result.shareCode = ''
   copied.value = false
@@ -161,7 +155,16 @@ function validate() {
 
 async function doConfirm() {
   if (!validate()) return
-  const ids = props.item ? [props.item.fileId] : multipleSelection.value.map((i) => i.fileId)
+  const list = currentItems.value.length
+    ? currentItems.value
+    : currentItem.value
+      ? [currentItem.value]
+      : multipleSelection.value || []
+  const ids = list.map((i) => i && i.fileId).filter(Boolean)
+  if (!ids.length) {
+    ElMessage.error('请选择要分享的文件')
+    return
+  }
   loading.value = true
   const payload = {
     shareName: form.shareName,
@@ -176,7 +179,8 @@ async function doConfirm() {
     payload,
     (res) => {
       loading.value = false
-      result.shareUrl = res.data.shareUrl
+      // 用浏览器当前地址动态拼接分享链接，避免后端 shareUrl 指向后端端口（如 127.0.0.1:8081）打不开前端分享页面
+      result.shareUrl = `${window.location.origin}/share/${res.data.shareId}`
       result.shareCode = res.data.shareCode
       title.value = '分享成功！'
       step.value = 2
@@ -203,12 +207,21 @@ async function copyAll() {
 
 function onClose() {
   open.value = false
+  currentItem.value = null
+  currentItems.value = []
 }
+
+defineExpose({ openModal })
 </script>
 
 <template>
   <div class="inline-block">
-    <BaseButton variant="secondary" :size="props.size === 'small' ? 'sm' : 'md'" @click="openModal">
+    <BaseButton
+      v-if="!hideTrigger"
+      variant="secondary"
+      :size="props.size === 'small' ? 'sm' : 'md'"
+      @click="openModal"
+    >
       <span class="inline-flex items-center gap-1.5">
         <Share2 :size="14" />
         分享
@@ -232,7 +245,7 @@ function onClose() {
             ref="shareNameInputRef"
             v-model="form.shareName"
             placeholder="给分享起个名字"
-            :error="errors.shareName"
+            :error="!!errors.shareName"
             maxlength="50"
             show-count
           />
@@ -269,7 +282,7 @@ function onClose() {
               <BaseInput
                 v-model="form.shareCode"
                 placeholder="留空则系统随机生成"
-                :error="errors.shareCode"
+                :error="!!errors.shareCode"
                 maxlength="8"
               />
               <BaseButton
@@ -293,7 +306,7 @@ function onClose() {
               v-model.number="form.downloadLimit"
               type="number"
               placeholder="留空 = 不限"
-              :error="errors.downloadLimit"
+              :error="!!errors.downloadLimit"
               min="0"
               max="999"
             />
@@ -344,10 +357,11 @@ function onClose() {
             <QrCode :size="12" />
             {{ showQR ? '隐藏二维码' : '显示二维码' }}
           </button>
-          <div
-            v-if="showQR"
-            class="mt-3 w-40 h-40 mx-auto rounded-sm bg-white p-2 shadow-sm border border-(--color-border)"
-            v-html="qrSvg"
+          <img
+            v-if="showQR && qrDataUrl"
+            :src="qrDataUrl"
+            alt="分享二维码"
+            class="mt-3 w-40 h-40 mx-auto rounded-sm bg-white p-2 shadow-sm border border-(--color-border) object-contain"
           />
         </div>
       </div>

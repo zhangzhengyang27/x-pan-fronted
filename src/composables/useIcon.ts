@@ -92,9 +92,10 @@ const MAP: Record<string, FileKind> = {
   log: 'text'
 }
 
-export function getFileKind(file: { fileType?: number; type?: string; name?: string }): FileKind {
-  if (file.fileType === 0 || file.type === 'folder') return 'folder'
-  const k = MAP[extOf(file.name)]
+export function getFileKind(file: { fileType?: number; filename?: string }): FileKind {
+  // 文件夹统一用 fileType === 0 判断；文件名用 filename（与后端契约对齐，移除 type/name 冗余）
+  if (file.fileType === 0) return 'folder'
+  const k = MAP[extOf(file.filename)]
   return k || 'other'
 }
 
