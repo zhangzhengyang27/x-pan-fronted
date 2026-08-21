@@ -57,8 +57,14 @@ const allSelected = computed(
 const partialSelected = computed(
   () => props.selectable && props.selected.length > 0 && props.selected.length < props.data.length
 )
+const errorMsg = computed(() => {
+  const e = props.error as string | { message?: string } | null
+  return typeof e === 'string'
+    ? e
+    : (e as { message?: string } | null)?.message || '加载失败'
+})
 
-function getRowKey(row: Row, idx: number): RowKey {
+function getRowKey(row: Row, idx?: number): RowKey {
   return (row[props.rowKey] as RowKey) ?? idx
 }
 function isSelected(row: Row): boolean {
@@ -217,7 +223,7 @@ const gridTemplateColumns = computed(() => {
         class="px-3 py-12 text-center text-sm"
         style="color: var(--color-danger);"
       >
-        加载失败：{{ typeof error === 'string' ? error : error?.message }}
+        加载失败：{{ errorMsg }}
       </div>
 
       <!-- 空状态 -->

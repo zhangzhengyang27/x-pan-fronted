@@ -31,7 +31,8 @@ import BaseButton from './BaseButton.vue'
 import { ElMessage } from '@/composables/useToast'
 import fileService from '@/api/file'
 import { useFileStore } from '@/stores/file'
-import type { IFileVO, FileType } from '@/types'
+import type { IFileVO } from '@/types'
+import { FileType } from '@/types'
 
 interface TreeNode {
   id: string

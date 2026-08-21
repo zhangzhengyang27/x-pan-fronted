@@ -97,7 +97,7 @@ defineExpose({ focus })
       :class="inputClass"
       :autocomplete="autocomplete"
       :name="name"
-      :inputmode="inputMode"
+      :inputmode="(inputMode as 'text' | 'search' | 'email' | 'tel' | 'url' | 'none' | 'numeric' | 'decimal' | undefined) || undefined"
       autocorrect="off"
       autocapitalize="off"
       spellcheck="false"

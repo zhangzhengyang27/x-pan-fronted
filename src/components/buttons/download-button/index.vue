@@ -70,7 +70,7 @@ const doDownload = (item) => {
 
 let downloadTimer: ReturnType<typeof setTimeout> | null = null
 
-const doDownLoads = (items, i) => {
+const doDownLoads = (items, i = 0) => {
   if (!i) {
     i = 0
   }

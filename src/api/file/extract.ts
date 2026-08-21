@@ -64,7 +64,7 @@ const extractService = {
    */
   progress(taskId: string, resolve: Callback<ExtractTask>, reject: Callback<unknown>) {
     http
-      .get<ApiResponse<ExtractTask>>('/file/extract/progress', { params: { taskId } })
+      .get<unknown, ApiResponse<ExtractTask>>('/file/extract/progress', { params: { taskId } })
       .then(resolve)
       .catch(reject)
   }

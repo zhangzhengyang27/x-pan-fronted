@@ -105,7 +105,7 @@ const doCreateFolder = async () => {
   fileService.createFolder(
     {
       parentId: paramParentId.value,
-      folderName: createFolderForm.folderName
+      filename: createFolderForm.folderName
     },
     () => {
       loading.value = false
