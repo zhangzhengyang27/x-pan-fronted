@@ -10,8 +10,8 @@ import BaseButton from '@/components/base/BaseButton.vue'
 import CodePreviewer from '@/components/preview/code-previewer.vue'
 
 const route = useRoute()
-const fileId = computed(() => route.params.fileId)
-const filename = computed(() => route.query.filename || 'code')
+const fileId = computed(() => String(route.params.fileId || ''))
+const filename = computed(() => String(route.query.filename || 'code'))
 const downloadUrl = computed(() => getDownloadUrl(fileId.value))
 
 // 统一走签名 URL（与 DrivePreviewModal 一致），避免长期 token 进 URL

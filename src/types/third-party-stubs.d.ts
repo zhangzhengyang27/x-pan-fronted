@@ -13,3 +13,6 @@ declare module 'aplayer'
 declare module 'artplayer'
 declare module 'vditor'
 declare module 'nprogress'
+
+declare module 'qrcode'
+declare module 'qrcode/lib/to-data-url'
