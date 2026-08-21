@@ -40,6 +40,7 @@ export interface FileStore {
 
   setParentId: (id: string) => void
   refreshParentId: () => void
+  clearParentCache: () => void
   setDefaultParentId: (id: string) => void
   setDefaultParentFilename: (name: string) => void
   setFileList: (list: IFileVO[]) => void
@@ -348,6 +349,8 @@ export const useFileStore = defineStore('file', (): FileStore => {
 
   function loadFileList(): void {
     const seq = ++requestSeq
+    // 重置 loadMore 进行中标志，避免切换目录/重载时残留 true，导致新目录滚动加载被错误拦截
+    isLoadingMore.value = false
     setTableLoading(true)
     pageNum.value = 1
     if (searchFlag.value) {

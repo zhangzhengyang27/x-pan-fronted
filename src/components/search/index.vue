@@ -227,7 +227,7 @@ function doSearch() {
   if (parsed.dateTo) params.dateTo = parsed.dateTo
 
   fileService.search(
-    params,
+    params as any,
     (res) => {
       let list = res.data || []
       // 前端二次过滤大小（后端可能不支持 sizeMin/Max）

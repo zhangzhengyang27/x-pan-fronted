@@ -69,7 +69,7 @@ export function useUploader() {
       initialPaused: false
     }
 
-    _uploader = new Uploader(fileOptions)
+    _uploader = new Uploader(fileOptions as never)
     if (!_uploader.support) {
       ElMessage.error('本浏览器不支持 simple-uploader，请更换浏览器重试')
     }
@@ -88,13 +88,17 @@ export function useUploader() {
         // 绑定 add 时刻的目标目录，上传分片时以它为准，避免切换目录导致落错位置
         ;(f as unknown as { __uploadParentId?: string }).__uploadParentId = fileStore.paramParentId
         if (f.size > panUtil.getMaxFileSize()) {
-          throw new Error(
+          // 单个文件超限：只移除该文件并提示，不中断同批其它正常文件。
+          // 直接 cancel() 会将该文件从上传器 files 中移除，避免其永久卡在暂停态残留。
+          ElMessage.error(
             '文件：' +
               f.name +
               ' 大小超过了最大上传限制（' +
               panUtil.translateFileSize(panUtil.getMaxFileSize()) +
               '）'
           )
+          f.cancel()
+          return
         }
         taskStore.add({
           id: f.id,

@@ -51,13 +51,13 @@ async function loadTree() {
   loading.value = true
   error.value = ''
   try {
-    const res = await new Promise((resolve, reject) => {
+    const res = await new Promise<any>((resolve, reject) => {
       fileService.getFolderTree(resolve, reject)
     })
     rawTreeData.value = res.data
     treeData.value = normalizeTree(res.data)
   } catch (e) {
-    error.value = e?.message || '文件夹加载失败'
+    error.value = (e as { message?: string })?.message || '文件夹加载失败'
   } finally {
     loading.value = false
     initialLoading.value = false

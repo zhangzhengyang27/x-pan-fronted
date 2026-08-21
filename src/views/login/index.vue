@@ -50,7 +50,7 @@ function submitLogin() {
   userService.login(
     loginForm,
     (res) => {
-      setToken(res.data)
+      setToken(res.data as unknown as string)
       userService.info(
         (infoRes) => {
           clearParentCache()

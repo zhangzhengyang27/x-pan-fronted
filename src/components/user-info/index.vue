@@ -14,7 +14,7 @@ import { useBreadcrumbStore } from '@/stores/breadcrumb'
 import { useFileStore } from '@/stores/file'
 import { useNavbarStore } from '@/stores/navbar'
 import { useTaskStore } from '@/stores/task'
-import { ElMessage, ElNotification } from '@/composables/useToast'
+import { ElMessage, ElNotification, ElMessageBox } from '@/composables/useToast'
 
 import BaseDropdown from '@/components/base/BaseDropdown.vue'
 import BaseModal from '@/components/base/BaseModal.vue'
@@ -215,7 +215,7 @@ function doChangePassword() {
   loading.value = true
   userService.changePassword(
     {
-      password: changePasswordForm.password,
+      oldPassword: changePasswordForm.password,
       newPassword: changePasswordForm.newPassword
     },
     () => {

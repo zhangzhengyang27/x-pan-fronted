@@ -16,7 +16,7 @@ const { uploadTaskList: taskList, panelVisible } = storeToRefs(taskStore)
 const visible = computed(() => taskList.value.length > 0 && panelVisible.value)
 
 function remove(filename) {
-  taskStore.cancel(filename)
+  taskStore.remove(filename)
 }
 
 function clearFinished() {

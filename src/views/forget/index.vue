@@ -103,7 +103,7 @@ function nextStep() {
     if (form.password !== form.rePassword) return ElMessage.error('两次密码不一致')
     loading.value = true
     userService.resetPassword(
-      { username: form.username, password: form.password },
+      { username: form.username, answer: form.verifyCode, newPassword: form.password },
       () => {
         loading.value = false
         currentStep.value = 3

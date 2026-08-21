@@ -128,19 +128,17 @@ async function submit() {
   const fileIds = rows.map((r) => r.fileId)
 
   const api = isMove.value ? fileService.transfer : fileService.copy
-  api(
-    { fileIds, targetParentId: selectedId.value == null ? '' : String(selectedId.value) },
-    () => {
+  api({ fileIds, targetParentId: selectedId.value == null ? '' : String(selectedId.value) })
+    .then(() => {
       ElMessage.success(isMove.value ? '移动成功' : '复制成功')
       submitting.value = false
       emit('complete', selectedId.value)
       emit('update:open', false)
-    },
-    (err: { message?: string }) => {
+    })
+    .catch((err: { message?: string }) => {
       ElMessage.error(err?.message || '操作失败')
       submitting.value = false
-    }
-  )
+    })
 }
 
 function close() {

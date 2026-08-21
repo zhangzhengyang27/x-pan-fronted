@@ -47,22 +47,21 @@ function onConfirm({ targetId }) {
   }
 
   loading.value = true
-  fileService.copy(
-    {
+  fileService
+    .copy({
       fileIds,
       targetParentId: targetId || ''
-    },
-    () => {
+    })
+    .then(() => {
       loading.value = false
       dialogVisible.value = false
       ElMessage.success('文件复制成功')
       fileStore.loadFileList()
-    },
-    (err) => {
+    })
+    .catch((err) => {
       loading.value = false
       ElMessage.error(err.message)
-    }
-  )
+    })
 }
 </script>
 

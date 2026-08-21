@@ -19,7 +19,8 @@ import FolderPickerDialog from '@/components/base/FolderPickerDialog.vue'
 import FileThumbnail from './FileThumbnail.vue'
 import { useFavorites } from '@/composables/useFavorites'
 import { useRecent } from '@/composables/useRecent'
-import { useMediaQuery } from '@/composables/useMediaQuery'
+import { useBreakpoint } from '@/composables/useMediaQuery'
+import FileCardList from './FileCardList.vue'
 import { useFileTags } from '@/composables/useFileTags'
 import { getDownloadUrl, invalidatePreviewUrl } from '@/utils/preview'
 import { removeThumbnailFromCache } from '@/utils/thumbnail-cache'
@@ -73,7 +74,7 @@ const {
 } = storeToRefs(fileStore)
 
 const selected = ref<string[]>([]) // 多选 fileId
-const isMobile = useMediaQuery('(max-width: 768px)').matches
+const { isMobile } = useBreakpoint()
 const currentView = ref(props.view)
 
 // 外部传入 view 变化时同步
@@ -205,8 +206,10 @@ const selectedRows = computed(() =>
 
 const selectedCount = computed(() => selected.value.length)
 
-const columns = computed(() => {
-  const base = [{ key: 'filename', title: '文件名', width: 'auto' }]
+const columns = computed<Array<{ key: string; title: string; width: string | number; align?: 'center' | 'left' | 'right' }>>(() => {
+  const base: Array<{ key: string; title: string; width: string | number; align?: 'center' | 'left' | 'right' }> = [
+    { key: 'filename', title: '文件名', width: 'auto' }
+  ]
   if (searchFlag.value)
     base.push({ key: 'parentFilename', title: '位置', width: 140, align: 'center' })
   base.push(
@@ -263,7 +266,7 @@ function goInFolder(fileId: string) {
     (res) => {
       fileStore.setSearchFlag(false)
       breadcrumbStore.clear()
-      breadcrumbStore.reset(res.data)
+      breadcrumbStore.reset(res.data as any)
       fileStore.setParentId(fileId)
       fileStore.loadFileList()
     },
@@ -335,7 +338,7 @@ function onRowClick(row: Record<string, any>, e?: MouseEvent) {
 const { add: addRecent } = useRecent()
 
 function onRowDblclick(row: Record<string, any>) {
-  addRecent(row)
+  addRecent(row as any)
   clickFilename(row)
 }
 
@@ -360,7 +363,7 @@ async function batchDownload(rows: Record<string, any>[]) {
     { fileIds },
     (res) => {
       const blob =
-        res instanceof Blob ? res : new Blob([res.data || res], { type: 'application/zip' })
+        res instanceof Blob ? res : new Blob([res.data || res] as unknown as BlobPart[], { type: 'application/zip' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
@@ -547,6 +550,13 @@ function teardownIntersectionObserver() {
   if (intersectionObserver) {
     intersectionObserver.disconnect()
     intersectionObserver = null
+  }
+}
+
+// 移动端卡片列表滚动到底部时触发（等效桌面 loadMoreSentinel）
+function onLoadMore() {
+  if (hasMore.value && !isLoadingMore.value && !filterActive.value && !searchFlag.value) {
+    fileStore.loadMore()
   }
 }
 
@@ -790,7 +800,7 @@ const ctxItems = computed(() => {
     },
     {
       key: 'paste',
-      label: clipboardText,
+      label: clipboardText.value,
       shortcut: 'Ctrl+V',
       disabled: !hasClipboard,
       action: () => doPaste()
@@ -901,7 +911,7 @@ async function batchRename(rows: Record<string, any>[]) {
 // 暴露方法给父组件（列表/网格视图切换、筛选、快捷键操作、批量选择）
 defineExpose({
   applyFilter,
-  setView: (v: string) => { currentView.value = v },
+  setView: (v: string) => { currentView.value = v as 'list' | 'grid' },
   download: downloadSelected,
   rename: renameSelected,
   refresh: refreshList,
@@ -933,92 +943,114 @@ onBeforeUnmount(() => {
 <template>
   <div class="h-full flex flex-col">
 
-    <!-- 列表视图 -->
+    <!-- 列表视图（移动端：卡片列表；桌面：表格） -->
     <div v-if="currentView === 'list'" class="flex-1 min-h-0 flex flex-col overflow-hidden">
-    <BaseTable
-      :columns="columns"
-      :data="filteredList"
-      :loading="tableLoading"
-      :skeleton="tableLoading && filteredList.length === 0"
-      selectable
-      row-key="fileId"
-      :active-key="activeKey"
-      :selected="selected"
-      empty-text="该文件夹为空，试试上传文件"
-      :sort-field="sortProp"
-      :sort-order="sortOrder"
-      @update:selected="(v: string[]) => handleSelectionChange(v)"
-      @rowClick="(row: any, idx: number, e: MouseEvent) => onRowClick(row, e)"
-      @rowDblclick="onRowDblclick"
-      @rowContextmenu="(e: MouseEvent, row: any) => onContextMenu(e, row)"
-    >
-      <template #cell-filename="{ row }">
-        <BaseTooltip :text="row.filename" position="top">
+      <!-- 移动端卡片列表：单击选中+打开，长按上下文菜单，无横向溢出 -->
+      <FileCardList
+        v-if="isMobile"
+        :data="filteredList"
+        :selected="selected"
+        :loading="tableLoading"
+        :skeleton="tableLoading && filteredList.length === 0"
+        :filter-active="filterActive"
+        :has-more="hasMore"
+        :is-loading-more="isLoadingMore"
+        :total="total"
+        @row-click="(row: any, e: MouseEvent) => onRowClick(row, e)"
+        @open="clickFilename"
+        @contextmenu="(e: MouseEvent, row: any) => onContextMenu(e, row)"
+        @load-more="onLoadMore"
+      >
+        <template #after-list>
+          <slot name="after-list" />
+        </template>
+      </FileCardList>
+
+      <BaseTable
+        v-else
+        :columns="columns"
+        :data="filteredList"
+        :loading="tableLoading"
+        :skeleton="tableLoading && filteredList.length === 0"
+        selectable
+        row-key="fileId"
+        :active-key="activeKey"
+        :selected="selected"
+        empty-text="该文件夹为空，试试上传文件"
+        :sort-field="sortProp"
+        :sort-order="sortOrder"
+        @update:selected="(v: any) => handleSelectionChange(v)"
+        @rowClick="(row: any, idx: number, e: MouseEvent) => onRowClick(row, e)"
+        @rowDblclick="onRowDblclick"
+        @rowContextmenu="(e: MouseEvent, row: any) => onContextMenu(e, row)"
+      >
+        <template #cell-filename="{ row }">
+          <BaseTooltip :text="row.filename" position="top">
+            <button
+              type="button"
+              class="group flex items-center gap-3.5 text-left w-full min-w-0"
+              @click.stop="onRowClick(row)"
+              @dblclick.stop="clickFilename(row)"
+            >
+              <FileThumbnail
+                :file="row"
+                :size="38"
+                rounded="rounded-md"
+                class="ring-1 ring-(--color-border)/60"
+              />
+              <span
+                class="truncate text-[13.5px] font-medium text-(--color-text) group-hover:text-primary-600 transition-colors"
+              >
+                {{ row.filename }}
+              </span>
+            </button>
+          </BaseTooltip>
+        </template>
+
+        <template #cell-parentFilename="{ row }">
           <button
             type="button"
-            class="group flex items-center gap-3.5 text-left w-full min-w-0"
-            @click.stop="onRowClick(row)"
-            @dblclick.stop="clickFilename(row)"
+            class="text-xs text-primary-500 hover:underline"
+            @click="goInFolder(row.parentId)"
           >
-            <FileThumbnail
-              :file="row"
-              :size="38"
-              rounded="rounded-md"
-              class="ring-1 ring-(--color-border)/60"
-            />
-            <span
-              class="truncate text-[13.5px] font-medium text-(--color-text) group-hover:text-primary-600 transition-colors"
-            >
-              {{ row.filename }}
-            </span>
+            {{ row.parentFilename }}
           </button>
-        </BaseTooltip>
-      </template>
+        </template>
 
-      <template #cell-parentFilename="{ row }">
-        <button
-          type="button"
-          class="text-xs text-primary-500 hover:underline"
-          @click="goInFolder(row.parentId)"
-        >
-          {{ row.parentFilename }}
-        </button>
-      </template>
+        <template #cell-fileType="{ row }">
+          <span
+            class="inline-flex items-center px-2 h-6 rounded-full text-[11px] font-medium"
+            style="background-color: var(--color-surface-2); color: var(--color-text-secondary);"
+          >
+            {{ getFileTypeLabel(row) }}
+          </span>
+        </template>
 
-      <template #cell-fileType="{ row }">
-        <span
-          class="inline-flex items-center px-2 h-6 rounded-full text-[11px] font-medium"
-          style="background-color: var(--color-surface-2); color: var(--color-text-secondary);"
-        >
-          {{ getFileTypeLabel(row) }}
-        </span>
-      </template>
+        <template #cell-fileSizeDesc="{ row }">
+          <span class="text-[13px] text-(--color-text-secondary) tabular-nums">
+            {{ row.fileSizeDesc }}
+          </span>
+        </template>
 
-      <template #cell-fileSizeDesc="{ row }">
-        <span class="text-[13px] text-(--color-text-secondary) tabular-nums">
-          {{ row.fileSizeDesc }}
-        </span>
-      </template>
+        <template #cell-updateTime="{ row }">
+          <span class="text-[13px] text-(--color-text-muted) tabular-nums">
+            {{ row.updateTime }}
+          </span>
+        </template>
 
-      <template #cell-updateTime="{ row }">
-        <span class="text-[13px] text-(--color-text-muted) tabular-nums">
-          {{ row.updateTime }}
-        </span>
-      </template>
+        <template #empty>
+          <BaseEmpty
+            :icon="filterActive ? SearchX : FolderOpen"
+            :title="filterActive ? '没有符合筛选条件的文件' : '该文件夹为空'"
+            :description="filterActive ? '试着调整筛选条件或清除筛选' : '将文件拖拽到此处，或点击上方按钮添加文件'"
+          />
+        </template>
 
-      <template #empty>
-        <BaseEmpty
-          :icon="filterActive ? SearchX : FolderOpen"
-          :title="filterActive ? '没有符合筛选条件的文件' : '该文件夹为空'"
-          :description="filterActive ? '试着调整筛选条件或清除筛选' : '将文件拖拽到此处，或点击上方按钮添加文件'"
-        />
-      </template>
-
-      <!-- 上传提示：转发给 BaseTable，渲染在其滚动区内，跟随数据滚动 -->
-      <template #after-list>
-        <slot name="after-list" />
-      </template>
-    </BaseTable>
+        <!-- 上传提示：转发给 BaseTable，渲染在其滚动区内，跟随数据滚动 -->
+        <template #after-list>
+          <slot name="after-list" />
+        </template>
+      </BaseTable>
     </div>
 
     <!-- 网格视图 -->

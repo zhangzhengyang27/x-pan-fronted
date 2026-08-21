@@ -134,7 +134,7 @@ onMounted(load)
               :class="isKeep(group, item) ? 'bg-primary-500 border-primary-500' : 'border-(--color-border-strong)'">
               <Check v-if="isKeep(group, item)" :size="13" class="text-white" />
             </span>
-            <component :is="fileIcon(item.fileType)" :size="16" :stroke-width="1.75" class="text-(--color-text-secondary)" />
+            <component :is="fileIcon((item as any).fileType)" :size="16" :stroke-width="1.75" class="text-(--color-text-secondary)" />
             <span class="truncate text-sm text-(--color-text)">{{ item.filename }}</span>
             <span class="ml-auto text-[11px] shrink-0" :class="isKeep(group, item) ? 'text-primary-500' : 'text-(--color-text-muted)'">
               {{ isKeep(group, item) ? '保留' : '将释放' }}

@@ -96,6 +96,8 @@ export interface IFileVO {
   identifier?: string
   /** 后端返回的人类可读大小描述（如 "1.5 MB"），用于前端筛选 */
   fileSizeDesc?: string
+  /** 父文件夹名（详情/列表接口附带，用于展示位置） */
+  parentFilename?: string
 }
 
 export interface IUploadChunkReq {
@@ -164,6 +166,8 @@ export interface IShareVO {
   /** 兼容创建/详情接口可能附带的文件信息 */
   fileList?: IFileVO[]
   fileId?: string
+  /** 分享详情接口附带的分享者信息 */
+  shareUserInfoVO?: { username: string }
 }
 
 export interface IShareStatsVO {

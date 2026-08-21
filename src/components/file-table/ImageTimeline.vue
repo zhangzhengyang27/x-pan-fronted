@@ -29,7 +29,7 @@ const props = withDefaults(
 const fileStore = useFileStore()
 
 // ─── 图片预览（统一走 DrivePreviewModal 弹窗，与 /files 页一致） ────────────
-const preview = useDrivePreview(() => props.files as IFileVO[])
+const preview = useDrivePreview(() => props.files as any[])
 const { state: previewState, openPreview: openPreviewModal, closePreview, resolvePreviewUrl } = preview
 
 function previewDownload(item: Record<string, any>) {
@@ -38,7 +38,10 @@ function previewDownload(item: Record<string, any>) {
 
 // 当前分组粒度（受控于父组件，也可内部维护）
 const currentGroupMode = ref(props.groupMode)
-const emit = defineEmits<{ (e: 'update:groupMode', v: 'year' | 'month' | 'day'): void }>()
+const emit = defineEmits<{
+  (e: 'update:groupMode', v: 'year' | 'month' | 'day'): void
+  (e: 'contextmenu', ev: MouseEvent, file: IFileVO): void
+}>()
 function setGroupMode(v: 'year' | 'month' | 'day') {
   currentGroupMode.value = v
   emit('update:groupMode', v)
@@ -225,6 +228,7 @@ function onCardClick(file: IFileVO) {
             :class="{ selected: isSelected(file) }"
             :data-file-id="file.fileId"
             @click="onCardClick(file)"
+            @contextmenu="emit('contextmenu', $event, file)"
           >
             <!-- 缩略图（137px 直角，object-cover 铺满） -->
             <FileThumbnail

@@ -44,7 +44,7 @@ function syncHeight() {
   if (!vditor || !containerRef.value) return
   const h = containerRef.value.clientHeight
   if (h <= 0) return
-  const vd = containerRef.value.querySelector<HTMLElement>('.vditor')
+  const vd = containerRef.value.querySelector('.vditor') as HTMLElement | null
   if (vd) vd.style.height = h + 'px'
 }
 
@@ -174,9 +174,10 @@ async function load() {
     await nextTick()
     setupObserver()
   } catch (e) {
-    if (e?.name === 'AbortError') return
+    const err = e as { name?: string; message?: string }
+    if (err?.name === 'AbortError') return
     if (seq !== loadSeq) return
-    error.value = e?.message || 'Markdown 加载失败'
+    error.value = err?.message || 'Markdown 加载失败'
   } finally {
     if (seq === loadSeq) loading.value = false
   }

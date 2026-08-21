@@ -289,19 +289,19 @@ onMounted(() => {
   if (!searchFlag.value) {
     const savedParentId = fileStore.parentId
     if (savedParentId && savedParentId !== '-1') {
-      // 刷新后恢复：用保存的目录重新拉面包屑 + 列表
+      // 刷新后恢复：用保存的目录重新拉面包屑。
+      // 注意：列表加载统一交由下方的 applyTypeQuery 触发（它会按类型/目录设置 parentId 后 loadFileList），
+      // 避免此处异步回调再触发一次 loadFileList 与 applyTypeQuery 并发，导致父目录/类型被交叉覆盖、列表与面包屑不一致。
       fileService.getBreadcrumbs(
         { fileId: savedParentId },
         (res) => {
           breadcrumbStore.clear()
-          breadcrumbStore.reset(res.data)
-          fileStore.loadFileList()
+          breadcrumbStore.reset(res.data as any)
         },
         () => {
           breadcrumbStore.clear()
           breadcrumbStore.addItem({ id: defaultParentId.value, name: defaultParentFilename.value })
           fileStore.refreshParentId()
-          fileStore.loadFileList()
         }
       )
     } else {
@@ -310,7 +310,7 @@ onMounted(() => {
       breadcrumbStore.addItem({ id: defaultParentId.value, name: defaultParentFilename.value })
       fileStore.refreshParentId()
     }
-    // P2-8: 从 query.type 读取类型筛选（保留当前目录上下文）
+    // P2-8: 从 query.type 读取类型筛选（保留当前目录上下文），统一在此触发列表加载
     applyTypeQuery(route.query.type)
   }
   window.addEventListener('dragover', onWindowDragOver)
@@ -375,10 +375,10 @@ onUnmounted(() => {
     <div class="sticky top-0 z-20 bg-(--color-bg) flex flex-col">
       <!-- 工具条 -->
       <div
-        class="flex items-center justify-between gap-4 p-3 rounded-sm bg-(--color-surface-container-low)"
+        class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 p-2 sm:p-3 rounded-sm bg-(--color-surface-container-low)"
       >
       <div class="flex items-center gap-2">
-        <FileButtonGroup :button-array="buttonArray" />
+        <FileButtonGroup :button-array="buttonArray" :selected-rows="selectedRows" />
 
         <template v-if="selectedCount > 0">
           <div class="w-px h-4 bg-(--color-border)" />
@@ -566,7 +566,7 @@ onUnmounted(() => {
   </Transition>
 
   <FileDetailPanel
-    :file="detailFile"
+    :file="detailFile as any"
     :open="detailOpen"
     @update:open="(v: boolean) => detailOpen = v"
     @close="detailOpen = false"

@@ -21,23 +21,19 @@ import {
   Download as DownloadIcon,
   Shield,
   BarChart3,
-  HardDrive,
   Star,
   Copy as CopyIcon
 } from '@lucide/vue'
 import { useResizable } from '@/composables/useResizable'
-import { useUserStore } from '@/stores/user'
-import { useMediaQuery } from '@/composables/useMediaQuery'
+import { useBreakpoint } from '@/composables/useMediaQuery'
 
 const store = useNavbarStore()
-const userStore = useUserStore()
 const route = useRoute()
 const router = useRouter()
 
 const { active } = storeToRefs(store)
-const { usedSpace, totalSpace, usedPercent } = storeToRefs(userStore)
 const { change } = store
-const isMobile = useMediaQuery('(max-width: 768px)').matches
+const { isMobile, isTablet, isDesktop } = useBreakpoint()
 const mobileOpen = ref(false)
 
 watch(
@@ -126,29 +122,13 @@ function navigate(item: any) {
   router.push({ path: item.path, query: item.query || {} })
   mobileOpen.value = false
 }
-
-// ─── 配额格式化 ───────────────────────────────────────────────────────────
-function formatSize(bytes: number) {
-  if (!bytes || bytes < 0) return '0 B'
-  const units = ['B', 'KB', 'MB', 'GB', 'TB']
-  let i = 0
-  let v = bytes
-  while (v >= 1024 && i < units.length - 1) { v /= 1024; i++ }
-  return v.toFixed(v >= 100 || i === 0 ? 0 : 1) + ' ' + units[i]
-}
-
-const quotaColor = computed(() => {
-  if (usedPercent.value >= 90) return 'var(--color-quota-danger)'
-  if (usedPercent.value >= 70) return 'var(--color-quota-warning)'
-  return 'var(--color-quota-normal)'
-})
 </script>
 
 <template>
-  <!-- 移动端抽屉 -->
-  <Teleport v-if="isMobile" to="body">
+  <!-- 移动端 / 平板抽屉 -->
+  <Teleport v-if="isMobile || isTablet" to="body">
     <Transition name="drawer">
-      <div v-if="mobileOpen" class="fixed inset-0 z-50 flex" @click.self="mobileOpen = false">
+      <div v-if="mobileOpen" class="fixed inset-0 z-1600 flex" @click.self="mobileOpen = false">
         <div class="absolute inset-0 bg-black/40" @click="mobileOpen = false" />
         <aside
           class="relative w-[260px] h-full flex flex-col bg-(--color-surface) border-r border-(--color-border)"
@@ -192,57 +172,15 @@ const quotaColor = computed(() => {
               </div>
             </template>
 
-            <!-- 存储空间卡片 -->
-            <div class="mt-auto mx-2 mb-2 rounded-xl p-3 bg-linear-to-br from-(--color-surface-2) to-(--color-surface-container-low) border border-(--color-border)/60 shadow-sm">
-              <!-- 顶部：图标 + 百分比 -->
-              <div class="flex items-center justify-between mb-2">
-                <div class="flex items-center gap-1.5">
-                  <div
-                    class="size-6 rounded-md flex items-center justify-center"
-                    :style="{ backgroundColor: `${quotaColor}15`, color: quotaColor }"
-                  >
-                    <HardDrive :size="13" :stroke-width="2" />
-                  </div>
-                  <span class="text-xs font-medium text-(--color-text-secondary)">存储空间</span>
-                </div>
-                <span
-                  class="text-sm font-bold tabular-nums leading-none"
-                  :style="{ color: quotaColor }"
-                >{{ Math.round(usedPercent) }}<span class="text-xs font-normal opacity-70">%</span></span>
-              </div>
-
-              <!-- 进度条 -->
-              <div class="relative h-1.5 rounded-full bg-(--color-surface) overflow-hidden mb-2">
-                <div
-                  class="absolute inset-y-0 left-0 rounded-full transition-all duration-500 ease-out"
-                  :style="{ width: Math.min(100, usedPercent) + '%', backgroundColor: quotaColor }"
-                >
-                  <div class="absolute inset-0 rounded-full bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-                </div>
-                <div
-                  v-if="usedPercent > 5 && usedPercent < 95"
-                  class="absolute top-1/2 -translate-y-1/2 size-2.5 rounded-full shadow-lg transition-all duration-500 ease-out"
-                  :style="{ left: `calc(${Math.min(100, usedPercent)}% - 5px)`, backgroundColor: quotaColor, boxShadow: `0 0 8px ${quotaColor}80` }"
-                />
-              </div>
-
-              <!-- 底部容量数值 -->
-              <div class="flex items-center justify-between text-[11px]">
-                <span class="tabular-nums font-medium text-(--color-text)">{{ formatSize(usedSpace) }}</span>
-                <span class="text-(--color-text-muted)">/</span>
-                <span class="tabular-nums text-(--color-text-muted)">{{ formatSize(totalSpace) }}</span>
-                <span class="ml-auto text-(--color-text-muted)">剩余 {{ formatSize(Math.max(0, totalSpace - usedSpace)) }}</span>
-              </div>
-            </div>
           </div>
         </aside>
       </div>
     </Transition>
   </Teleport>
 
-  <!-- 桌面端固定侧栏 -->
+  <!-- 桌面端固定侧栏（平板及以上横屏显示为可拖拽固定侧栏） -->
   <aside
-    v-if="!isMobile"
+    v-if="isDesktop"
     class="relative shrink-0 border-r border-(--color-border) bg-(--color-surface) overflow-hidden"
     :style="{ width: `${width}px` }"
   >
@@ -273,50 +211,6 @@ const quotaColor = computed(() => {
         </div>
       </template>
 
-      <!-- 存储空间卡片 -->
-      <div class="mt-auto mx-2 mb-2 rounded-xl p-3 bg-linear-to-br from-(--color-surface-2) to-(--color-surface-container-low) border border-(--color-border)/60 shadow-sm">
-        <!-- 顶部：图标 + 百分比 -->
-        <div class="flex items-center justify-between mb-2">
-          <div class="flex items-center gap-1.5">
-            <div
-              class="size-6 rounded-md flex items-center justify-center"
-              :style="{ backgroundColor: `${quotaColor}15`, color: quotaColor }"
-            >
-              <HardDrive :size="13" :stroke-width="2" />
-            </div>
-            <span class="text-xs font-medium text-(--color-text-secondary)">存储空间</span>
-          </div>
-          <span
-            class="text-sm font-bold tabular-nums leading-none"
-            :style="{ color: quotaColor }"
-          >{{ Math.round(usedPercent) }}<span class="text-xs font-normal opacity-70">%</span></span>
-        </div>
-
-        <!-- 进度条 -->
-        <div class="relative h-1.5 rounded-full bg-(--color-surface) overflow-hidden mb-2">
-          <div
-            class="absolute inset-y-0 left-0 rounded-full transition-all duration-500 ease-out"
-            :style="{ width: Math.min(100, usedPercent) + '%', backgroundColor: quotaColor }"
-          >
-            <!-- 光泽效果 -->
-            <div class="absolute inset-0 rounded-full bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-          </div>
-          <!-- 发光点 -->
-          <div
-            v-if="usedPercent > 5 && usedPercent < 95"
-            class="absolute top-1/2 -translate-y-1/2 size-2.5 rounded-full shadow-lg transition-all duration-500 ease-out"
-            :style="{ left: `calc(${Math.min(100, usedPercent)}% - 5px)`, backgroundColor: quotaColor, boxShadow: `0 0 8px ${quotaColor}80` }"
-          />
-        </div>
-
-        <!-- 底部容量数值 -->
-        <div class="flex items-center justify-between text-[11px]">
-          <span class="tabular-nums font-medium text-(--color-text)">{{ formatSize(usedSpace) }}</span>
-          <span class="text-(--color-text-muted)">/</span>
-          <span class="tabular-nums text-(--color-text-muted)">{{ formatSize(totalSpace) }}</span>
-          <span class="ml-auto text-(--color-text-muted)">剩余 {{ formatSize(Math.max(0, totalSpace - usedSpace)) }}</span>
-        </div>
-      </div>
     </div>
 
     <!-- 拖拽手柄 -->

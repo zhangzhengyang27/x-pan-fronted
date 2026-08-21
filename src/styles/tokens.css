@@ -87,6 +87,22 @@
   --gutter:            24px;
   --container-padding:   16px;
 
+  /* ============= 响应式断点(与 useBreakpoint 对齐) =============
+   * 手机 <= 768px / 平板 769~1024px / 桌面 >= 1025px */
+  --bp-mobile:  768px;
+  --bp-tablet:  1024px;
+
+  /* ============= 移动端间距/触控令牌 ============= */
+  --gutter-mobile:     12px;   /* 手机页面左右内边距 */
+  --gutter-tablet:     16px;
+  --touch-target:      44px;   /* 最小触控目标(WCAG/Apple 建议) */
+  --touch-target-sm:   36px;
+  --bottom-bar-h:      56px;   /* 移动端底部固定操作栏高度 */
+  --safe-top:          env(safe-area-inset-top, 0px);
+  --safe-bottom:       env(safe-area-inset-bottom, 0px);
+  --safe-left:         env(safe-area-inset-left, 0px);
+  --safe-right:        env(safe-area-inset-right, 0px);
+
   /* ============= Z 轴层级 ============= */
   --z-dropdown: 1000;
   --z-sticky:   1100;

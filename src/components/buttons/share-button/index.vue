@@ -23,7 +23,8 @@ import BaseSelect from '@/components/base/BaseSelect.vue'
 
 const props = defineProps({
   size: { type: String, default: 'sm' },
-  item: { type: Object, default: null },
+  /** 单个文件对象、对象数组、或 null（为空时回退到 store 多选） */
+  item: { type: [Object, Array] as any, default: null },
   // 为 true 时不渲染自带触发按钮，仅作为弹窗容器（由外部通过 ref.openModal 触发）
   hideTrigger: { type: Boolean, default: false }
 })
@@ -96,11 +97,22 @@ function randomCode() {
 
 async function openModal(item?: any) {
   // 兼容：传入单个对象、对象数组，或为空时回退到 props.item / store 多选
+  // 注意：Vue 模板里 `@click="openModal"` 会把 MouseEvent 当作 item 传入，
+  // 这里要先识别并丢弃 DOM 事件，避免它被当作"选中项"参与后续 fileId 过滤。
+  const isDomEvent =
+    item &&
+    typeof item === 'object' &&
+    typeof (item as any).preventDefault === 'function' &&
+    typeof (item as any).stopPropagation === 'function'
+  if (isDomEvent) item = undefined
+  const isRow = (x: any) => x && typeof x === 'object' && !(x instanceof MouseEvent) && !(x instanceof Event) && typeof (x as any).fileId !== 'undefined'
+
   let list: any[] = []
-  if (Array.isArray(item)) list = item
-  else if (item) list = [item]
-  else if (props.item) list = [props.item]
-  else list = multipleSelection.value || []
+  if (Array.isArray(item) && item.length) list = item.filter(isRow)
+  else if (item && isRow(item)) list = [item]
+  else if (Array.isArray(props.item) && props.item.length) list = props.item.filter(isRow)
+  else if (props.item && isRow(props.item)) list = [props.item]
+  else list = (multipleSelection.value || []).filter(isRow)
   // 过滤掉缺失 fileId 的脏数据，确保提交的 ID 有效
   list = list.filter((i) => i && i.fileId)
   if (list.length === 0) {
@@ -146,7 +158,7 @@ function validate() {
     errors.shareCode = '4-8位字母数字'
     ok = false
   }
-  if (form.downloadLimit !== '' && (form.downloadLimit < 0 || form.downloadLimit > 999)) {
+  if (form.downloadLimit !== '' && (Number(form.downloadLimit) < 0 || Number(form.downloadLimit) > 999)) {
     errors.downloadLimit = '0~999 的整数'
     ok = false
   }
@@ -166,14 +178,21 @@ async function doConfirm() {
     return
   }
   loading.value = true
-  const payload = {
+  const payload: {
+    shareName: string
+    shareType: number
+    shareDayType: number
+    shareFileIds: any[]
+    shareCode?: string
+    downloadLimit?: number
+  } = {
     shareName: form.shareName,
     shareType: parseInt(form.shareType, 10),
     shareDayType: parseInt(form.shareDayType, 10),
     shareFileIds: ids
   }
   if (form.shareCode) payload.shareCode = form.shareCode
-  if (form.downloadLimit !== '' && form.downloadLimit >= 0)
+  if (form.downloadLimit !== '' && Number(form.downloadLimit) >= 0)
     payload.downloadLimit = parseInt(form.downloadLimit, 10)
   shareService.createShare(
     payload,
@@ -220,7 +239,7 @@ defineExpose({ openModal })
       v-if="!hideTrigger"
       variant="secondary"
       :size="props.size === 'small' ? 'sm' : 'md'"
-      @click="openModal"
+      @click="() => openModal()"
     >
       <span class="inline-flex items-center gap-1.5">
         <Share2 :size="14" />

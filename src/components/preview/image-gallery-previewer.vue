@@ -22,12 +22,22 @@ import {
 } from '@lucide/vue'
 import { resolvePreviewUrl } from '@/utils/preview'
 
-const props = defineProps({
-  items: { type: Array, default: () => [] }, // [{fileId, filename, ...}]
-  activeIndex: { type: Number, default: 0 },
-  /** 'inline' 显示在 modal 内 / 'fullscreen' 浮层 */
-  mode: { type: String, default: 'fullscreen' }
-})
+interface GalleryItem {
+  fileId: string | number
+  filename?: string
+  source?: string
+  [key: string]: unknown
+}
+
+const props = withDefaults(
+  defineProps<{
+    items: GalleryItem[]
+    activeIndex?: number
+    /** 'inline' 显示在 modal 内 / 'fullscreen' 浮层 */
+    mode?: string
+  }>(),
+  { items: () => [], activeIndex: 0, mode: 'fullscreen' }
+)
 
 const emit = defineEmits(['update:activeIndex', 'close', 'download'])
 

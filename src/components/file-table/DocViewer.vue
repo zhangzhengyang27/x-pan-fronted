@@ -30,7 +30,10 @@ export type DocViewMode = 'cards' | 'timeline'
 export type DocTab = 'all' | 'doc' | 'excel' | 'ppt' | 'pdf' | 'text'
 
 const props = withDefaults(defineProps<{ files: IFileVO[]; viewMode?: DocViewMode }>(), { viewMode: 'cards' })
-const emit = defineEmits<{ (e: 'update:viewMode', v: DocViewMode): void }>()
+const emit = defineEmits<{
+  (e: 'update:viewMode', v: DocViewMode): void
+  (e: 'contextmenu', ev: MouseEvent, file: IFileVO): void
+}>()
 const fileStore = useFileStore()
 const router = useRouter()
 
@@ -214,6 +217,7 @@ function iconOf(row: IFileVO) {
             :key="f.fileId"
             class="group w-[200px] border border-(--color-border) rounded-md p-3 bg-(--color-surface) hover:shadow-sm hover:border-primary-400/50 transition-all cursor-pointer"
             @click="openPreview(f)"
+            @contextmenu="emit('contextmenu', $event, f)"
           >
             <div class="flex items-start justify-between mb-2">
               <div class="w-9 h-9 rounded-sm flex items-center justify-center" :style="{ backgroundColor: 'var(--color-primary-50)' }">
@@ -259,6 +263,7 @@ function iconOf(row: IFileVO) {
             :key="f.fileId"
             class="group flex items-center gap-3 w-full max-w-[420px] border border-(--color-border) rounded-md p-3 bg-(--color-surface) hover:border-primary-400/50 transition-all cursor-pointer"
             @click="openPreview(f)"
+            @contextmenu="emit('contextmenu', $event, f)"
           >
             <div class="w-9 h-9 rounded-sm flex items-center justify-center shrink-0" :style="{ backgroundColor: 'var(--color-primary-50)' }">
               <component :is="iconOf(f)" :size="18" class="text-primary-500" />

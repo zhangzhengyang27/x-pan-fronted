@@ -3,95 +3,49 @@
  * DashboardCards —— 仪表盘卡片
  * 设计规范：G3 风格
  * - 存储概览（已用/总量 + 进度环）
- * - 文件总数
- * - 最近上传
- * - 分享数
+ * - 文件总数（后端全盘统计）
+ * - 各类型数量
+ * 数据来源：后端 /files/stats 聚合统计接口。
  */
 import { computed } from 'vue'
-import {
-  Star,
-  FileImage,
-  FileVideo,
-  FileText,
-  FileArchive,
-  FileAudio,
-  FileCode,
-  Folder,
-  HardDrive,
-  FileBarChart2
-} from '@lucide/vue'
+import { Star, FileImage, Folder } from '@lucide/vue'
 import { useFavorites } from '@/composables/useFavorites'
-import { useRecent } from '@/composables/useRecent'
-import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { storeToRefs } from 'pinia'
+import type { UserFileStatsVO } from '@/api/file'
 
 const props = defineProps({
-  files: { type: Array, default: () => [] }
+  /** 后端统计概览对象 */
+  stats: { type: Object as () => UserFileStatsVO, default: null }
 })
 
 defineEmits(['select-favorite'])
 
-const { favorites, count: favoriteCount, remove: removeFav } = useFavorites()
-const { visit } = useRecent()
-const router = useRouter()
+const { count: favoriteCount } = useFavorites()
 
 // 存储配额
 const userStore = useUserStore()
 const { usedSpace, totalSpace, usedPercent } = storeToRefs(userStore)
 
-function fileIcon(type) {
-  return (
-    {
-      0: Folder,
-      2: FileArchive,
-      3: FileText,
-      7: FileImage,
-      8: FileAudio,
-      9: FileVideo,
-      11: FileCode
-    }[type] || FileText
-  )
-}
-
-// 统计
+// 各类型数量（后端聚合值，未返回时默认 0）
 const stats = computed(() => {
-  const result = {
-    total: props.files.length,
-    image: 0,
-    video: 0,
-    doc: 0,
-    audio: 0,
-    archive: 0,
-    code: 0,
-    folder: 0
+  const s = props.stats || ({} as UserFileStatsVO)
+  return {
+    total: s.totalFileCount || 0,
+    image: s.imageCount || 0,
+    video: s.videoCount || 0,
+    doc: s.docCount || 0,
+    audio: s.audioCount || 0,
+    archive: s.archiveCount || 0,
+    code: s.codeCount || 0,
+    folder: s.totalFolderCount || 0
   }
-  props.files.forEach((f) => {
-    if (f.folderFlag === 1) result.folder++
-    else {
-      const t = f.fileType
-      if ([7].includes(t)) result.image++
-      else if ([9].includes(t)) result.video++
-      else if ([3, 4, 5, 6, 10].includes(t)) result.doc++
-      else if ([8].includes(t)) result.audio++
-      else if ([2].includes(t)) result.archive++
-      else if ([11].includes(t)) result.code++
-    }
-  })
-  return result
 })
-
-const statItems = computed(() => [
-  { key: 'image', label: '图片', icon: FileImage, value: stats.value.image },
-  { key: 'video', label: '视频', icon: FileVideo, value: stats.value.video },
-  { key: 'doc', label: '文档', icon: FileText, value: stats.value.doc },
-  { key: 'folder', label: '文件夹', icon: Folder, value: stats.value.folder }
-])
 
 // 存储环
 const quotaColor = computed(() => {
-  if (usedPercent.value >= 90) return 'vardanger'
-  if (usedPercent.value >= 70) return 'varwarning'
+  if (usedPercent.value >= 90) return 'var(--color-quota-danger)'
+  if (usedPercent.value >= 70) return 'var(--color-quota-warning)'
   return 'var(--color-primary-500)'
 })
 
@@ -105,37 +59,6 @@ function formatSize(bytes) {
     i++
   }
   return v.toFixed(v >= 100 || i === 0 ? 0 : 1) + ' ' + units[i]
-}
-
-// 大文件 Top 5
-function parseSize(desc) {
-  if (!desc) return 0
-  const m = String(desc).match(/^([\d.]+)\s*(B|KB|MB|GB|K|M|G)?$/i)
-  if (!m) return 0
-  const n = parseFloat(m[1])
-  const unit = (m[2] || 'B').toUpperCase()
-  const mul = { B: 1, K: 1024, KB: 1024, M: 1024 * 1024, MB: 1024 * 1024, G: 1024 * 1024 * 1024, GB: 1024 * 1024 * 1024 }[unit] || 1
-  return Math.floor(n * mul)
-}
-
-const largestFiles = computed(() => {
-  return [...props.files]
-    .filter((f) => f.folderFlag !== 1)
-    .map((f) => ({ ...f, _size: parseSize(f.fileSizeDesc) }))
-    .sort((a, b) => b._size - a._size)
-    .slice(0, 5)
-})
-
-function goFile(f) {
-  visit(f)
-  if (f.fileType === 0) {
-    router.push({ path: '/file', query: { folderId: f.fileId } })
-  }
-}
-
-function shorten(str, len = 8) {
-  if (!str) return ''
-  return str.length > len ? str.substring(0, len) + '…' : str
 }
 </script>
 

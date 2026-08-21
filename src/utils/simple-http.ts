@@ -57,7 +57,10 @@ simpleHttp.interceptors.response.use(
   },
   (error) => {
     let msg = '请求失败'
-    if (error.response?.data?.message) msg = error.response.data.message
+    // 业务层失败（code !== 0）时，上一拦截器 reject 的是业务体 res.data（含 message），
+    // 它没有 error.response，需优先从 error.message 读取业务提示
+    if (error?.message && error.message !== 'Network Error') msg = error.message
+    else if (error.response?.data?.message) msg = error.response.data.message
     else if (error.code === 'ECONNABORTED') msg = '请求超时'
     else if (typeof navigator !== 'undefined' && !navigator.onLine) msg = '网络已断开'
     ElMessage.error(msg)

@@ -9,6 +9,7 @@
  * - 标签(来自 useFileTags)
  */
 import { computed, ref, watch } from 'vue'
+import { useBreakpoint } from '@/composables/useMediaQuery'
 import {
   X,
   Download,
@@ -33,7 +34,7 @@ import FileHistoryPanel from '@/components/file-table/FileHistoryPanel.vue'
 import FolderPickerDialog from '@/components/base/FolderPickerDialog.vue'
 import ExtractDialog from '@/components/base/ExtractDialog.vue'
 import { useFileTags } from '@/composables/useFileTags'
-import { useDrivePreview } from '@/composables/useDrivePreview'
+import { useDrivePreview, type PreviewItem } from '@/composables/useDrivePreview'
 import { useFavorites } from '@/composables/useFavorites'
 import { useRouter } from 'vue-router'
 import fileService from '@/api/file'
@@ -41,9 +42,10 @@ import vaultService from '@/api/vault'
 import panUtil, { isArchive } from '@/utils/common'
 import { getDownloadUrl } from '@/utils/preview'
 import { ElMessage, ElMessageBox } from '@/composables/useToast'
+import type { IFileVO } from '@/types'
 
 const props = defineProps<{
-  file: Record<string, any> | null
+  file: IFileVO | null
   open: boolean
 }>()
 
@@ -55,30 +57,26 @@ const emit = defineEmits<{
 }>()
 
 const router = useRouter()
+const { isMobile } = useBreakpoint()
 const { isFavorite, toggle: toggleFavorite } = useFavorites()
 const { loading: tagLoading, autoTag, getTags, addTag, removeTag, loadTags } = useFileTags()
 
 // ─── 文件预览 ──────────────────────────────────────────────────────────────
-const preview = useDrivePreview(() => (props.file ? [props.file] : []))
+const preview = useDrivePreview(() => (props.file ? [props.file] as unknown as PreviewItem[] : []))
 
 function openPreview() {
   if (!props.file || props.file.fileType === 0) return
-  const opened = preview.openPreview(props.file)
+  const opened = preview.openPreview(props.file as unknown as PreviewItem)
   if (!opened) {
-    // fallback: 新窗口预览
+    // fallback: 新窗口预览（用 name 解析，路由以 :fileId 为必填参数）
     const fid = panUtil.handleId(props.file.fileId)
-    const typeMap: Record<number, string> = {
-      7: '/preview/image',
-      8: '/preview/music',
-      3: '/preview/office',
-      4: '/preview/office',
-      10: '/preview/office',
-      11: '/preview/code'
-    }
-    const path = typeMap[props.file.fileType] || '/preview/iframe'
     const { href } = router.resolve({
-      path,
-      name: `Preview${props.file.fileType === 7 ? 'Image' : props.file.fileType === 8 ? 'Music' : props.file.fileType === 11 ? 'Code' : 'Office'}`,
+      name:
+        props.file.fileType === 7 || props.file.fileType === 8
+          ? `Preview${props.file.fileType === 7 ? 'Image' : 'Music'}`
+          : props.file.fileType === 11
+            ? 'PreviewCode'
+            : 'PreviewOffice',
       params: { fileId: fid }
     })
     window.open(href, '_blank')
@@ -103,6 +101,11 @@ function download() {
 function share() {
   if (!props.file) return
   emit('share')
+}
+
+// ─── 新窗口打开任意预览 URL ───────────────────────────────────────────────
+function openExternal(url: string) {
+  window.open(url, '_blank')
 }
 
 // ─── 重命名 ─────────────────────────────────────────────────────────────────
@@ -263,7 +266,7 @@ const fileMeta = computed(() => {
   }
   return {
     type: typeMap[f.fileType] || '未知',
-    size: f.fileSizeDesc || panUtil.translateFileSize(f.fileSize || 0) || '-',
+    size: f.fileSizeDesc || panUtil.translateFileSize(Number(f.fileSize || 0)) || '-',
     location: f.parentFilename || '根目录',
     created: formatDate(f.createTime || ''),
     modified: formatDate(f.updateTime || '')
@@ -295,8 +298,11 @@ watch(
   <Transition name="detail-slide">
     <aside
       v-if="open && file"
-      class="fixed top-0 right-0 bottom-0 z-40 flex flex-col border-l border-(--color-border) bg-(--color-surface) overflow-hidden"
-      style="width: 320px; max-width: 90vw;"
+      class="fixed z-40 flex flex-col border-(--color-border) bg-(--color-surface) overflow-hidden"
+      :class="isMobile
+        ? 'left-0 right-0 bottom-0 max-h-[85vh] rounded-t-2xl border-t pb-(--safe-bottom)'
+        : 'top-0 right-0 bottom-0 border-l'"
+      :style="isMobile ? '' : 'width: 320px; max-width: 90vw;'"
     >
       <!-- Header -->
       <div class="flex items-center justify-between px-4 py-3 border-b border-(--color-border)">
@@ -346,7 +352,7 @@ watch(
                 type="button"
                 class="flex items-center gap-1 text-[11px] transition-colors"
                 :class="isFavorite(file.fileId) ? 'text-amber-500' : 'text-(--color-text-muted) hover:text-amber-500'"
-                @click="toggleFavorite(file)"
+                @click="toggleFavorite(file as any)"
               >
                 <Star
                   :size="11"
@@ -556,7 +562,7 @@ watch(
         :state="preview.state"
         :resolve-url="preview.resolvePreviewUrl"
         @close="preview.closePreview"
-        @download="(item: any) => { const url = getDownloadUrl(item.fileId); window.open(url, '_blank') }"
+        @download="(item: any) => openExternal(getDownloadUrl(String(item?.fileId ?? '')))"
       />
 
       <!-- 历史版本 -->

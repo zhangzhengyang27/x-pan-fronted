@@ -30,7 +30,9 @@ import { ElMessage, ElMessageBox } from '@/composables/useToast'
 import BaseTable from '@/components/base/BaseTable.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseTooltip from '@/components/base/BaseTooltip.vue'
+import { useBreakpoint } from '@/composables/useMediaQuery'
 
+const { isMobile } = useBreakpoint()
 const RECYCLE_EXPIRE_DAYS = 30
 
 const tableData = ref([])
@@ -57,7 +59,7 @@ const typeOptions = [
   { value: '9', label: '视频', icon: Video }
 ]
 
-const columns = [
+const columns: { key: string; title: string; width: string | number; align?: 'left' | 'right' | 'center' }[] = [
   { key: 'filename', title: '文件名', width: 'auto' },
   { key: 'originPath', title: '文件原路径', width: 200 },
   { key: 'fileSizeDesc', title: '大小', width: 90, align: 'right' },
@@ -65,6 +67,13 @@ const columns = [
   { key: 'clearDate', title: '清除日期', width: 120, align: 'center' },
   { key: 'actions', title: '操作', width: 80, align: 'right' }
 ]
+
+// 移动端隐藏次要列，避免横向溢出
+const displayColumns = computed(() =>
+  isMobile.value
+    ? columns.filter((c) => !['originPath', 'clearDate'].includes(c.key))
+    : columns
+)
 
 function fileIcon(type: number) {
   return (
@@ -171,6 +180,8 @@ function doDelete(fileIds: string[]) {
     { fileIds },
     () => {
       ElMessage.success('删除成功')
+      // 清空选中，避免残留已删除文件 ID
+      selected.value = []
       loadTableData()
     },
     (res: any) => ElMessage.error(res.message)
@@ -180,9 +191,12 @@ function doDelete(fileIds: string[]) {
 function doRestore(fileIds: string[]) {
   recycleService.restoreRecycle(
     { fileIds },
-    (res: any) => {
+    () => {
       ElMessage.success('文件还原成功')
-      tableData.value = res.data || []
+      // 清空选中，避免残留已还原文件 ID
+      selected.value = []
+      // restore 接口返回的 data 为空（仅成功标志），需重新拉取列表
+      loadTableData()
     },
     (res: any) => ElMessage.error(res.message)
   )
@@ -300,7 +314,7 @@ onMounted(() => {
     <!-- 表格 -->
     <div class="flex-1 min-h-0 overflow-y-auto -mx-4 px-4">
       <BaseTable
-        :columns="columns"
+        :columns="displayColumns"
         :data="filteredTableData"
         :loading="tableLoading"
         :selected="selected"
@@ -347,7 +361,10 @@ onMounted(() => {
         </template>
 
         <template #cell-actions="{ row }">
-          <div class="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+          <div
+            class="flex items-center gap-1 justify-end transition-opacity"
+            :class="isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'"
+          >
             <BaseTooltip text="还原">
               <BaseButton variant="primary" size="sm" @click="doRestore([row.fileId])">
                 <RefreshCw :size="14" :stroke-width="2" />

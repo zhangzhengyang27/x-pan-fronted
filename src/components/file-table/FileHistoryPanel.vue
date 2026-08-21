@@ -119,7 +119,7 @@ async function doRollback(v) {
     return
   }
   fileService.rollback(
-    { fileId: props.fileId, versionNo: v.versionNo },
+    { id: v.id, fileId: props.fileId },
     (res) => {
       if (res.code === 0) {
         ElMessage.success(`已回滚到 v${v.versionNo}`)
@@ -143,7 +143,7 @@ async function doDelete(v) {
     return
   }
   fileService.deleteVersion(
-    { fileId: props.fileId, versionNo: v.versionNo },
+    { id: v.id, fileId: props.fileId },
     (res) => {
       if (res.code === 0) {
         ElMessage.success('已删除')

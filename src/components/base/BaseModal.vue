@@ -3,7 +3,7 @@
  * BaseModal —— 模态对话框（夸克风格）
  * 基于原生 <dialog> + Teleport
  */
-import { watch, ref, nextTick } from 'vue'
+import { watch, ref, nextTick, onMounted } from 'vue'
 import type { PropType } from 'vue'
 import { X } from '@lucide/vue'
 import { cn } from '@/utils/classnames'
@@ -31,16 +31,25 @@ const sizeClass: Record<ModalSize, string> = {
   full: 'max-w-[92vw]'
 }
 
+async function syncDialog(show: boolean) {
+  await nextTick()
+  const dialog = dialogRef.value
+  if (!dialog) return
+  if (show && !dialog.open) dialog.showModal()
+  if (!show && dialog.open) dialog.close()
+}
+
 watch(
   () => props.open,
-  async (v) => {
-    await nextTick()
-    const dialog = dialogRef.value
-    if (!dialog) return
-    if (v && !dialog.open) dialog.showModal()
-    if (!v && dialog.open) dialog.close()
-  }
+  async (v) => syncDialog(!!v)
 )
+
+// 关键：当组件挂载时 `open` 可能已是 true（例如配合 `v-if` 使用，
+// ConfirmHost 用 `v-if="current"` + `:open="true"`），此时 watch 不会触发，
+// dialog.showModal() 永远不会被调用 → 弹窗不显示。这里在挂载后兜底一次。
+onMounted(() => {
+  if (props.open) syncDialog(true)
+})
 
 function onClose() {
   emit('update:open', false)

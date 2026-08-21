@@ -14,14 +14,16 @@ import BaseTable from '@/components/base/BaseTable.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
 import BaseTooltip from '@/components/base/BaseTooltip.vue'
+import { useBreakpoint } from '@/composables/useMediaQuery'
 
+const { isMobile } = useBreakpoint()
 const tableData = ref([])
 const selected = ref([])
 const tableLoading = ref(true)
 
 // 列字段与后端 XPanShareUrlListVO 契约对齐：
 // shareName（分享名称）/ shareEndTime（过期时间）/ visitCount（浏览次数）
-const columns = [
+const columns: { key: string; title: string; width: string | number; align?: 'left' | 'right' | 'center' }[] = [
   { key: 'shareName', title: '分享名称', width: 'auto' },
   { key: 'shareType', title: '分享类型', width: 120, align: 'center' },
   { key: 'shareCode', title: '提取码', width: 100, align: 'center' },
@@ -29,6 +31,13 @@ const columns = [
   { key: 'visitCount', title: '浏览次数', width: 100, align: 'center' },
   { key: 'actions', title: '操作', width: 160, align: 'right' }
 ]
+
+// 移动端隐藏「分享类型/提取码/浏览次数」次要列，避免横向溢出
+const displayColumns = computed(() =>
+  isMobile.value
+    ? columns.filter((c) => !['shareType', 'shareCode', 'visitCount'].includes(c.key))
+    : columns
+)
 
 function loadTableData() {
   tableLoading.value = true
@@ -89,6 +98,8 @@ function doCancelShares(shareIds: string[]) {
         { shareIds },
         () => {
           ElMessage.success('取消分享成功')
+          // 清空选中，避免残留已被删除的分享 ID
+          selected.value = []
           loadTableData()
         },
         (res) => ElMessage.error(res.message)
@@ -212,7 +223,7 @@ function formatExpireTime(row) {
 
     <!-- 表格 -->
     <BaseTable
-      :columns="columns"
+      :columns="displayColumns"
       :data="tableData"
       :loading="tableLoading"
       :selected="selected"
@@ -263,7 +274,10 @@ function formatExpireTime(row) {
       </template>
 
       <template #cell-actions="{ row }">
-        <div class="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+        <div
+          class="flex items-center gap-1 justify-end transition-opacity"
+          :class="isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'"
+        >
           <BaseTooltip text="复制链接" position="top">
             <BaseButton variant="secondary" size="sm" @click="copyShare(row)">
               <LinkIcon :size="14" :stroke-width="2" />

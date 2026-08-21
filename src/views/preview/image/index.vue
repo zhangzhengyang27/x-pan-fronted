@@ -84,7 +84,7 @@ function onKey(e) {
 onMounted(() => {
   // 加载同目录全部图片（后端分页返回 PageVO，取 records）
   fileService.list(
-    { parentId: panUtil.handleId(route.params.parentId || ''), fileTypes: '7', pageSize: 9999 },
+    { parentId: panUtil.handleId(String(route.params.parentId || '')), fileTypes: '7', pageSize: 9999 },
     (res) => {
       items.value = res.data?.records || []
       const idx = items.value.findIndex((x) => x.fileId === route.params.fileId)

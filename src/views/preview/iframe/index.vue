@@ -13,8 +13,8 @@ import { getPreviewPluginById } from '@/utils/preview-plugin'
 import BaseButton from '@/components/base/BaseButton.vue'
 
 const route = useRoute()
-const fileId = computed(() => route.params.fileId)
-const filename = computed(() => route.query.filename || route.params.filename || 'preview')
+const fileId = computed(() => String(route.params.fileId || ''))
+const filename = computed(() => String(route.query.filename || route.params.filename || 'preview'))
 const kind = computed(() => resolvePreviewKind({ filename: filename.value, fileType: null }))
 const downloadUrl = computed(() => getDownloadUrl(fileId.value))
 

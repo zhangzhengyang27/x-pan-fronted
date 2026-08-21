@@ -17,7 +17,8 @@ import {
 import shareService from '@/api/share'
 import { onMounted, onUnmounted, reactive, ref, computed } from 'vue'
 import { toDataURL } from 'qrcode'
-import { ElMessage } from '@/composables/useToast'
+import { useBreakpoint } from '@/composables/useMediaQuery'
+import { ElMessage, ElMessageBox } from '@/composables/useToast'
 import { useRoute } from 'vue-router'
 
 import BaseButton from '@/components/base/BaseButton.vue'
@@ -47,6 +48,7 @@ import {
 } from '@lucide/vue'
 
 const route = useRoute()
+const { isMobile } = useBreakpoint()
 
 const loginForm = reactive({ username: '', password: '' })
 const shareCodeForm = reactive({ shareCode: '' })
@@ -110,10 +112,17 @@ const remainingDownloads = computed(() => {
 // 列定义
 const columns = [
   { key: 'filename', title: '文件名', width: 'auto' },
-  { key: 'fileSizeDesc', title: '大小', width: 120, align: 'right' },
-  { key: 'updateTime', title: '修改日期', width: 200, align: 'center' },
-  { key: 'actions', title: '操作', width: 180, align: 'right' }
+  { key: 'fileSizeDesc', title: '大小', width: 120, align: 'right' as const },
+  { key: 'updateTime', title: '修改日期', width: 200, align: 'center' as const },
+  { key: 'actions', title: '操作', width: 180, align: 'right' as const }
 ]
+
+// 移动端隐藏「修改日期」次要列，避免横向溢出
+const displayColumns = computed(() =>
+  isMobile.value
+    ? columns.filter((c) => !['updateTime'].includes(c.key))
+    : columns
+)
 
 function refreshShareInfo(data) {
   const u = data.shareUserInfoVO.username
@@ -156,8 +165,20 @@ async function generateQR(text: string) {
 
 const qrDialogVisible = ref(false)
 
-const getShareId = () => route.params.shareId
+const getShareId = () => String(route.params.shareId || '')
 const openShareExpirePage = () => (shareCancelFlag.value = true)
+
+function goRegister() {
+  window.location.href = '/register'
+}
+
+function goHome() {
+  window.location.href = '/'
+}
+
+function selectAll(e) {
+  ;(e.target as HTMLInputElement).select()
+}
 
 function openShareCodePage() {
   shareService.getSimpleShareDetail({ shareId: getShareId() }, (res) => {
@@ -224,7 +245,7 @@ function doLogin() {
     { username: loginForm.username, password: loginForm.password },
     (res) => {
       loading.value = false
-      setToken(res.data)
+      setToken(res.data as unknown as string)
       loginDialogVisible.value = false
       loadUserInfo()
     },
@@ -243,7 +264,7 @@ function doCheckShareCode() {
     (res) => {
       if (res.code === 0) {
         loading.value = false
-        setShareToken(res.data)
+        setShareToken(res.data as string)
         shareCodeDialogVisible.value = false
         loadShareInfo()
       } else {
@@ -380,7 +401,8 @@ onUnmounted(() => {
   <div class="min-h-screen flex flex-col bg-(--color-bg)">
     <!-- Simple Header -->
     <header
-      class="sticky top-0 z-40 h-16 border-b px-6 flex items-center justify-between bg-(--color-surface) border-(--color-border)"
+      class="sticky top-0 z-40 h-16 border-b flex items-center justify-between bg-(--color-surface) border-(--color-border)"
+      :class="isMobile ? 'px-4 pt-(--safe-top)' : 'px-6'"
     >
       <div class="flex items-center gap-2.5">
         <div
@@ -407,7 +429,7 @@ onUnmounted(() => {
             登录
           </span>
         </BaseButton>
-        <BaseButton variant="primary" size="sm" @click="window.location.href = '/register'">
+        <BaseButton variant="primary" size="sm" @click="goRegister">
           注册
         </BaseButton>
       </div>
@@ -423,7 +445,7 @@ onUnmounted(() => {
           description="该分享链接已过期或已被分享者取消"
         >
           <template #extra>
-            <BaseButton variant="primary" @click="window.location.href = '/'">
+            <BaseButton variant="primary" @click="goHome">
               <span class="inline-flex items-center gap-2">
                 <Cloud :size="16" :stroke-width="2" />
                 返回首页
@@ -516,7 +538,7 @@ onUnmounted(() => {
           <!-- 表格 -->
           <div class="p-4">
             <BaseTable
-              :columns="columns"
+              :columns="displayColumns"
               :data="tableData"
               :selected="selected"
               selectable
@@ -542,7 +564,10 @@ onUnmounted(() => {
                 </button>
               </template>
               <template #cell-actions="{ row }">
-                <div class="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                <div
+                  class="flex items-center gap-1 justify-end transition-opacity"
+                  :class="isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'"
+                >
                   <BaseButton variant="primary" size="sm" @click="saveFiles(row)" title="保存到我的R盘">
                     <Copy :size="14" :stroke-width="2" />
                   </BaseButton>
@@ -644,7 +669,7 @@ onUnmounted(() => {
             :value="shareUrl"
             readonly
             class="flex-1 h-8 px-2 rounded-sm border border-(--color-border) text-xs font-mono text-(--color-text) bg-(--color-surface)"
-            @focus="$event.target.select()"
+            @focus="selectAll"
           />
           <BaseButton variant="secondary" size="sm" @click="copyShareLink">
             <span class="inline-flex items-center gap-1.5">

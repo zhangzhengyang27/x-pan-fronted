@@ -53,20 +53,12 @@ const fileService = {
     http.get<unknown, ApiResponse<IFolderTreeNode[]>>('/file/folder/tree').then(resolve).catch(reject)
   },
 
-  transfer(
-    data: { fileIds: string[]; targetParentId: string },
-    resolve: Callback<unknown>,
-    reject: Callback<unknown>
-  ) {
-    http.post<unknown, ApiResponse<unknown>>('/file/transfer', data).then(resolve).catch(reject)
+  transfer(data: { fileIds: string[]; targetParentId: string }) {
+    return http.post<unknown, ApiResponse<unknown>>('/file/transfer', data)
   },
 
-  copy(
-    data: { fileIds: string[]; targetParentId: string },
-    resolve: Callback<unknown>,
-    reject: Callback<unknown>
-  ) {
-    http.post<unknown, ApiResponse<unknown>>('/file/copy', data).then(resolve).catch(reject)
+  copy(data: { fileIds: string[]; targetParentId: string }) {
+    return http.post<unknown, ApiResponse<unknown>>('/file/copy', data)
   },
 
   search(
@@ -197,7 +189,29 @@ const fileService = {
       .get<unknown, ApiResponse<TextExtractVO>>(`/file/${fileId}/text-extract`)
       .then(resolve)
       .catch(reject)
+  },
+
+  /** 查询用户文件统计概览（全盘，含子目录） */
+  stats(resolve: Callback<UserFileStatsVO>, reject: Callback<unknown>) {
+    http
+      .get<unknown, ApiResponse<UserFileStatsVO>>('/files/stats')
+      .then(resolve)
+      .catch(reject)
   }
+}
+
+export interface UserFileStatsVO {
+  totalFileCount?: number
+  totalFolderCount?: number
+  usedSpace?: number
+  imageCount?: number
+  videoCount?: number
+  audioCount?: number
+  docCount?: number
+  archiveCount?: number
+  codeCount?: number
+  otherCount?: number
+  largestFiles?: IFileVO[]
 }
 
 export interface TextExtractVO {

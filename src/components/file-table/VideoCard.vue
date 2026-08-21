@@ -13,7 +13,10 @@ const props = defineProps<{
   file: IFileVO
 }>()
 
-const emit = defineEmits<{ (e: 'open', file: IFileVO): void }>()
+const emit = defineEmits<{
+  (e: 'open', file: IFileVO): void
+  (e: 'contextmenu', ev: MouseEvent, file: IFileVO): void
+}>()
 
 const rootEl = ref<HTMLElement | null>(null)
 const cover = ref<string | null>(null)
@@ -44,7 +47,7 @@ function formatSize(size: string | number | undefined): string {
 </script>
 
 <template>
-  <div ref="rootEl" class="group cursor-pointer" @click="emit('open', file)">
+  <div ref="rootEl" class="group cursor-pointer" @click="emit('open', file)" @contextmenu="emit('contextmenu', $event, file)">
     <!-- 16:9 封面 -->
     <div
       class="relative aspect-video rounded-md overflow-hidden border border-(--color-border) flex items-center justify-center"

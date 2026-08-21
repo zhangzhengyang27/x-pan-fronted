@@ -21,7 +21,7 @@ const activeIndex = ref('')
 const currentTime = ref(0)
 const duration = ref(0)
 
-const downloadUrl = computed(() => getDownloadUrl(route.params.fileId))
+const downloadUrl = computed(() => getDownloadUrl(String(route.params.fileId || '')))
 
 function renderList(dataList) {
   musicList.value = (dataList || []).map((it) => ({
@@ -77,7 +77,7 @@ function onEnded() {
 
 onMounted(() => {
   fileService.list(
-    { parentId: panUtil.handleId(route.params.parentId || ''), fileTypes: '8', pageSize: 9999 },
+    { parentId: panUtil.handleId(String(route.params.parentId || '')), fileTypes: '8', pageSize: 9999 },
     (res) => {
       const list = res.data?.records || []
       renderList(list)

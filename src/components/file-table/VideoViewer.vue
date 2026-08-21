@@ -17,6 +17,8 @@ import type { IFileVO } from '@/types'
 const fileStore = useFileStore()
 const files = computed<IFileVO[]>(() => fileStore.fileList || [])
 
+const emit = defineEmits<{ (e: 'contextmenu', ev: MouseEvent, file: IFileVO): void }>()
+
 const preview = useDrivePreview(() => files.value as any[])
 const { state, closePreview } = preview
 
@@ -26,6 +28,10 @@ function openPlay(row: IFileVO) {
     filename: row.filename,
     fileType: row.fileType
   })
+}
+
+function downloadFile(row: Record<string, any>) {
+  window.open(getDownloadUrl(row.fileId), '_blank')
 }
 </script>
 
@@ -44,6 +50,7 @@ function openPlay(row: IFileVO) {
         :key="f.fileId"
         :file="f"
         @open="openPlay"
+        @contextmenu="emit('contextmenu', $event, f)"
       />
     </div>
 
@@ -52,7 +59,7 @@ function openPlay(row: IFileVO) {
       v-if="state.open"
       :state="state"
       @close="closePreview"
-      @download="(row: any) => window.open(getDownloadUrl(row.fileId), '_blank')"
+      @download="downloadFile"
     />
   </div>
 </template>

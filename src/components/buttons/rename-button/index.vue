@@ -123,7 +123,7 @@ const doRenameFile = async () => {
   fileService.update(
     {
       fileId: renameForm.fileId,
-      newFilename: renameForm.filename
+      filename: renameForm.filename
     },
     () => {
       loading.value = false

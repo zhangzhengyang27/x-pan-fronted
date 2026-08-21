@@ -7,26 +7,34 @@ import fileService from '@/api/file'
 import { useFileStore } from '@/stores/file'
 import { storeToRefs } from 'pinia'
 import { ElMessage, ElMessageBox } from '@/composables/useToast'
-import BaseButton from '@/components/base/BaseButton.vue'
 
 const props = defineProps({
   size: { type: String, default: 'sm' },
-  item: { type: Object, default: null }
+  /** 单个文件对象、对象数组、或 null（为空时回退到 store 多选） */
+  item: { type: [Object, Array] as any, default: null }
 })
 
 const fileStore = useFileStore()
 const { multipleSelection } = storeToRefs(fileStore)
 
 async function doDelete(fileIds: string[]) {
+  // 注意：ElMessageBox.confirm 是 Promise<boolean>，永不 reject，只 resolve(true/false)
+  // ——所以原 try/catch 永远进不去，删除会在用户"取消"时仍然执行。这是历史 bug，已修复。
+  let ok = false
   try {
-    await ElMessageBox.confirm('文件删除后将保存在回收站，您可以随时恢复，是否继续？', '删除文件', {
-      confirmButtonText: '删除',
-      cancelButtonText: '取消',
-      type: 'danger'
-    })
+    ok = await ElMessageBox.confirm(
+      '文件删除后将保存在回收站，您可以随时恢复，是否继续？',
+      '删除文件',
+      {
+        confirmButtonText: '删除',
+        cancelButtonText: '取消',
+        type: 'danger'
+      }
+    )
   } catch {
-    return // cancel
+    return
   }
+  if (!ok) return // 用户取消
   fileService.delete(
     { fileIds },
     () => {
@@ -38,24 +46,33 @@ async function doDelete(fileIds: string[]) {
 }
 
 function onClick() {
-  if (props.item) {
-    doDelete([props.item.fileId])
+  // 优先取 props.item（数组/单对象），否则回退 store 多选
+  let rows: any[] = []
+  if (Array.isArray(props.item)) rows = props.item
+  else if (props.item && typeof props.item === 'object') rows = [props.item]
+  else if (multipleSelection.value?.length > 0) rows = multipleSelection.value
+  if (!rows.length) {
+    ElMessage.error('请选择要删除的文件')
     return
   }
-  if (multipleSelection.value?.length > 0) {
-    const ids = multipleSelection.value.map((i) => i.fileId)
-    doDelete(ids)
+  const ids = rows.map((i) => i.fileId).filter(Boolean) as string[]
+  if (!ids.length) {
+    ElMessage.error('请选择要删除的文件')
     return
   }
-  ElMessage.error('请选择要删除的文件')
+  doDelete(ids)
 }
 </script>
 
 <template>
-  <BaseButton variant="secondary" :size="props.size === 'small' ? 'sm' : 'md'" @click="onClick">
-    <span class="inline-flex items-center gap-1.5">
-      <Trash2 :size="14" />
-      删除
-    </span>
-  </BaseButton>
+  <!-- 使用原生 button，确保点击事件一定触发（排查"点击无反应"） -->
+  <button
+    type="button"
+    class="inline-flex items-center justify-center font-medium select-none whitespace-nowrap transition-all duration-100 gap-1.5 rounded-sm border border-(--color-border) bg-(--color-surface) text-(--color-text) hover:bg-(--color-surface-2) disabled:opacity-45 disabled:cursor-not-allowed"
+    :class="props.size === 'small' ? 'h-8 px-3 text-xs' : 'h-9 px-4 text-sm'"
+    @click="onClick"
+  >
+    <Trash2 :size="14" />
+    删除
+  </button>
 </template>

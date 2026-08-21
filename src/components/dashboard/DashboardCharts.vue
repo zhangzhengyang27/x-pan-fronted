@@ -2,19 +2,27 @@
 /**
  * DashboardCharts —— 仪表盘图表
  * 设计规范：G3 风格
- * - 存储历史曲线（基于 localStorage 每日打点）
- * - 分类分布柱状图（基于当前列表）
+ * - 存储历史曲线（基于 localStorage 每日打点，由 /files/stats 的 usedSpace 驱动）
+ * - 分类分布柱状图（基于后端聚合计数）
  *
  * 无图表库依赖，纯 SVG
  */
 import { computed, ref, watch } from 'vue'
 import { TrendingUp, ChartBar, Trash2 } from '@lucide/vue'
+import { useUserStore } from '@/stores/user'
+import { storeToRefs } from 'pinia'
+import type { UserFileStatsVO } from '@/api/file'
 
 const props = defineProps({
-  files: { type: Array, default: () => [] }
+  /** 后端统计概览对象 */
+  stats: { type: Object as () => UserFileStatsVO, default: null }
 })
 
 const STORAGE_KEY = 'x-pan:storage-history'
+
+// 存储配额（用于每日打点）
+const userStore = useUserStore()
+const { usedSpace } = storeToRefs(userStore)
 
 // ─── 存储历史 ─────────────────────────────────────────────────────────────
 function loadHistory() {
@@ -29,24 +37,8 @@ function loadHistory() {
 
 const history = ref(loadHistory())
 
-function recordToday(files) {
-  const total = files.reduce((sum, f) => {
-    const m = String(f.fileSizeDesc || '').match(/^([\d.]+)\s*(B|KB|MB|GB|K|M|G)?$/i)
-    if (!m) return sum
-    const n = parseFloat(m[1])
-    const unit = (m[2] || 'B').toUpperCase()
-    const mul =
-      {
-        B: 1,
-        K: 1024,
-        KB: 1024,
-        M: 1024 * 1024,
-        MB: 1024 * 1024,
-        G: 1024 * 1024 * 1024,
-        GB: 1024 * 1024 * 1024
-      }[unit] || 1
-    return sum + n * mul
-  }, 0)
+function recordToday(bytes) {
+  const total = bytes || 0
   const today = new Date().toISOString().slice(0, 10)
   const idx = history.value.findIndex((h) => h.date === today)
   if (idx >= 0) {
@@ -63,8 +55,8 @@ function recordToday(files) {
 }
 
 watch(
-  () => props.files,
-  (v) => v && recordToday(v),
+  () => usedSpace.value,
+  (v) => recordToday(v),
   { immediate: true }
 )
 
@@ -89,22 +81,25 @@ function formatBytes(b) {
   return `${(b / 1024 / 1024 / 1024).toFixed(2)} GB`
 }
 
-// ─── 分类柱状图 ───────────────────────────────────────────────────────────
+// 总项数（文件 + 文件夹）
+const totalItems = computed(() => {
+  const s = props.stats || ({} as UserFileStatsVO)
+  return (s.totalFileCount || 0) + (s.totalFolderCount || 0)
+})
+
+// ─── 分类柱状图（基于后端聚合计数） ──────────────────────────────────────────
 const distribution = computed(() => {
-  const cats = { folder: 0, image: 0, video: 0, doc: 0, audio: 0, archive: 0, code: 0, other: 0 }
-  props.files.forEach((f) => {
-    if (f.folderFlag === 1) cats.folder++
-    else {
-      const t = f.fileType
-      if ([7].includes(t)) cats.image++
-      else if ([9].includes(t)) cats.video++
-      else if ([3, 4, 5, 6, 10].includes(t)) cats.doc++
-      else if ([8].includes(t)) cats.audio++
-      else if ([2].includes(t)) cats.archive++
-      else if ([11].includes(t)) cats.code++
-      else cats.other++
-    }
-  })
+  const s = props.stats || ({} as UserFileStatsVO)
+  const cats = {
+    folder: s.totalFolderCount || 0,
+    image: s.imageCount || 0,
+    video: s.videoCount || 0,
+    doc: s.docCount || 0,
+    audio: s.audioCount || 0,
+    archive: s.archiveCount || 0,
+    code: s.codeCount || 0,
+    other: s.otherCount || 0
+  }
   const total = Object.values(cats).reduce((a, b) => a + b, 0) || 1
   return Object.entries(cats).map(([key, value]) => ({
     key,
@@ -125,9 +120,9 @@ const distribution = computed(() => {
       image: 'var(--color-tertiary-container)',
       video: 'var(--color-primary-700)',
       doc: 'var(--color-primary-600)',
-      audio: 'vardanger',
-      archive: 'varwarning',
-      code: 'varwarning',
+      audio: 'var(--color-quota-danger)',
+      archive: 'var(--color-quota-warning)',
+      code: 'var(--color-quota-warning)',
       other: 'var(--color-text-muted)'
     }[key]
   }))
@@ -200,7 +195,7 @@ function clearHistory() {
           分类分布
         </h3>
         <span class="text-xs tabular-nums" style="color: var(--color-text-muted);">
-          {{ files.length }} 项
+          {{ totalItems }} 项
         </span>
       </div>
       <div class="space-y-2.5">

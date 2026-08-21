@@ -26,8 +26,8 @@ import previewService from '@/api/preview'
 import { ElMessage } from '@/composables/useToast'
 
 const route = useRoute()
-const fileId = computed(() => route.params.fileId)
-const filename = computed(() => route.query.filename || 'office')
+const fileId = computed(() => String(route.params.fileId || ''))
+const filename = computed(() => String(route.query.filename || 'office'))
 const ext = computed(() => getFileExtension(filename.value))
 
 const kind = computed(() => {

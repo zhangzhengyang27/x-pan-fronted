@@ -54,12 +54,9 @@ function buildWsUrl(token: string): string {
     const sep = wsEnv.includes('?') ? '&' : '?'
     return `${wsEnv}${sep}token=${encodeURIComponent(token)}`
   }
-  const host = typeof window !== 'undefined' ? window.location.hostname : '127.0.0.1'
   const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-  // 从 panUtil.getUrlPrefix() 解析后端端口，避免多端口硬编码；
-  // 相对路径（如 /api，nginx 反代）时无端口，回退到后端默认 8081
-  const port = panUtil.getUrlPrefix().match(/:(\d+)/)?.[1] || '8081'
-  return `${proto}//${host}:${port}/ws/notification?token=${encodeURIComponent(token)}`
+  const host = window.location.host // 同源（保留当前页端口），dev 走 vite 代理，prod 走 nginx 反代
+  return `${proto}//${host}/ws/notification?token=${encodeURIComponent(token)}`
 }
 
 export function useWebSocket(): UseWebSocketReturn {

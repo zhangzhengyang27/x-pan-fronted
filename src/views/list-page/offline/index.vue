@@ -104,7 +104,11 @@ function doDelete(task: IOfflineTaskVO): void {
       offlineService.delete(
         taskKey(task),
         (res) => {
-          if (res.code === 0) ElMessage.success('已删除')
+          if (res.code === 0) {
+            ElMessage.success('已删除')
+            // 删除后重新拉取列表，避免残留已删除任务（与 recycle 列表同样问题）
+            loadTasks()
+          }
         },
         () => ElMessage.error('删除失败')
       )
@@ -266,7 +270,7 @@ onUnmounted(() => {
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2 mb-1">
             <span class="font-medium text-sm truncate text-(--color-text)">{{ t.filename || '未命名' }}</span>
-            <BaseBadge :variant="statusMeta(t.status).variant" size="sm">
+            <BaseBadge :variant="statusMeta(t.status).variant as any" size="sm">
               {{ statusMeta(t.status).label }}
             </BaseBadge>
           </div>

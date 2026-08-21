@@ -12,8 +12,8 @@ const uploadingCount = computed(() => taskStore.uploadTaskList.filter(t => t.sta
 <template>
   <div class="relative">
     <BaseButton
-      type="text"
-      size="small"
+      variant="ghost"
+      size="sm"
       :icon="UploadCloud"
       @click="taskStore.togglePanel"
     />

@@ -14,6 +14,8 @@ import type { IFileVO } from '@/types'
 const fileStore = useFileStore()
 const files = computed<IFileVO[]>(() => fileStore.fileList || [])
 
+const emit = defineEmits<{ (e: 'contextmenu', ev: MouseEvent, file: IFileVO): void }>()
+
 // 当前播放
 const playingId = ref<string | number | null>(null)
 const isPlaying = ref(false)
@@ -88,6 +90,7 @@ function formatSize(size: string | number | undefined): string {
         class="flex items-center gap-3 px-4 py-2.5 hover:bg-(--color-surface-2) transition-colors cursor-pointer"
         :class="playingId === f.fileId ? 'bg-primary-500/5' : ''"
         @click="play(f)"
+        @contextmenu="emit('contextmenu', $event, f)"
       >
         <!-- 序号 / 播放按钮 -->
         <div class="w-6 flex items-center justify-center shrink-0">
