@@ -51,7 +51,8 @@ function logout(d: DeviceInfo) {
     cancelButtonText: '取消',
     type: 'warning'
   })
-    .then(() => {
+    .then((ok) => {
+      if (!ok) return
       deviceService.logout(
         d.deviceId,
         () => {

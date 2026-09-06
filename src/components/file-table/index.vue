@@ -92,14 +92,19 @@ const filter = ref({
 
 const filterActive = computed(() => filter.value.fileTypes.length > 0)
 
-// 筛选变化：把所选文件类型映射为后端 fileTypes 字符串并重新加载
-watch(filterActive, (active) => {
-  if (!searchFlag.value) {
-    const types = active ? filter.value.fileTypes.join(',') : '-1'
+// 筛选变化：把所选文件类型映射为后端 fileTypes 字符串并重新加载。
+// 注意：不能 watch 布尔值 filterActive——已选「图片」再切换为「视频」时
+// active 恒为 true，不会触发重新加载。这里序列化后 watch 筛选值本身，
+// 仅在 fileTypes 实际变化时才触发；搜索态下保持既有语义（不介入）。
+watch(
+  () => JSON.stringify(filter.value.fileTypes),
+  () => {
+    if (searchFlag.value) return
+    const types = filter.value.fileTypes.length ? filter.value.fileTypes.join(',') : '-1'
     fileStore.setFileTypes(types)
     fileStore.loadFileList()
   }
-})
+)
 
 // 排序变化：直接重新加载（后端按 orderBy/order 返回）
 watch([sortProp, sortOrder], () => {
@@ -260,6 +265,9 @@ function clearSelection() {
 }
 
 // ─── 点击文件名 ────────────────────────────────────────────────────────────
+// 注意：fileId 为后端加密串（可能含 + /）。goInFolder → getBreadcrumbs/list
+// 均走 axios GET params，axios 会自动做 URL 编码，这里禁止用 panUtil.handleId
+// 预编码，否则 %2B 会被二次编码为 %252B，后端解密失败。
 function goInFolder(fileId: string) {
   fileService.getBreadcrumbs(
     { fileId },
@@ -274,9 +282,9 @@ function goInFolder(fileId: string) {
   )
 }
 
-function openNewPage(path: string, name: string, params: Record<string, string>, query: Record<string, string>) {
-  // Vue Router 用 name 解析时会检查 params，必须保证每个必填参数都有值。
-  // 注意：不要同时传 path，否则 params 会被忽略。
+// path 参数从未被使用（Vue Router 用 name 解析时会检查 params，必须保证每个
+// 必填参数都有值），已删除；且不要同时传 path，否则 params 会被忽略。
+function openNewPage(name: string, params: Record<string, string>, query: Record<string, string>) {
   const safeParams: Record<string, string> = {}
   Object.entries(params).forEach(([key, value]) => {
     safeParams[key] = value || '0'
@@ -288,7 +296,7 @@ function openNewPage(path: string, name: string, params: Record<string, string>,
 function clickFilename(row: Record<string, any>) {
   // 文件夹：进入目录（后端统一用 fileType === 0 判断，type === 'folder' 为冗余字段）
   if (row.fileType === 0) {
-    return goInFolder(panUtil.handleId(row.fileId))
+    return goInFolder(row.fileId)
   }
   // 图片/视频/音频/PDF/Office/Markdown/代码/文本：统一走内嵌预览弹窗
   // （不再新开页面；用户如需新窗口可在弹窗底部「新窗口打开」）
@@ -306,19 +314,19 @@ function clickFilename(row: Record<string, any>) {
     case 3:
     case 4:
     case 10:
-      return openNewPage('/preview/office', 'PreviewOffice', { fileId: panUtil.handleId(row.fileId) }, { filename: row.filename })
+      return openNewPage('PreviewOffice', { fileId: panUtil.handleId(row.fileId) }, { filename: row.filename })
     case 5:
     case 6:
     case 12:
-      return openNewPage('/preview/iframe', 'PreviewIframe', { fileId: panUtil.handleId(row.fileId) }, { filename: row.filename })
+      return openNewPage('PreviewIframe', { fileId: panUtil.handleId(row.fileId) }, { filename: row.filename })
     case 7:
-      return openNewPage('/preview/image', 'PreviewImage', { fileId: panUtil.handleId(row.fileId), parentId: panUtil.handleId(row.parentId || '0') }, { filename: row.filename })
+      return openNewPage('PreviewImage', { fileId: panUtil.handleId(row.fileId), parentId: panUtil.handleId(row.parentId || '0') }, { filename: row.filename })
     case 8:
-      return openNewPage('/preview/music', 'PreviewMusic', { fileId: panUtil.handleId(row.fileId), parentId: panUtil.handleId(row.parentId || '0') }, { filename: row.filename })
+      return openNewPage('PreviewMusic', { fileId: panUtil.handleId(row.fileId), parentId: panUtil.handleId(row.parentId || '0') }, { filename: row.filename })
     case 9:
-      return openNewPage('/preview/video', 'PreviewVideo', { fileId: panUtil.handleId(row.fileId) }, { filename: row.filename })
+      return openNewPage('PreviewVideo', { fileId: panUtil.handleId(row.fileId) }, { filename: row.filename })
     case 11:
-      return openNewPage('/preview/code', 'PreviewCode', { fileId: panUtil.handleId(row.fileId) }, { filename: row.filename })
+      return openNewPage('PreviewCode', { fileId: panUtil.handleId(row.fileId) }, { filename: row.filename })
   }
 }
 
@@ -392,9 +400,19 @@ function invalidateMediaCache(rows: Record<string, any>[]) {
   })
 }
 
-// ─── 批量删除 ────────────────────────────────────────────────────────────────
-function batchDelete(rows: Record<string, any>[]) {
+// ─── 批量删除（键盘 Delete / 右键菜单 / 父级调用统一走这里，先二次确认） ──────
+async function batchDelete(rows: Record<string, any>[]) {
   if (!rows?.length) return
+  // 防误删：删除前二次确认（提示可在回收站找回）。
+  // 项目内 ElMessageBox.confirm（useToast 假封装）恒 resolve(true/false) 不 reject，
+  // 取消时 resolve(false)，必须直接以返回值判断；
+  // 不能写 .then(() => true).catch(() => false)——取消也会进 then 被映射成 true。
+  const ok = await ElMessageBox.confirm(
+    `确定删除选中的 ${rows.length} 个文件吗？删除后可在回收站找回。`,
+    '删除文件',
+    { confirmButtonText: '删除', cancelButtonText: '取消', type: 'danger' }
+  )
+  if (!ok) return
   const fileIds = rows.map((r) => r.fileId)
   fileService.delete(
     { fileIds },
@@ -437,7 +455,8 @@ function goUp() {
   const list = breadcrumbStore.breadcrumbList
   if (list.length >= 2) {
     const parent = list[list.length - 2]
-    goInFolder(panUtil.handleId(parent.id))
+    // 面包屑 id 同为加密串，走 GET params 由 axios 编码，不预编码
+    goInFolder(parent.id)
   }
 }
 
@@ -589,6 +608,28 @@ watch(
 const selBox = ref({ active: false, x1: 0, y1: 0, x2: 0, y2: 0 })
 const selContainer = ref<HTMLElement | null>(null)
 
+// 框选监听使用稳定的 handler 引用挂在 window 上，便于拖拽结束与组件卸载时
+// 统一移除，避免卸载后 mousemove/mouseup 仍派发到已销毁实例
+let selRect: DOMRect | null = null
+
+function onSelMove(ev: MouseEvent) {
+  if (!selBox.value.active || !selRect) return
+  selBox.value.x2 = ev.clientX - selRect.left
+  selBox.value.y2 = ev.clientY - selRect.top
+  updateSelFromBox()
+}
+
+function onSelUp() {
+  selBox.value.active = false
+  removeSelListeners()
+}
+
+function removeSelListeners() {
+  selRect = null
+  window.removeEventListener('mousemove', onSelMove)
+  window.removeEventListener('mouseup', onSelUp)
+}
+
 function onSelStart(e: MouseEvent) {
   if (e.button !== 0) return
   const t = e.target as HTMLElement
@@ -596,9 +637,9 @@ function onSelStart(e: MouseEvent) {
   if (t.closest('button, input, a, [contenteditable]')) return
   if (!selContainer.value) return
 
-  const rect = selContainer.value.getBoundingClientRect()
-  const x = e.clientX - rect.left
-  const y = e.clientY - rect.top
+  selRect = selContainer.value.getBoundingClientRect()
+  const x = e.clientX - selRect.left
+  const y = e.clientY - selRect.top
   selBox.value = { active: true, x1: x, y1: y, x2: x, y2: y }
 
   if (!e.shiftKey && selected.value.length > 0) {
@@ -606,19 +647,9 @@ function onSelStart(e: MouseEvent) {
     handleSelectionChange([])
   }
 
-  const onMove = (ev: MouseEvent) => {
-    if (!selBox.value.active) return
-    selBox.value.x2 = ev.clientX - rect.left
-    selBox.value.y2 = ev.clientY - rect.top
-    updateSelFromBox()
-  }
-  const onUp = () => {
-    selBox.value.active = false
-    window.removeEventListener('mousemove', onMove)
-    window.removeEventListener('mouseup', onUp)
-  }
-  window.addEventListener('mousemove', onMove)
-  window.addEventListener('mouseup', onUp)
+  // handler 引用稳定，重复 add 不会叠加
+  window.addEventListener('mousemove', onSelMove)
+  window.addEventListener('mouseup', onSelUp)
 }
 
 function updateSelFromBox() {
@@ -756,7 +787,7 @@ const ctxItems = computed(() => {
       key: 'open',
       label: isFolder ? '打开' : '预览',
       shortcut: 'Enter',
-      action: () => (isFolder ? goInFolder(panUtil.handleId(r.fileId)) : onRowDblclick(r))
+      action: () => (isFolder ? goInFolder(r.fileId) : onRowDblclick(r))
     },
     {
       key: 'download',
@@ -935,6 +966,8 @@ onMounted(() => {
 })
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeyDown)
+  // 卸载时移除框选的 window 监听，避免操作已销毁实例
+  removeSelListeners()
   teardownIntersectionObserver()
 })
 

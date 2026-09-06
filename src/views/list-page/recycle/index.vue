@@ -151,7 +151,8 @@ function cleanRecycle() {
     `将永久删除全部 ${totalSummary.value.count} 个文件/文件夹，此操作不可恢复！`,
     '清空回收站',
     { confirmButtonText: '确认清空', cancelButtonText: '取消', type: 'danger' }
-  ).then(() => {
+  ).then((ok) => {
+    if (!ok) return
     doDelete(tableData.value.map((f: any) => f.fileId))
   }).catch(() => {})
 }
@@ -219,7 +220,8 @@ function batchDeleteSelected() {
     `将永久删除选中的 ${selected.value.length} 个文件，此操作不可恢复！`,
     '批量彻底删除',
     { confirmButtonText: '确认删除', cancelButtonText: '取消', type: 'danger' }
-  ).then(() => {
+  ).then((ok) => {
+    if (!ok) return
     doDelete(selected.value.filter(Boolean) as string[])
   }).catch(() => {})
 }
@@ -230,7 +232,8 @@ function restoreAllFiltered() {
     `将还原当前筛选的 ${filteredTableData.value.length} 个文件到原位置`,
     '批量还原',
     { confirmButtonText: '确认还原', cancelButtonText: '取消' }
-  ).then(() => {
+  ).then((ok) => {
+    if (!ok) return
     const ids = filteredTableData.value.map((r: any) => r.fileId)
     doRestore(ids)
   }).catch(() => {})

@@ -29,7 +29,7 @@ const goHome = () => (window.location.href = '/')
       <div
         class="rounded-xl p-8 relative z-10 w-full max-w-md mx-auto transform hover:scale-[1.01] transition-transform duration-300 border-t-4"
         :class="'bg-(--color-surface-container-lowest)/60 dark:bg-(--color-surface-container-low)/60 backdrop-blur-xl border border-(--color-border)/50 dark:border-(--color-border-dark)/50'"
-        style="border-top-color: vardanger;"
+        style="border-top-color: var(--color-danger);"
       >
         <div
           class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6"

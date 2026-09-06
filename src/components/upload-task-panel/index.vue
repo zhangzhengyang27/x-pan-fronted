@@ -8,6 +8,7 @@
 import { storeToRefs } from 'pinia'
 import { X, Check, LoaderCircle, FileWarning } from '@lucide/vue'
 import { useTaskStore } from '@/stores/task'
+import { EFileStatus } from '@/utils/common'
 import { computed } from 'vue'
 
 const taskStore = useTaskStore()
@@ -15,14 +16,18 @@ const { uploadTaskList: taskList, panelVisible } = storeToRefs(taskStore)
 
 const visible = computed(() => taskList.value.length > 0 && panelVisible.value)
 
-function remove(filename) {
-  taskStore.remove(filename)
+// 主键是 task.id（simple-uploader 的文件 id，见 stores/task.ts 的 keyOf），
+// 用 filename 匹配会因同名文件/永远匹配不到而失效
+function remove(id: string) {
+  taskStore.remove(id)
 }
 
 function clearFinished() {
+  // 只移除真正终态的任务：成功(5)/失败(6)；
+  // 解析中(1)/等待(2)/上传中(3)/暂停(4)/服务器处理中(7) 均保留
   taskList.value
-    .filter((t) => t.status !== 0 && t.status !== 1 && t.status !== 3) // 非解析/非上传中
-    .forEach((t) => taskStore.remove(t.filename))
+    .filter((t) => t.status === EFileStatus.SUCCESS.code || t.status === EFileStatus.FAIL.code)
+    .forEach((t) => taskStore.remove(t.id))
 }
 
 function closePanel() {
@@ -69,7 +74,7 @@ function closePanel() {
           </div>
         </div>
         <div class="max-h-64 space-y-3 overflow-y-auto p-4">
-          <div v-for="task in taskList" :key="task.filename">
+          <div v-for="task in taskList" :key="task.id">
             <div class="flex items-center justify-between gap-2">
               <span class="truncate text-xs font-medium text-(--color-text)">
                 {{ task.filename }}
@@ -79,7 +84,7 @@ function closePanel() {
                 type="button"
                 class="text-(--color-text-muted) hover:text-(--color-text) transition-colors"
                 :aria-label="`移除 ${task.filename}`"
-                @click="remove(task.filename)"
+                @click="remove(task.id)"
               >
                 <X :size="14" />
               </button>

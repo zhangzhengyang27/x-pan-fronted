@@ -60,7 +60,8 @@ function onRelease() {
     `将对 ${groups.value.length} 组重复文件释放冗余引用，每组仅保留勾选文件，其余重复引用将被删除。确定继续？`,
     '释放冗余空间',
     { confirmButtonText: '确认释放', cancelButtonText: '取消', type: 'warning' }
-  ).then(() => {
+  ).then((ok) => {
+    if (!ok) return
     dedupService.release(
       keepIds,
       () => { ElMessage.success('释放成功'); load() },

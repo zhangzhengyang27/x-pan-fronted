@@ -118,9 +118,17 @@ export function isPreviewable(kind: PreviewKind): boolean {
   return kind !== 'unsupported'
 }
 
-const urlCache = new Map<string, Promise<string>>()
+// 缓存条目带写入时间戳：ptoken 约 5 分钟有效，命中时若超过 TTL 则视为失效重新申请
+//（预留 1 分钟余量，避免把临期 URL 发给 img/video 后中途过期）
+interface UrlCacheEntry {
+  promise: Promise<string>
+  ts: number
+}
+const urlCache = new Map<string, UrlCacheEntry>()
 // 缓存容量上限：避免长时间浏览大量文件导致内存无界增长
 const URL_CACHE_MAX = 500
+// ptoken 有效期约 5 分钟，缓存 4 分钟即失效
+const URL_CACHE_TTL_MS = 4 * 60 * 1000
 
 /**
  * 缩略图尺寸档位：列表瓦片用小图（带宽友好），预览/详情用原图。
@@ -151,8 +159,12 @@ export function resolvePreviewUrl(
 
   // 缓存 key 区分尺寸档位：同一文件的缩略图与原图不可复用
   const cacheKey = `${fileId}::${size}`
-  if (urlCache.has(cacheKey)) {
-    return urlCache.get(cacheKey) as Promise<string>
+  const hit = urlCache.get(cacheKey)
+  if (hit) {
+    // 未过 TTL：直接复用在途/已解析的 URL（并发去重）
+    if (Date.now() - hit.ts < URL_CACHE_TTL_MS) return hit.promise
+    // 已超时：旧 ptoken 可能即将过期，弃用旧条目重新申请
+    urlCache.delete(cacheKey)
   }
 
   // 尺寸参数：原图不带；缩略图追加 width/height（后端按需缩放）
@@ -189,7 +201,7 @@ export function resolvePreviewUrl(
     const oldest = urlCache.keys().next().value
     if (oldest !== undefined) urlCache.delete(oldest)
   }
-  urlCache.set(cacheKey, p)
+  urlCache.set(cacheKey, { promise: p, ts: Date.now() })
   return p
 }
 

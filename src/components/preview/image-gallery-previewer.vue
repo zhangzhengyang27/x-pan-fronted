@@ -79,23 +79,33 @@ const currentSrc = computed(() => {
   return c && urlMap.value[c.fileId] ? urlMap.value[c.fileId] : ''
 })
 
-async function loadUrls(items) {
-  await Promise.all(
-    items.map(async (it) => {
-      if (urlMap.value[it.fileId] || loadingIds.value.has(it.fileId)) return
-      loadingIds.value.add(it.fileId)
-      try {
-        const url = await resolvePreviewUrl(it.fileId)
-        urlMap.value = { ...urlMap.value, [it.fileId]: url }
-      } catch {
-        // 单张失败不阻断画廊
-      } finally {
-        const next = new Set(loadingIds.value)
-        next.delete(it.fileId)
-        loadingIds.value = next
-      }
-    })
-  )
+// 惰性解析窗口：仅预解析当前索引 ±5 张，避免打开大图集时全量并发申请 ptoken 直链
+//（ptoken 约 5 分钟过期，全量解析既浪费后端签发压力，多数 URL 到头来也没被看到）
+const LAZY_WINDOW = 5
+
+async function ensureUrl(it) {
+  if (!it || urlMap.value[it.fileId] || loadingIds.value.has(it.fileId)) return
+  loadingIds.value.add(it.fileId)
+  try {
+    const url = await resolvePreviewUrl(it.fileId)
+    urlMap.value = { ...urlMap.value, [it.fileId]: url }
+  } catch {
+    // 单张失败不阻断画廊
+  } finally {
+    const next = new Set(loadingIds.value)
+    next.delete(it.fileId)
+    loadingIds.value = next
+  }
+}
+
+// 只解析当前 activeIndex ±LAZY_WINDOW 的窗口；已解析结果保留在 urlMap 缓存，
+// 翻页时窗口滑动，滑出窗口的已解析 URL 不撤销（复用缓存避免重复请求）
+async function loadUrls() {
+  const items = props.items
+  if (!items || items.length === 0) return
+  const start = Math.max(0, props.activeIndex - LAZY_WINDOW)
+  const end = Math.min(items.length, props.activeIndex + LAZY_WINDOW + 1)
+  await Promise.all(items.slice(start, end).map((it) => ensureUrl(it)))
 }
 
 function resetView() {
@@ -155,15 +165,19 @@ function onKey(e) {
 }
 
 onMounted(() => {
-  loadUrls(props.items)
+  loadUrls()
   window.addEventListener('keydown', onKey)
 })
 
 watch(
   () => props.items,
-  (items) => loadUrls(items)
+  () => loadUrls()
 )
-watch(() => props.activeIndex, resetView)
+watch(() => props.activeIndex, () => {
+  resetView()
+  // 翻页后解析新窗口（窗口内已解析的会被 urlMap 缓存跳过）
+  loadUrls()
+})
 watch(isPlaying, () => {
   // 播放时如果用户手动切换也保持
 })

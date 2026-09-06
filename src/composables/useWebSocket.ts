@@ -9,8 +9,9 @@
  *   ws.disconnect()
  */
 
-import { ref, onUnmounted, type Ref } from 'vue'
+import { ref, type Ref } from 'vue'
 import panUtil from '@/utils/common'
+import { getToken } from '@/utils/cookie'
 
 export type WsMessageType =
   | 'CONNECTED'
@@ -34,7 +35,6 @@ interface UseWebSocketReturn {
   isConnected: Ref<boolean>
   lastMessageAt: Ref<number>
   reconnectAttempts: Ref<number>
-  onlineCount: Ref<number>
   connect: (token: string) => void
   disconnect: () => void
   send: (data: string | object) => void
@@ -46,6 +46,9 @@ const MAX_RECONNECT = 8
 const HEARTBEAT_INTERVAL = 25 // < 服务器 30s
 
 let _singleton: UseWebSocketReturn | null = null
+// 主动关闭标志：disconnect() 置位，onclose 据此跳过自动重连，
+// 避免主动 close(1000) 后仍被 onclose 调度成「幽灵重连」
+let _manualClosed = false
 
 function buildWsUrl(token: string): string {
   // 优先使用构建期注入的 VITE_WS_URL（与 README 约定一致），便于部署时直接指定 WS 地址
@@ -66,12 +69,13 @@ export function useWebSocket(): UseWebSocketReturn {
   const isConnected = ref(false)
   const lastMessageAt = ref(0)
   const reconnectAttempts = ref(0)
-  const onlineCount = ref(0)
 
   let ws: WebSocket | null = null
   let reconnectTimer: number | null = null
   let heartbeatTimer: number | null = null
   let pongCheckTimer: number | null = null
+  // 当前连接使用的 token：connect(newToken) 时据此判断是否需要放弃旧连接重建
+  let currentToken = ''
   const handlers = new Map<WsMessageType, Set<Handler>>()
 
   function clearTimers() {
@@ -125,14 +129,51 @@ export function useWebSocket(): UseWebSocketReturn {
     reconnectTimer = window.setTimeout(() => connect(token), delay)
   }
 
+  /**
+   * 放弃当前 socket：摘掉全部事件回调（尤其 onclose，否则它迟到触发后
+   * 会用旧闭包 token 调度重连，形成「幽灵重连」）并主动关闭
+   */
+  function abortSocket() {
+    clearTimers()
+    if (ws) {
+      const old = ws
+      ws = null
+      old.onopen = null
+      old.onmessage = null
+      old.onerror = null
+      old.onclose = null
+      try {
+        old.close(4000, 'abort')
+      } catch {
+        // 忽略关闭失败
+      }
+    }
+    isConnected.value = false
+  }
+
   function connect(token: string) {
     if (!token) {
       console.warn('[WS] 无 token，跳过连接')
       return
     }
-    if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
-      return // 已连接/连接中，不重复
+    // 显式 connect 视为恢复自动重连（清除 disconnect 置位的主动关闭标志）
+    _manualClosed = false
+
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      return // 已连接，不重复建连
     }
+    const busy =
+      (ws !== null &&
+        (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.CLOSING)) ||
+      reconnectTimer !== null
+    if (busy) {
+      // 同一 token：连接中就等它建连、退避中就等定时器触发，避免路由守卫反复触发重建
+      if (token === currentToken) return
+      // 换了 token（如切换账号重新登录）：先放弃旧连接与未触发的旧 token 重连任务，
+      // 再用新 token 建连，否则会一直复用旧闭包里的 token
+      abortSocket()
+    }
+    currentToken = token
 
     try {
       ws = new WebSocket(buildWsUrl(token))
@@ -177,19 +218,27 @@ export function useWebSocket(): UseWebSocketReturn {
       console.log(`[WS] 关闭: code=${e.code}, reason=${e.reason}`)
       isConnected.value = false
       clearTimers()
-      scheduleReconnect(token)
+      if (_manualClosed) return // 主动关闭（登出/换账号）：不再调度重连
+      // 重连前重读「最新 token」：连接存续期间后端可能已通过 new-access-token 轮换
+      // token（http 拦截器会 setToken 更新 cookie），用建连闭包里的旧 token 重连会被
+      // 服务端拒绝；取不到时（异常情况）退回建连时的 token 兜底
+      scheduleReconnect(getToken() || token)
     }
   }
 
   function disconnect() {
+    // 置位主动关闭标志 + 摘掉 onclose，双保险避免 close 事件迟到后触发幽灵重连
+    _manualClosed = true
     clearTimers()
     if (ws) {
+      const old = ws
+      ws = null
+      old.onclose = null
       try {
-        ws.close(1000, 'client disconnect')
+        old.close(1000, 'client disconnect')
       } catch {
         // 忽略关闭失败
       }
-      ws = null
     }
     isConnected.value = false
   }
@@ -224,7 +273,6 @@ export function useWebSocket(): UseWebSocketReturn {
     isConnected,
     lastMessageAt,
     reconnectAttempts,
-    onlineCount,
     connect,
     disconnect,
     send,
@@ -233,35 +281,6 @@ export function useWebSocket(): UseWebSocketReturn {
   }
 
   return _singleton
-}
-
-/**
- * 自动连接 + 在组件卸载时解绑所有通过本函数注册的事件（适合局部使用）。
- * 因为是单例连接，卸载时不会断开 WS，只会移除本次注册的事件处理器，避免 handler 泄漏。
- *
- * 用法：
- *   const ws = useWebSocketAuto(() => getToken(), (w) => {
- *     const off = w.on('OFFLINE_TASK_UPDATE', (p) => { ... })
- *     return () => off() // 可选：返回额外的清理函数
- *   })
- */
-export function useWebSocketAuto(
-  token: () => string | null,
-  setup?: (ws: UseWebSocketReturn) => (() => void) | void
-): UseWebSocketReturn {
-  const ws = useWebSocket()
-  const extraCleanups: Array<() => void> = []
-  if (setup) {
-    const result = setup(ws)
-    if (typeof result === 'function') extraCleanups.push(result)
-  }
-  onUnmounted(() => {
-    // 单例连接不关闭，仅解绑本次注册的事件，防止 handler 累积泄漏
-    extraCleanups.forEach((fn) => fn())
-  })
-  const t = token()
-  if (t && !ws.isConnected.value) ws.connect(t)
-  return ws
 }
 
 export default useWebSocket

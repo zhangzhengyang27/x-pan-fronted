@@ -4,7 +4,7 @@
  * - 支持 min/max 约束
  * - 鼠标 hover 显示拖拽手柄光标
  */
-import { onBeforeUnmount, ref, watch } from 'vue'
+import { onBeforeUnmount, ref } from 'vue'
 
 export interface ResizableOptions {
   min?: number
@@ -59,7 +59,8 @@ export function useResizable(
     saveWidth()
   }
 
-  watch(width, saveWidth)
+  // 注意：不 watch width 持久化（拖拽过程中每次 mousemove 都会写 localStorage），
+  // 宽度仅在 stopDrag / reset 时落盘
 
   onBeforeUnmount(() => {
     window.removeEventListener('mousemove', onMove)

@@ -236,7 +236,7 @@ function close() {
         <div
           v-if="errorMsg"
           class="flex items-center gap-2 px-3 py-2 rounded-sm text-xs"
-          style="background-color: rgba(239, 68, 68, 0.1); color: vardanger;"
+          style="background-color: rgba(239, 68, 68, 0.1); color: var(--color-danger);"
         >
           <AlertCircle :size="12" :stroke-width="2" />
           {{ errorMsg }}

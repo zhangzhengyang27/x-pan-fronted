@@ -26,11 +26,11 @@ const passwordStrength = computed(() => {
   const isLongEnough = pwd.length >= 12
 
   if (isLongEnough && hasLetter && hasNumber && hasSpecial) {
-    return { level: 3, label: '强', bars: 3, color: 'varsuccess' }
+    return { level: 3, label: '强', bars: 3, color: 'var(--color-success)' }
   } else if (hasLength && hasLetter && hasNumber) {
-    return { level: 2, label: '中', bars: 2, color: 'varwarning' }
+    return { level: 2, label: '中', bars: 2, color: 'var(--color-warning)' }
   } else {
-    return { level: 1, label: '弱', bars: 1, color: 'vardanger' }
+    return { level: 1, label: '弱', bars: 1, color: 'var(--color-danger)' }
   }
 })
 
@@ -157,7 +157,7 @@ const goLogin = () => router.push({ name: 'Login' })
                 autocomplete="new-password"
                 class="w-full pl-10 pr-10 py-2.5 text-sm rounded-sm border bg-(--color-surface) text-(--color-text) placeholder-(--color-text-muted) transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-(--color-ring)"
                 :style="{
-                  borderColor: rePasswordError ? 'vardanger' : 'var(--color-border)',
+                  borderColor: rePasswordError ? 'var(--color-danger)' : 'var(--color-border)',
                 }"
               />
               <button

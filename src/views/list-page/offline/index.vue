@@ -62,8 +62,15 @@ function doCreate(): void {
     ElMessage.warning('请输入下载链接')
     return
   }
+  // 后端 CreateOfflineTaskPO 支持 filename（自定义文件名，可选）；
+  // 留空时传 undefined，由后端从 HTTP 响应头推断（与 placeholder 文案一致）
+  const data: { url: string; targetFolderId?: string; filename?: string } = {
+    url: newUrl.value.trim(),
+    targetFolderId: undefined,
+    filename: customName.value.trim() || undefined
+  }
   offlineService.create(
-    { url: newUrl.value.trim(), targetFolderId: undefined },
+    data,
     (res) => {
       if (res.code === 0) {
         ElMessage.success('已添加到下载队列')
@@ -82,7 +89,8 @@ function doCancel(task: IOfflineTaskVO): void {
     cancelButtonText: '取消',
     type: 'warning'
   })
-    .then(() => {
+    .then((ok) => {
+      if (!ok) return
       offlineService.cancel(
         taskKey(task),
         (res) => {
@@ -100,7 +108,8 @@ function doDelete(task: IOfflineTaskVO): void {
     cancelButtonText: '取消',
     type: 'warning'
   })
-    .then(() => {
+    .then((ok) => {
+      if (!ok) return
       offlineService.delete(
         taskKey(task),
         (res) => {
@@ -130,9 +139,9 @@ function statusMeta(s: number | null | undefined) {
 
 function statusColor(s: number | null | undefined) {
   const meta = statusMeta(s)
-  if (meta.variant === 'success') return 'varsuccess'
-  if (meta.variant === 'danger') return 'vardanger'
-  if (meta.variant === 'warning') return 'varwarning'
+  if (meta.variant === 'success') return 'var(--color-success)'
+  if (meta.variant === 'danger') return 'var(--color-danger)'
+  if (meta.variant === 'warning') return 'var(--color-warning)'
   if (meta.variant === 'primary') return 'var(--color-primary-500)'
   return 'var(--color-text-muted)'
 }
@@ -283,7 +292,7 @@ onUnmounted(() => {
             <span v-if="t.progress != null && t.status === 1" class="tabular-nums">
               进度 {{ t.progress }}%
             </span>
-            <span v-if="t.errorMsg" style="color: vardanger;">{{ t.errorMsg }}</span>
+            <span v-if="t.errorMsg" style="color: var(--color-danger);">{{ t.errorMsg }}</span>
             <span>{{ t.createTime }}</span>
           </div>
           

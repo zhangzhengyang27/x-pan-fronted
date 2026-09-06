@@ -161,7 +161,8 @@ function destroy(row: IFileVO) {
     cancelButtonText: '取消',
     type: 'warning'
   })
-    .then(() => {
+    .then((ok) => {
+      if (!ok) return
       vaultService.destroy(
         row.fileId,
         () => {

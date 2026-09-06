@@ -29,12 +29,16 @@ const ext = computed(() => getFileExtension(props.filename || '').toLowerCase())
 const EXTRACTABLE_EXTS = ['zip', 'tar', 'gz', 'bz2']
 const canExtract = computed(() => EXTRACTABLE_EXTS.includes(ext.value))
 
-const status = ref<'idle' | 'extracting' | 'done' | 'error'>('idle')
+const status = ref<'idle' | 'extracting' | 'done' | 'error' | 'timeout'>('idle')
 const progress = ref(0)
 const errorMsg = ref('')
 const resultCount = ref(0)
 
 let pollTimer: ReturnType<typeof setInterval> | null = null
+// 轮询超时保护（对齐 ExtractDialog 的 5 分钟模式）：超时停止轮询并提示，
+// 后台任务继续跑，文件最终仍会入库
+const POLL_TIMEOUT_MS = 5 * 60 * 1000
+let pollStartedAt = 0
 
 function stopPolling() {
   if (pollTimer) {
@@ -49,6 +53,7 @@ function startExtract() {
   progress.value = 0
   errorMsg.value = ''
   resultCount.value = 0
+  pollStartedAt = Date.now()
 
   extractService.extract(
     String(props.fileId),
@@ -62,6 +67,13 @@ function startExtract() {
       // 轮询进度
       stopPolling()
       pollTimer = setInterval(() => {
+        // 超过总上限仍未结束：停止轮询并提示（避免极端情况下永久轮询）
+        if (Date.now() - pollStartedAt > POLL_TIMEOUT_MS) {
+          stopPolling()
+          status.value = 'timeout'
+          ElMessage.warning('解压耗时较长，已转为后台处理，请稍后在文件列表中查看结果')
+          return
+        }
         extractService.progress(
           task.taskId,
           (p) => {
@@ -137,6 +149,12 @@ const downloadUrl = computed(() => getDownloadUrl(props.fileId))
     <div v-else-if="status === 'error'" class="flex items-center gap-1.5 text-sm text-danger">
       <AlertCircle :size="16" />
       {{ errorMsg || '解压失败，请重试' }}
+    </div>
+
+    <!-- 超时态：停止轮询，任务转后台继续执行 -->
+    <div v-else-if="status === 'timeout'" class="flex items-center gap-1.5 text-sm text-warning">
+      <AlertCircle :size="16" />
+      解压耗时较长，已转为后台处理，请稍后在文件列表中查看结果
     </div>
 
     <div class="flex items-center gap-2">

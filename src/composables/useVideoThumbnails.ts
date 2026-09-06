@@ -105,15 +105,21 @@ export function useVideoThumbnails() {
   return { generating, thumbnails, generate }
 }
 
-/** seek 到指定时间并等待 seeked 事件 */
+/** seek 到指定时间并等待 seeked 事件（8s 超时兜底，防止异常流导致永久 pending，写法对齐 useVideoCover） */
 function seekTo(video: HTMLVideoElement, time: number): Promise<void> {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
+    let timer: ReturnType<typeof setTimeout> | undefined
     const onSeeked = () => {
+      if (timer) clearTimeout(timer)
       video.removeEventListener('seeked', onSeeked)
       // seeked 后需等一帧让画面渲染
       requestAnimationFrame(() => resolve())
     }
     video.addEventListener('seeked', onSeeked)
+    timer = setTimeout(() => {
+      video.removeEventListener('seeked', onSeeked)
+      reject(new Error('seek 超时'))
+    }, 8000)
     video.currentTime = time
   })
 }

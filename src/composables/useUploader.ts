@@ -46,7 +46,10 @@ export function useUploader() {
       query: (file: UploaderFile) => ({
         parentId: (file as unknown as { __uploadParentId?: string }).__uploadParentId || fileStore.paramParentId
       }),
-      headers: { Authorization: getToken() },
+      // 函数式 headers（simple-uploader 会对每次请求 evalOpts，见 d.ts UploaderOptions）：
+      // 上传过程中后端可能通过 new-access-token 续期轮换 token，实时读取 cookie 里的
+      // 最新值，避免「创建 Uploader 时的 token 快照」在长上传中途过期导致 401
+      headers: () => ({ Authorization: getToken() }),
       checkChunkUploadedByResponse: (chunk: UploaderChunk, message: string) => {
         let obj: { data?: { uploadedChunks?: number[] } } = {}
         try {
@@ -123,7 +126,16 @@ export function useUploader() {
           }
           f.uniqueIdentifier = md5
           fileService.secUpload(
-            { filename: f.name, identifier: md5, parentId: fileStore.paramParentId },
+            {
+              filename: f.name,
+              identifier: md5,
+              // 用 add 时刻快照的 __uploadParentId（与分片 query / merge 的 item.parentId
+              // 同源），MD5 计算是异步的，期间用户可能已切换目录，不能用实时 paramParentId，
+              // 否则秒传命中时文件会落进切换后的目录
+              parentId:
+                (f as unknown as { __uploadParentId?: string }).__uploadParentId ||
+                fileStore.paramParentId
+            },
             (res) => {
               if (res.code === 0 && res.data) {
                 ElMessage.success('上传成功：' + f.name)

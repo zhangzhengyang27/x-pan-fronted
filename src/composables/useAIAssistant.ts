@@ -138,6 +138,7 @@ export function useAIAssistant() {
     }
 
     // 调后端搜索（大小下限/上限转字节后交由后端过滤，去掉前端二次过滤）
+    // 走 store 统一搜索入口：与目录加载共享 requestSeq，过期响应不会写列表/触发回复
     return new Promise<string>((resolve) => {
       const params: {
         keyword: string
@@ -155,15 +156,9 @@ export function useAIAssistant() {
       if (parsed.sizeMinMB != null) params.sizeMin = parsed.sizeMinMB * 1024 * 1024
       if (parsed.sizeMaxMB != null) params.sizeMax = parsed.sizeMaxMB * 1024 * 1024
 
-      fileService.search(
-        params,
-        (res) => {
-          const list: IFileVO[] = res.data || []
-
-          fileStore.setSearchFlag(true)
-          fileStore.setSearchKey(parsed.keyword || input)
-          fileStore.setFileList(list)
-
+      fileStore.setSearchKey(parsed.keyword || input)
+      fileStore.searchByParams(params, {
+        onFresh: (list) => {
           // 生成回复（流式模拟，逐字输出）
           const header = `🔍 已为你搜索「${input}」\n\n`
           onChunk(header)
@@ -184,12 +179,12 @@ export function useAIAssistant() {
           onChunk(summary)
           resolve(header + summary)
         },
-        (err) => {
+        onError: (err) => {
           const msg = `搜索失败：${err.message || '后端错误'}`
           onChunk(msg)
           resolve(msg)
         }
-      )
+      })
     })
   }
 

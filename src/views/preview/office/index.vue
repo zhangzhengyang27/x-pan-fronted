@@ -49,6 +49,9 @@ const pdfUrl = ref('') // 转 PDF 后的预签名直链
 const convertFailed = ref(false)
 const errorMsg = ref('')
 let pollTimer: ReturnType<typeof setInterval> | null = null
+// 轮询超时保护（对齐 ExtractDialog 的 5 分钟模式）：超时停止轮询，降级为原文件预览
+const POLL_TIMEOUT_MS = 5 * 60 * 1000
+let pollStartedAt = 0
 
 function clearPoll() {
   if (pollTimer) {
@@ -63,6 +66,7 @@ function startConvert() {
   converting.value = true
   convertFailed.value = false
   errorMsg.value = ''
+  pollStartedAt = Date.now()
 
   previewService.office(
     String(fileId.value),
@@ -87,6 +91,15 @@ function startConvert() {
 }
 
 function pollUrl(taskId: string) {
+  // 超过总上限仍未出结果：停止轮询并提示，降级原文件预览（后台转换任务继续跑）
+  if (Date.now() - pollStartedAt > POLL_TIMEOUT_MS) {
+    clearPoll()
+    converting.value = false
+    convertFailed.value = true
+    errorMsg.value = '文档转换耗时较长，已停止等待'
+    ElMessage.warning('转换耗时较长，已降级为原文件预览')
+    return
+  }
   previewService.url(
     taskId,
     (res) => {

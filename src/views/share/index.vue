@@ -6,17 +6,16 @@
  */
 import panUtil from '@/utils/common'
 import userService from '@/api/user'
+import fileService from '@/api/file'
 import {
   clearShareToken,
   clearToken,
   getShareToken,
-  getToken,
   setShareToken,
   setToken
 } from '@/utils/cookie'
 import shareService from '@/api/share'
 import { onMounted, onUnmounted, reactive, ref, computed } from 'vue'
-import { toDataURL } from 'qrcode'
 import { useBreakpoint } from '@/composables/useMediaQuery'
 import { ElMessage, ElMessageBox } from '@/composables/useToast'
 import { useRoute } from 'vue-router'
@@ -38,9 +37,6 @@ import {
   LogIn,
   LogOut,
   Save,
-  QrCode,
-  Check,
-  Link as LinkIcon,
   Eye,
   Hash,
   TrendingUp,
@@ -130,41 +126,14 @@ function refreshShareInfo(data) {
   shareDate.value = data.createTime
   shareExpireDate.value = data.shareDay === 0 ? '永久有效' : data.shareEndTime
   tableData.value = data.xPanUserFileVOList
-  shareUrl.value = window.location.origin + '/share/' + route.params.shareId
-  generateQR(shareUrl.value)
   downloadCount.value = data.downloadCount || 0
   downloadLimit.value = data.downloadLimit || 0
   startCountdown(data.shareDay === 0 ? null : data.shareEndTime)
 }
 
-const shareUrl = ref('')
-const qrDataUrl = ref('')
-const copyOk = ref(false)
-async function copyShareLink() {
-  try {
-    await navigator.clipboard.writeText(shareUrl.value)
-    copyOk.value = true
-    setTimeout(() => (copyOk.value = false), 2000)
-  } catch {
-    ElMessage.error('复制失败')
-  }
-}
-
-// 生成真实可扫描的二维码（使用已安装的 qrcode 库，替代此前手写的伪二维码）
-async function generateQR(text: string) {
-  try {
-    qrDataUrl.value = await toDataURL(text, {
-      width: 320,
-      margin: 2,
-      errorCorrectionLevel: 'M'
-    })
-  } catch {
-    qrDataUrl.value = ''
-  }
-}
-
-const qrDialogVisible = ref(false)
-
+// 死代码清理记录：分享二维码弹窗（qrDialogVisible）无任何入口置 true、永远不可见，
+// 已连同仅为它服务的 shareUrl/qrDataUrl/copyOk/copyShareLink/generateQR/selectAll、
+// 模板弹窗与 qrcode 依赖一并删除；downloadFile（多选下载）同样无任何调用点，已删除
 const getShareId = () => String(route.params.shareId || '')
 const openShareExpirePage = () => (shareCancelFlag.value = true)
 
@@ -174,10 +143,6 @@ function goRegister() {
 
 function goHome() {
   window.location.href = '/'
-}
-
-function selectAll(e) {
-  ;(e.target as HTMLInputElement).select()
 }
 
 function openShareCodePage() {
@@ -217,15 +182,14 @@ function login() {
 }
 
 async function exit() {
-  try {
-    await ElMessageBox.confirm('确定要退出登录吗？', '退出登录', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    })
-  } catch {
-    return
-  }
+  // ElMessageBox.confirm 恒 resolve(true/false)、永不 reject（见 useToast），
+  // 取消时 ok=false 直接返回；不能用 try/catch 等 reject（永远不会触发，导致取消也退出）
+  const ok = await ElMessageBox.confirm('确定要退出登录吗？', '退出登录', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  })
+  if (!ok) return
   userService.exit(
     () => {
       clearToken()
@@ -313,13 +277,6 @@ function goToThis(id) {
   }
 }
 
-function downloadFile() {
-  if (!multipleSelection.value.length) return ElMessage.error('请选择要下载的文件')
-  for (const it of multipleSelection.value)
-    if (it.folderFlag === 1) return ElMessage.error('文件夹暂不支持下载')
-  doDownLoads(multipleSelection.value)
-}
-
 function doDownLoads(items, i = 0) {
   if (items.length === i) return
   setTimeout(() => {
@@ -336,7 +293,11 @@ function doDownload(item) {
       shareService.getSimpleShareDetail({ shareId: getShareId() }, (res) => {
         if (res.code === 0) {
           const fileId = String(item.fileId).replace(/\+/g, '%2B')
-          const url = `${panUtil.getUrlPrefix()}/share/file/download?fileId=${fileId}&shareToken=${getShareToken()}&authorization=${getToken()}`
+          // 登录 token 不再拼进 URL（authorization 参数已移除）：原生 <a> 跳转同源
+          // 自动携带 Cookie，后端从 Cookie 读取登录态（与 panUtil.getPreviewUrl 同一
+          // 模式），避免 token 泄露到日志/Referer。shareToken 需保留在 URL 上，
+          // 后端靠它识别分享上下文（提取码校验通过后下发的分享凭证）。
+          const url = `${panUtil.getUrlPrefix()}/share/file/download?fileId=${fileId}&shareToken=${getShareToken()}`
           const link = document.createElement('a')
           link.style.display = 'none'
           link.href = url
@@ -363,8 +324,19 @@ function saveFiles(newItem) {
   if (newItem) item.value = newItem
   else if (!multipleSelection.value.length) return ElMessage.error('请选择要保存的文件')
   userService.infoWithoutPageJump((res) => {
-    if (res.code === 0) treeDialogVisible.value = true
-    else login()
+    if (res.code === 0) {
+      // 登录态：先拉取文件夹树填充 treeData 再打开弹窗。此前 treeData 从未赋值，
+      // 弹窗永远显示「暂无文件夹数据」、无法选择保存位置
+      fileService.getFolderTree(
+        (tree) => {
+          treeData.value = tree.data || []
+          treeDialogVisible.value = true
+        },
+        () => {
+          ElMessage.error('文件夹树加载失败，请稍后重试')
+        }
+      )
+    } else login()
   })
 }
 
@@ -471,7 +443,7 @@ onUnmounted(() => {
                   {{ shareDate }}
                 </span>
                 <span
-                  :style="shareExpireDate === '永久有效' ? 'color: varsuccess;' : 'color: varwarning;'"
+                  :style="shareExpireDate === '永久有效' ? 'color: var(--color-success);' : 'color: var(--color-warning);'"
                   class="inline-flex items-center gap-1"
                 >
                   <Lock :size="12" :stroke-width="2" />
@@ -653,34 +625,6 @@ onUnmounted(() => {
           确定
         </BaseButton>
       </template>
-    </BaseModal>
-
-    <!-- 分享二维码弹窗 -->
-    <BaseModal v-model:open="qrDialogVisible" title="分享二维码" size="sm">
-      <div class="text-center py-2">
-        <img
-          v-if="qrDataUrl"
-          :src="qrDataUrl"
-          alt="分享二维码"
-          class="w-48 h-48 mx-auto rounded-sm bg-white p-2 shadow-sm border border-(--color-border) object-contain"
-        />
-        <div class="mt-4 flex items-center gap-2">
-          <input
-            :value="shareUrl"
-            readonly
-            class="flex-1 h-8 px-2 rounded-sm border border-(--color-border) text-xs font-mono text-(--color-text) bg-(--color-surface)"
-            @focus="selectAll"
-          />
-          <BaseButton variant="secondary" size="sm" @click="copyShareLink">
-            <span class="inline-flex items-center gap-1.5">
-              <Check v-if="copyOk" :size="12" :stroke-width="2" />
-              <LinkIcon v-else :size="12" :stroke-width="2" />
-              {{ copyOk ? '已复制' : '复制' }}
-            </span>
-          </BaseButton>
-        </div>
-        <p class="mt-2 text-[11px]" style="color: var(--color-text-muted);">扫码或复制链接给好友查看分享</p>
-      </div>
     </BaseModal>
   </div>
 </template>

@@ -1,25 +1,11 @@
-<script setup lang="ts">
+<script lang="ts">
 /**
- * CodePreviewer —— Shiki 代码高亮 + 搜索 + 行号跳转
- * - 文本搜索（关键字高亮 + 跳转到下一处）
- * - 行号跳转（Ctrl+G / 输入行号）
- * - 200K 字符截断
+ * 模块级共享 highlighter（非 setup 作用域）：
+ * - 跨组件实例复用，预览弹窗反复开关/切换文件时不会重复构建 oniguruma wasm 引擎（创建成本高）；
+ * - 生命周期与应用一致，因此组件卸载时不 dispose（共享实例被后续实例继续复用）。
  */
-import { onMounted, onBeforeUnmount, ref, watch, computed } from 'vue'
-import {
-  getPreviewUrl,
-  resolveShikiLanguage,
-  getFileExtension,
-  isShikiLangSupported,
-  decodeTextContent
-} from '@/utils/preview'
-import { useTheme } from '@/composables/useTheme'
 import { createHighlighterCore, type HighlighterCore, type LanguageInput } from '@shikijs/core'
 import { createOnigurumaEngine } from '@shikijs/engine-oniguruma'
-import BaseInput from '@/components/base/BaseInput.vue'
-import BaseButton from '@/components/base/BaseButton.vue'
-import { Search, X, ChevronUp, ChevronDown, Hash } from '@lucide/vue'
-
 // 按需导入常用语言 grammar（fine-grained bundle），避免把 shiki 全量语言打包进 vendor chunk。
 // 仅覆盖前端 / Java / Python / Linux 运维常用语言；其余语言回退纯文本高亮。
 import javascript from '@shikijs/langs/javascript'
@@ -41,6 +27,7 @@ import toml from '@shikijs/langs/toml'
 import ini from '@shikijs/langs/ini'
 import githubLight from '@shikijs/themes/github-light'
 import githubDark from '@shikijs/themes/github-dark'
+import { isShikiLangSupported } from '@/utils/preview'
 
 const langRegistry: Record<string, LanguageInput> = {
   javascript,
@@ -62,6 +49,45 @@ const langRegistry: Record<string, LanguageInput> = {
   ini
 }
 
+// 按语言缓存 highlighter 实例，避免切换语言时复用首个语言的实例导致高亮错误，
+// 也避免重复 createHighlighter 造成的内存与 CPU 浪费。
+const highlighterCache = new Map<string, Promise<HighlighterCore>>()
+
+async function getHighlighter(lang: string): Promise<HighlighterCore> {
+  const cached = highlighterCache.get(lang)
+  if (cached) return cached
+  // 未覆盖的语言回退为纯文本（shiki 内置，无需 grammar）
+  const langs = isShikiLangSupported(lang) ? [langRegistry[lang]] : []
+  const p = createHighlighterCore({
+    themes: [githubLight, githubDark],
+    langs,
+    engine: createOnigurumaEngine()
+  })
+  highlighterCache.set(lang, p)
+  return p
+}
+</script>
+
+<script setup lang="ts">
+/**
+ * CodePreviewer —— Shiki 代码高亮 + 搜索 + 行号跳转
+ * - 文本搜索（关键字高亮 + 跳转到下一处）
+ * - 行号跳转（Ctrl+G / 输入行号）
+ * - 200K 字符截断
+ */
+import { onMounted, onBeforeUnmount, ref, watch, computed } from 'vue'
+import {
+  getPreviewUrl,
+  resolveShikiLanguage,
+  getFileExtension,
+  isShikiLangSupported,
+  decodeTextContent
+} from '@/utils/preview'
+import { useTheme } from '@/composables/useTheme'
+import BaseInput from '@/components/base/BaseInput.vue'
+import BaseButton from '@/components/base/BaseButton.vue'
+import { Search, X, ChevronUp, ChevronDown, Hash } from '@lucide/vue'
+
 const props = defineProps({
   fileId: { type: [String, Number], required: true },
   filename: { type: String, required: true },
@@ -82,26 +108,28 @@ const scrollContainerRef = ref<HTMLElement | null>(null)
 
 const MAX_CHARS = 200_000
 
-// 按语言缓存 highlighter 实例，避免切换语言时复用首个语言的实例导致高亮错误，
-// 也避免重复 createHighlighter 造成的内存与 CPU 浪费。
-const highlighterCache = new Map<string, Promise<HighlighterCore>>()
-async function getHighlighter(lang: string): Promise<HighlighterCore> {
-  if (highlighterCache.has(lang)) return highlighterCache.get(lang)!
-  // 未覆盖的语言回退为纯文本（shiki 内置，无需 grammar）
-  const langs = isShikiLangSupported(lang) ? [langRegistry[lang]] : []
-  const p = createHighlighterCore({
-    themes: [githubLight, githubDark],
-    langs,
-    engine: createOnigurumaEngine()
-  })
-  highlighterCache.set(lang, p)
-  return p
-}
-
 const lang = computed(() => resolveShikiLanguage(getFileExtension(props.filename)))
 
 let loadSeq = 0
 let abortCtrl: AbortController | null = null
+
+// 主题/语言渲染序列号：主题切换的重复渲染只保留最后一次，防止乱序覆盖
+let renderSeq = 0
+
+/** 用当前 rawText + 当前主题重新渲染（主题变化不重新拉取文件内容） */
+async function render() {
+  const seq = ++renderSeq
+  const text = rawText.value
+  if (!text) return
+  const h = await getHighlighter(lang.value)
+  if (seq !== renderSeq) return
+  // 未覆盖的语言回退纯文本高亮
+  const renderLang = isShikiLangSupported(lang.value) ? lang.value : 'text'
+  html.value = h.codeToHtml(text, {
+    lang: renderLang,
+    theme: isDark.value ? 'github-dark' : 'github-light'
+  })
+}
 
 async function load() {
   const seq = ++loadSeq
@@ -122,16 +150,10 @@ async function load() {
       text = text.slice(0, MAX_CHARS)
       truncated.value = true
     }
-    const h = await getHighlighter(lang.value)
     // 仅在本次请求仍是最新时更新 UI，避免竞态
     if (seq !== loadSeq) return
     rawText.value = text
-    // 未覆盖的语言回退纯文本高亮
-    const renderLang = isShikiLangSupported(lang.value) ? lang.value : 'text'
-    html.value = h.codeToHtml(text, {
-      lang: renderLang,
-      theme: isDark.value ? 'github-dark' : 'github-light'
-    })
+    await render()
   } catch (e) {
     // 主动取消（abort）不视为错误，忽略即可
     if (e instanceof Error && e.name === 'AbortError') return
@@ -216,8 +238,12 @@ function scrollToLine(line: number) {
 }
 
 onMounted(load)
-// 同时监听 fileId / 主题 / 外部签名 URL：父组件异步拿到预览直链后需重新加载
-watch(() => [props.fileId, isDark.value, props.url], load)
+// 内容加载只依赖 fileId / 外部签名 URL（父组件异步拿到签名直链后重新加载）
+watch(() => [props.fileId, props.url], load)
+// 主题变化不重新拉取内容，仅用新主题重跑 codeToHtml 重设 innerHTML
+watch(isDark, () => {
+  if (rawText.value) void render()
+})
 </script>
 
 <template>

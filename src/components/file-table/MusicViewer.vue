@@ -5,7 +5,7 @@
  *  - 点击行播放，正在播放行高亮 + 声波动画
  *  - 底部内嵌 APlayer 播放器（可连续播放）
  */
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { Play, Pause, Music } from '@lucide/vue'
 import { useFileStore } from '@/stores/file'
 import { getPreviewUrl } from '@/utils/preview'
@@ -72,6 +72,18 @@ function formatSize(size: string | number | undefined): string {
   while (v >= 1024 && u < units.length - 1) { v /= 1024; u++ }
   return v.toFixed(1) + ' ' + units[u]
 }
+
+// 卸载时停止播放并释放音频资源，避免离开页面后音乐仍在后台出声
+onBeforeUnmount(() => {
+  const audio = audioRef.value
+  if (audio) {
+    audio.pause()
+    audio.removeAttribute('src')
+    audio.load()
+  }
+  isPlaying.value = false
+  playingId.value = null
+})
 </script>
 
 <template>

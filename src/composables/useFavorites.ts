@@ -104,6 +104,9 @@ export function useFavorites() {
 
   function clear() {
     favorites.value = []
+    // 重置加载标记：登出/切换账号后 ensureLoaded() 才会重新拉取新账号的收藏数据，
+    // 否则 loaded 残留 true，新账号首屏看到的是空列表且不再请求
+    loaded = false
   }
 
   return { favorites, count, isFavorite, toggle, remove, clear, refresh, ensureLoaded }

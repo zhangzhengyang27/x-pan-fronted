@@ -126,7 +126,7 @@ function formatSize(bytes) {
     <div
       class="rounded-xl border border-(--color-border) p-4 flex flex-col justify-between bg-(--color-surface-container-low)"
     >
-      <span style="color: varwarning;">
+      <span style="color: var(--color-warning);">
         <Star :size="20" :stroke-width="2" />
       </span>
       <div>

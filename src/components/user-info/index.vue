@@ -71,15 +71,12 @@ function clearAll() {
 }
 
 async function doExit() {
-  try {
-    await ElMessageBox.confirm('确定要退出登录吗？', '退出登录', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    })
-  } catch {
-    return
-  }
+  const ok = await ElMessageBox.confirm('确定要退出登录吗？', '退出登录', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  })
+  if (!ok) return
   userService.exit(
     () => clearAll(),
     (res) => ElMessage.error(res.message)

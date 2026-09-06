@@ -5,7 +5,7 @@
  * P1.10：缩放比例持久化
  * P1.11：PDF 文本搜索（pdfjs-dist）
  */
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import VueOfficePdf from '@vue-office/pdf'
 import { getPreviewUrl } from '@/utils/preview'
 import BaseButton from '@/components/base/BaseButton.vue'
@@ -185,7 +185,19 @@ const searchOpen = ref(false)
 const searchKeyword = ref('')
 const searchResults = ref([])
 const searchIdx = ref(0)
-const { load: loadPdfDoc, search: pdfSearch } = usePdfSearch()
+// pdfDoc 必须来自 usePdfSearch（此前误在本地重复定义 ref(null) 导致
+// doSearch 每次都误判“未加载”而重复拉取/重建文档）
+const {
+  load: loadPdfDoc,
+  search: pdfSearch,
+  pdfDoc,
+  destroy: destroyPdfDoc
+} = usePdfSearch()
+
+onBeforeUnmount(() => {
+  // 组件卸载时销毁 PDF 文档，释放 worker 与内存
+  void destroyPdfDoc()
+})
 
 async function doSearch() {
   if (!searchKeyword.value.trim()) {
@@ -201,7 +213,6 @@ async function doSearch() {
 }
 
 import { ElMessage } from '@/composables/useToast'
-const pdfDoc = ref(null)
 
 function nextResult() {
   if (searchResults.value.length === 0) return

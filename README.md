@@ -2,7 +2,7 @@
 
 X-Pan 私人分布式存储系统的前端工程。
 
-> 后端仓库：[`../r_pan_parent`](../r_pan_parent)
+> 后端仓库：[`../x-pan-parent`](../x-pan-parent) ｜ 移动端：[`../x-pan-mobile`](../x-pan-mobile)
 > 代码百科：[`CODE_WIKI.md`](./CODE_WIKI.md)
 
 ---
@@ -28,7 +28,7 @@ X-Pan 私人分布式存储系统的前端工程。
 ## 项目结构
 
 ```
-r_pan_portal/
+x-pan-fronted/
 ├── public/                      # 静态资源（不进 build）
 ├── src/
 │   ├── api/                     # API 调用层（file/user/share/recycle/offline）

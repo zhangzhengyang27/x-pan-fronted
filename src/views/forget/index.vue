@@ -67,11 +67,11 @@ const passwordStrength = computed(() => {
   const isLongEnough = pwd.length >= 12
   
   if (isLongEnough && hasLetter && hasNumber && hasSpecial) {
-    return { level: 3, label: '强', bars: 3, color: 'varsuccess' }
+    return { level: 3, label: '强', bars: 3, color: 'var(--color-success)' }
   } else if (hasLength && hasLetter && hasNumber) {
-    return { level: 2, label: '中', bars: 2, color: 'varwarning' }
+    return { level: 2, label: '中', bars: 2, color: 'var(--color-warning)' }
   } else {
-    return { level: 1, label: '弱', bars: 1, color: 'vardanger' }
+    return { level: 1, label: '弱', bars: 1, color: 'var(--color-danger)' }
   }
 })
 
@@ -456,7 +456,7 @@ const goLoginLink = () => router.push({ name: 'Login' })
               class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6"
               style="background-color: rgba(16, 185, 129, 0.1);"
             >
-              <Check :size="32" :stroke-width="2" style="color: varsuccess;" />
+              <Check :size="32" :stroke-width="2" style="color: var(--color-success);" />
             </div>
             <h2 class="text-xl font-semibold mb-2 text-(--color-text)">
               密码重置成功

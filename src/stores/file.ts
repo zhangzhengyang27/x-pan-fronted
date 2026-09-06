@@ -13,6 +13,27 @@ export interface SearchFilter {
   dateTo?: string
 }
 
+/** /file/search 后端查询参数（搜索框 / AI 助手 / searchByParams 共用） */
+export interface SearchParams {
+  keyword: string
+  fileTypes?: string
+  extensions?: string
+  dateFrom?: string
+  dateTo?: string
+  sizeMin?: number
+  sizeMax?: number
+}
+
+/** searchByParams 的可选回调：transform 加工结果列表，onFresh 在最新响应落地后触发 */
+export interface SearchByParamsHooks {
+  /** 响应仍最新时对结果做前端二次加工（如大小过滤），返回新列表后再写入 fileList */
+  transform?: (list: IFileVO[]) => IFileVO[]
+  /** 列表写入 fileList 后的回调（更新面包屑、生成 AI 文案等），过期响应不触发 */
+  onFresh?: (list: IFileVO[]) => void
+  /** 业务失败回调（默认行为是 ElMessage.error） */
+  onError?: (res: ApiResponse<unknown>) => void
+}
+
 export interface FileStore {
   parentId: Ref<string>
   defaultParentId: Ref<string>
@@ -59,6 +80,7 @@ export interface FileStore {
   loadFileList: () => void
   loadMore: () => void
   searchWithFilter: (filter: SearchFilter) => void
+  searchByParams: (params: SearchParams, hooks?: SearchByParamsHooks) => void
   getOrderBy: () => string
   getOrder: () => string
   toggleSort: (prop: string) => void
@@ -163,15 +185,19 @@ export const useFileStore = defineStore('file', (): FileStore => {
     return typeof v === 'number' || typeof v === 'string' ? v : ''
   }
 
+  /**
+   * 切换排序：换字段 → 新字段升序；同字段在 升/降 两态间循环。
+   * 不提供 null（无排序）态：getOrderBy/getOrder 任何时刻都能给出明确的
+   * orderBy/order（getOrder 把非 descending 一律映射为 asc，兼容外部直接
+   * 把 sortOrder 置 null 的旧用法），保证排序状态与 UI 展示一致。
+   */
   function toggleSort(prop: string): void {
     if (sortProp.value !== prop) {
       sortProp.value = prop
       sortOrder.value = 'ascending'
       return
     }
-    if (sortOrder.value === 'ascending') sortOrder.value = 'descending'
-    else if (sortOrder.value === 'descending') sortOrder.value = null
-    else sortOrder.value = 'ascending'
+    sortOrder.value = sortOrder.value === 'ascending' ? 'descending' : 'ascending'
   }
 
   function sortItems<T extends Record<string, unknown>>(list: T[]): T[] {
@@ -425,6 +451,10 @@ export const useFileStore = defineStore('file', (): FileStore => {
 
   function searchWithFilter(filter: SearchFilter): void {
     if (!searchFlag.value) setSearchFlag(true)
+    const seq = ++requestSeq
+    // 与 loadFileList 一致：重置 loadMore 标志和页码，避免旧目录的滚动加载/页码污染搜索结果
+    isLoadingMore.value = false
+    pageNum.value = 1
     setTableLoading(true)
     const params: {
       keyword: string
@@ -443,6 +473,7 @@ export const useFileStore = defineStore('file', (): FileStore => {
     fileService.search(
       params,
       (res: ApiResponse<IFileVO[]>) => {
+        if (seq !== requestSeq) return // 已有更新的请求，丢弃过期响应
         let list: IFileVO[] = res.data || []
         if (filter?.sizeMin !== '' && filter?.sizeMin != null) {
           const min = Number(filter.sizeMin) * 1024 * 1024
@@ -464,8 +495,42 @@ export const useFileStore = defineStore('file', (): FileStore => {
         total.value = list.length
       },
       (res: ApiResponse<unknown>) => {
+        if (seq !== requestSeq) return
         setTableLoading(false)
         ElMessage.error(res.message)
+      }
+    )
+  }
+
+  /**
+   * 外部搜索路径的统一入口（全局搜索框 / AI 助手等）：
+   * 与 loadFileList / searchWithFilter 共享同一 requestSeq，仅采纳最新一次响应，
+   * 防止「旧搜索结果覆盖新目录 / 旧目录覆盖新搜索」的串台；命中后同步维护
+   * tableLoading / total / hasMore / searchFlag 等状态。
+   */
+  function searchByParams(params: SearchParams, hooks?: SearchByParamsHooks): void {
+    setSearchFlag(true)
+    const seq = ++requestSeq
+    isLoadingMore.value = false
+    pageNum.value = 1
+    setTableLoading(true)
+    fileService.search(
+      params,
+      (res: ApiResponse<IFileVO[]>) => {
+        if (seq !== requestSeq) return // 已有更新的请求，丢弃过期响应
+        const raw = res.data || []
+        const list = hooks?.transform ? hooks.transform(raw) : raw
+        setFileList(list)
+        setTableLoading(false)
+        hasMore.value = false
+        total.value = list.length
+        hooks?.onFresh?.(list)
+      },
+      (res: ApiResponse<unknown>) => {
+        if (seq !== requestSeq) return
+        setTableLoading(false)
+        if (hooks?.onError) hooks.onError(res)
+        else ElMessage.error(res.message)
       }
     )
   }
@@ -510,6 +575,7 @@ export const useFileStore = defineStore('file', (): FileStore => {
     loadFileList,
     loadMore,
     searchWithFilter,
+    searchByParams,
     getOrderBy,
     getOrder,
     toggleSort,

@@ -22,6 +22,8 @@ import { useBreadcrumbStore } from '@/stores/breadcrumb'
 import { useFileStore } from '@/stores/file'
 import { useNavbarStore } from '@/stores/navbar'
 import { useUserStore } from '@/stores/user'
+import { useFavorites } from '@/composables/useFavorites'
+import { useRecent } from '@/composables/useRecent'
 import type { ApiResponse } from '@/types'
 
 function toLogin(): void {
@@ -35,16 +37,17 @@ function toLogin(): void {
   breadcrumbStore.clear()
   navbarStore.clear()
   userStore.clear()
+  // 收藏（模块级内存缓存）/最近访问（localStorage）跨页面共享，登出/登录失效时
+  // 一并清空并重置加载标记，避免切换账号后看到上一个账号的数据
+  useFavorites().clear()
+  useRecent().clear()
   ElMessageBox.confirm('您需要重新登陆', '确认退出登录', {
     confirmButtonText: '重新登陆',
     cancelButtonText: '取消',
     type: 'warning'
-  }).then(() => {
-    // 用户确认：刷新页面（清空状态后重新加载）
-    window.location.reload()
-  }).catch(() => {
-    // 用户取消：跳转到登录页
-    window.location.href = '/login'
+  }).then((ok) => {
+    // confirm 永不 reject：resolve(true)=确认重新登录；取消仅关闭弹窗，不 reload
+    if (ok) window.location.reload()
   })
 }
 
@@ -90,6 +93,12 @@ http.interceptors.response.use(
     // token 续期：后端在过半续期时通过响应头下发新 token，这里更新本地 cookie
     const newToken = res.headers?.['new-access-token'] as string | undefined
     if (newToken) setToken(newToken)
+    // Blob 响应（打包下载 zip 等）没有业务 code 字段，不能按业务 JSON 校验
+    // （否则 `res.data.code !== 0` 恒真导致下载永远被 reject），直接放行，
+    // 与 JSON 路径一样返回 res.data，调用方拿到的就是 Blob 本体
+    if (res.config.responseType === 'blob' || res.data instanceof Blob) {
+      return res.data as unknown as AxiosResponse
+    }
     if (res.data && res.data.code === 10) {
       toLogin()
       return Promise.reject(res.data) as unknown as AxiosResponse

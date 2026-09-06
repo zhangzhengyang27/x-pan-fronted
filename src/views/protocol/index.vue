@@ -42,7 +42,7 @@ const goBack = () => window.history.back()
     />
     <div
       class="absolute bottom-[-20%] right-[-10%] size-[50%] rounded-full blur-[120px] opacity-10 pointer-events-none"
-      style="background-color: varwarning;"
+      style="background-color: var(--color-warning);"
     />
 
     <div class="relative z-10 w-full max-w-2xl">

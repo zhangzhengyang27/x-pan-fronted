@@ -93,7 +93,8 @@ function doCancelShares(shareIds: string[]) {
     cancelButtonText: '取消',
     type: 'warning'
   })
-    .then(() => {
+    .then((ok) => {
+      if (!ok) return
       shareService.cancelShare(
         { shareIds },
         () => {
@@ -182,7 +183,7 @@ function formatExpireTime(row) {
         class="rounded-xl border border-(--color-border) p-4 bg-(--color-surface-container-low)"
       >
         <div class="text-xs mb-1" style="color: var(--color-text-muted);">有效分享</div>
-        <div class="text-2xl font-bold tabular-nums" style="color: varsuccess;">
+        <div class="text-2xl font-bold tabular-nums" style="color: var(--color-success);">
           {{ summary.activeShares }}
         </div>
       </div>
@@ -198,7 +199,7 @@ function formatExpireTime(row) {
         class="rounded-xl border border-(--color-border) p-4 bg-(--color-surface-container-low)"
       >
         <div class="text-xs mb-1" style="color: var(--color-text-muted);">剩余下载配额</div>
-        <div class="text-2xl font-bold tabular-nums" style="color: varwarning;">
+        <div class="text-2xl font-bold tabular-nums" style="color: var(--color-warning);">
           {{ summary.remainingQuota }}
         </div>
       </div>

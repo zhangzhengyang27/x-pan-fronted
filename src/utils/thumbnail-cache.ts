@@ -192,7 +192,10 @@ export function removeThumbnailFromCache(
 
   // 同步清理内存缓存
   if (size !== undefined) {
-    memCache.delete(thumbnailCacheKey(fileId, size))
+    const key = thumbnailCacheKey(fileId, size)
+    const hit = memCache.get(key)
+    if (hit) URL.revokeObjectURL(hit.url)
+    memCache.delete(key)
   } else {
     const prefix = `${fileId}::`
     for (const key of memCache.keys()) {

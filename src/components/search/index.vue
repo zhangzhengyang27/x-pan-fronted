@@ -8,7 +8,6 @@
 import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import Fuse from 'fuse.js'
 import fileService from '@/api/file'
-import { ElMessage } from '@/composables/useToast'
 import { useFileStore } from '@/stores/file'
 import { useBreadcrumbStore } from '@/stores/breadcrumb'
 import { useNavbarStore } from '@/stores/navbar'
@@ -214,42 +213,48 @@ function doSearch() {
   const parsed = parseNaturalLanguage(searchKey.value)
 
   fileStore.setFileTypes('-1')
-  fileStore.setSearchFlag(true)
   navbarStore.change('Files')
   fileStore.setSearchKey(parsed.keyword || searchKey.value)
 
   // 构造后端搜索参数
-  const params: Record<string, unknown> = {
+  const params: {
+    keyword: string
+    fileTypes?: string
+    dateFrom?: string
+    dateTo?: string
+  } = {
     keyword: parsed.keyword || searchKey.value,
     fileTypes: parsed.fileType != null ? String(parsed.fileType) : '-1'
   }
   if (parsed.dateFrom) params.dateFrom = parsed.dateFrom
   if (parsed.dateTo) params.dateTo = parsed.dateTo
 
-  fileService.search(
-    params as any,
-    (res) => {
-      let list = res.data || []
-      // 前端二次过滤大小（后端可能不支持 sizeMin/Max）
+  // 走 store 统一搜索入口：与目录加载共享 requestSeq，丢弃过期响应，避免旧结果覆盖新目录
+  fileStore.searchByParams(params, {
+    // 前端二次过滤大小（后端可能不支持 sizeMin/Max）
+    transform: (list) => {
+      let out = list
       if (parsed.sizeMin != null) {
-        list = list.filter((r) => {
+        out = out.filter((r) => {
           const sz = Number(r.fileSize || 0)
           return sz >= parsed.sizeMin! * 1024 * 1024
         })
       }
       if (parsed.sizeMax != null) {
-        list = list.filter((r) => {
+        out = out.filter((r) => {
           const sz = Number(r.fileSize || 0)
           return sz <= parsed.sizeMax! * 1024 * 1024
         })
       }
+      return out
+    },
+    // 仅在响应仍最新时更新面包屑（过期响应不再触碰面包屑状态）
+    onFresh: () => {
       breadcrumbStore.clear()
       breadcrumbStore.addItem({ id: defaultParentId.value, name: defaultParentFilename.value })
       breadcrumbStore.addItem({ id: '-1', name: '搜索：' + searchKey.value })
-      fileStore.setFileList(list)
-    },
-    (res) => ElMessage.error(res.message)
-  )
+    }
+  })
 }
 
 // 点击建议项：执行搜索并进入结果列表

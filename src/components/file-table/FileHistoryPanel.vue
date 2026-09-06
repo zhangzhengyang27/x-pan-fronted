@@ -105,19 +105,18 @@ function shortHash(hash) {
 }
 
 async function doRollback(v) {
-  try {
-    await ElMessageBox.confirm(
-      `确定回滚到 v${v.versionNo}？此操作会创建一个新的版本。`,
-      '回滚版本',
-      {
-        confirmButtonText: '回滚',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    )
-  } catch {
-    return
-  }
+  // ElMessageBox.confirm（useToast 假封装）恒 resolve(true/false)，取消时 false；
+  // try/catch 等 reject 是死代码，会导致取消也执行回滚
+  const ok = await ElMessageBox.confirm(
+    `确定回滚到 v${v.versionNo}？此操作会创建一个新的版本。`,
+    '回滚版本',
+    {
+      confirmButtonText: '回滚',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  )
+  if (!ok) return
   fileService.rollback(
     { id: v.id, fileId: props.fileId },
     (res) => {
@@ -133,15 +132,12 @@ async function doRollback(v) {
 
 async function doDelete(v) {
   if (v.current) return ElMessage.warning('不能删除当前正在使用的版本')
-  try {
-    await ElMessageBox.confirm(`确定删除 v${v.versionNo}？此操作不可恢复。`, '删除版本', {
-      confirmButtonText: '删除',
-      cancelButtonText: '取消',
-      type: 'danger'
-    })
-  } catch {
-    return
-  }
+  const ok = await ElMessageBox.confirm(`确定删除 v${v.versionNo}？此操作不可恢复。`, '删除版本', {
+    confirmButtonText: '删除',
+    cancelButtonText: '取消',
+    type: 'danger'
+  })
+  if (!ok) return
   fileService.deleteVersion(
     { id: v.id, fileId: props.fileId },
     (res) => {

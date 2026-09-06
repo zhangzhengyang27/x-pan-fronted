@@ -19,6 +19,10 @@ const containerRef = ref<HTMLDivElement | null>(null)
 let player: any = null
 let currentUrl = ''
 let ArtplayerCtor: any = null
+// 竞态保护：initPlayer 中的 await import('artplayer') 是异步的，期间可能
+// 已被快速切换再次触发（需防双实例），或组件已卸载（需防卸载后绑定全局事件）
+let initPromise: Promise<void> | null = null
+let destroyed = false
 
 // P3-1：视频关键帧缩略图
 const { generate: generateThumbnails } = useVideoThumbnails()
@@ -57,16 +61,30 @@ function bindPlayerEvents() {
   })
 }
 
-async function initPlayer(url: string) {
-  if (!containerRef.value || player) return
-  if (!url) return
+// 单例初始化 Promise：并发调用 initPlayer 时复用同一次初始化，串行化创建
+function initPlayer(url: string): Promise<void> {
+  if (!containerRef.value || player || !url) return Promise.resolve()
+  if (initPromise) return initPromise
+  initPromise = doInitPlayer(url).finally(() => {
+    initPromise = null
+  })
+  return initPromise
+}
 
+async function doInitPlayer(url: string) {
   await initArtplayer()
-  currentUrl = url
+  // await 之后必须复查：组件可能已卸载（不再创建、不再绑定 window keydown），
+  // 或已被其他入口创建出实例（避免双实例）
+  if (destroyed || player || !containerRef.value) return
+  // await 期间外部签名 URL 可能已更新（快速切换），创建时以最新 URL 为准
+  const targetUrl = props.url || url
+  currentUrl = targetUrl
 
   const playerOptions: any = {
     container: containerRef.value,
-    url,
+    // 以最新签名的 URL 创建，保证与 currentUrl 一致（否则 currentUrl 已是
+    // targetUrl 而播放器实际播的是旧 url，后续 switchUrl 判重会误跳过）
+    url: targetUrl,
     title: props.title,
     autoplay: true,
     // 高度由容器 CSS（aspect-video + min-h）决定，
@@ -107,8 +125,8 @@ async function initPlayer(url: string) {
   // P1-8：自定义全局快捷键（ArtPlayer hotkey 仅在焦点时生效，补充全局）
   window.addEventListener('keydown', onKeydown)
 
-  // P3-1：后台异步采样关键帧，生成后动态注入 ArtPlayer
-  refreshThumbnails(url)
+  // P3-1：后台异步采样关键帧，生成后动态注入 ArtPlayer（同样以最新 URL 为准）
+  refreshThumbnails(targetUrl)
 }
 
 function refreshThumbnails(videoUrl: string) {
@@ -170,8 +188,8 @@ function onKeydown(e: KeyboardEvent) {
       break
     case 'ArrowRight':
       e.preventDefault()
+      // forward 内部已完成快进，再 seek 一次会导致双重快进（一次跳 10s）
       player.forward(5)
-      player.seek(player.currentTime + 5)
       break
     case 'ArrowLeft':
       e.preventDefault()
@@ -228,6 +246,8 @@ function showSpeedToast(rate: number) {
 }
 
 onBeforeUnmount(() => {
+  // 先置卸载标志：initPlayer 的 await 恢复后不再创建实例/绑定事件
+  destroyed = true
   window.removeEventListener('keydown', onKeydown)
   if (speedToastEl) {
     speedToastEl.remove()

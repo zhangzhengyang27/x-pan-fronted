@@ -6,6 +6,9 @@
  */
 import { ref, shallowRef, type ShallowRef } from 'vue'
 import type { PDFDocumentProxy } from 'pdfjs-dist/build/pdf.mjs'
+// worker 走包内资源（vite ?url 生成带哈希的静态资源 URL），
+// 不再硬编码 CDN 版本号——CDN 版本与本地 pdfjs-dist 不一致时 worker 会加载失败
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 
 const textCache = new WeakMap<PDFDocumentProxy, Map<number, string>>()
 
@@ -21,14 +24,27 @@ export function usePdfSearch() {
   const loading = ref(false)
   const error = ref('')
 
+  /** 销毁当前 PDF 文档（释放 worker 与内存），更换文档或组件卸载时调用 */
+  async function destroy(): Promise<void> {
+    const doc = pdfDoc.value
+    pdfDoc.value = null
+    if (!doc) return
+    try {
+      await doc.destroy()
+    } catch {
+      /* 文档可能已失效，忽略销毁异常 */
+    }
+  }
+
   async function load(url: string): Promise<PDFDocumentProxy | null> {
     if (loading.value) return null
     loading.value = true
     error.value = ''
     try {
       const lib = await import('pdfjs-dist/build/pdf.mjs')
-      lib.GlobalWorkerOptions.workerSrc =
-        'https://cdn.jsdelivr.net/npm/pdfjs-dist@6.2.108/build/pdf.worker.min.mjs'
+      lib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl
+      // 加载新文档前销毁旧文档，避免旧文档持有的 worker/内存泄漏
+      await destroy()
       const doc = await lib.getDocument({ url }).promise
       pdfDoc.value = doc
       // 预提取前 50 页文本
@@ -79,5 +95,5 @@ export function usePdfSearch() {
     return results
   }
 
-  return { pdfDoc, loading, error, load, search }
+  return { pdfDoc, loading, error, load, search, destroy }
 }

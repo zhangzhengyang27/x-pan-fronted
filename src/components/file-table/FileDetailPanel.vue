@@ -137,15 +137,14 @@ async function rename() {
 // ─── 删除 ───────────────────────────────────────────────────────────────────
 async function deleteFile() {
   if (!props.file) return
-  try {
-    await ElMessageBox.confirm(
-      `确定要删除「${props.file.filename}」吗？删除后可从回收站恢复。`,
-      '确认删除',
-      { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' }
-    )
-  } catch {
-    return
-  }
+  // ElMessageBox.confirm（useToast 假封装）恒 resolve(true/false)，取消时 false；
+  // try/catch 等 reject 是死代码，会导致取消也执行删除
+  const ok = await ElMessageBox.confirm(
+    `确定要删除「${props.file.filename}」吗？删除后可从回收站恢复。`,
+    '确认删除',
+    { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' }
+  )
+  if (!ok) return
   fileService.delete(
     { fileIds: [props.file.fileId] },
     () => {
