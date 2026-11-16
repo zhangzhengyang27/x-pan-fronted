@@ -6,7 +6,8 @@ import { useTaskStore } from '@/stores/task'
 
 const taskStore = useTaskStore()
 
-const uploadingCount = computed(() => taskStore.uploadTaskList.filter(t => t.status === 1).length)
+// 进行中 = 解析(1)/等待(2)/上传中(3)/服务器处理中(7)；只统计 1 会导致真正上传时徽标消失
+const uploadingCount = computed(() => taskStore.uploadTaskList.filter(t => [1, 2, 3, 7].includes(t.status)).length)
 </script>
 
 <template>
