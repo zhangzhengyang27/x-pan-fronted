@@ -11,7 +11,6 @@
 
 import { ref, type Ref } from 'vue'
 import panUtil from '@/utils/common'
-import { getToken } from '@/utils/cookie'
 
 export type WsMessageType =
   | 'CONNECTED'
@@ -35,7 +34,7 @@ interface UseWebSocketReturn {
   isConnected: Ref<boolean>
   lastMessageAt: Ref<number>
   reconnectAttempts: Ref<number>
-  connect: (token: string) => void
+  connect: (token?: string) => void
   disconnect: () => void
   send: (data: string | object) => void
   on: <T = unknown>(type: WsMessageType, handler: Handler<T>) => () => void
@@ -50,16 +49,19 @@ let _singleton: UseWebSocketReturn | null = null
 // 避免主动 close(1000) 后仍被 onclose 调度成「幽灵重连」
 let _manualClosed = false
 
-function buildWsUrl(token: string): string {
+function buildWsUrl(token?: string): string {
+  const query = token ? `token=${encodeURIComponent(token)}` : ''
   // 优先使用构建期注入的 VITE_WS_URL（与 README 约定一致），便于部署时直接指定 WS 地址
   const wsEnv = import.meta.env?.VITE_WS_URL
   if (wsEnv) {
+    if (!query) return wsEnv
     const sep = wsEnv.includes('?') ? '&' : '?'
-    return `${wsEnv}${sep}token=${encodeURIComponent(token)}`
+    return `${wsEnv}${sep}${query}`
   }
   const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
   const host = window.location.host // 同源（保留当前页端口），dev 走 vite 代理，prod 走 nginx 反代
-  return `${proto}//${host}/ws/notification?token=${encodeURIComponent(token)}`
+  // 浏览器端默认不带 token：后端从握手请求的 HttpOnly Cookie 读取登录态
+  return `${proto}//${host}/ws/notification${query ? `?${query}` : ''}`
 }
 
 export function useWebSocket(): UseWebSocketReturn {
@@ -118,7 +120,7 @@ export function useWebSocket(): UseWebSocketReturn {
     }, HEARTBEAT_INTERVAL * 1000)
   }
 
-  function scheduleReconnect(token: string) {
+  function scheduleReconnect(token?: string) {
     if (reconnectAttempts.value >= MAX_RECONNECT) {
       console.warn('[WS] 达到最大重连次数，停止重连')
       return
@@ -151,11 +153,7 @@ export function useWebSocket(): UseWebSocketReturn {
     isConnected.value = false
   }
 
-  function connect(token: string) {
-    if (!token) {
-      console.warn('[WS] 无 token，跳过连接')
-      return
-    }
+  function connect(token?: string) {
     // 显式 connect 视为恢复自动重连（清除 disconnect 置位的主动关闭标志）
     _manualClosed = false
 
@@ -169,11 +167,10 @@ export function useWebSocket(): UseWebSocketReturn {
     if (busy) {
       // 同一 token：连接中就等它建连、退避中就等定时器触发，避免路由守卫反复触发重建
       if (token === currentToken) return
-      // 换了 token（如切换账号重新登录）：先放弃旧连接与未触发的旧 token 重连任务，
-      // 再用新 token 建连，否则会一直复用旧闭包里的 token
+      // 换了 token（如切换账号重新登录）：先放弃旧连接与未触发的旧 token 重连任务
       abortSocket()
     }
-    currentToken = token
+    currentToken = token || ''
 
     try {
       ws = new WebSocket(buildWsUrl(token))
@@ -219,10 +216,8 @@ export function useWebSocket(): UseWebSocketReturn {
       isConnected.value = false
       clearTimers()
       if (_manualClosed) return // 主动关闭（登出/换账号）：不再调度重连
-      // 重连前重读「最新 token」：连接存续期间后端可能已通过 new-access-token 轮换
-      // token（http 拦截器会 setToken 更新 cookie），用建连闭包里的旧 token 重连会被
-      // 服务端拒绝；取不到时（异常情况）退回建连时的 token 兜底
-      scheduleReconnect(getToken() || token)
+      // 浏览器端依赖 HttpOnly Cookie，重连无需携带 token；移动端等显式传入的 token 继续复用
+      scheduleReconnect(token)
     }
   }
 

@@ -23,11 +23,11 @@
  */
 import { onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
-import { getToken } from '@/utils/cookie'
+import { hasLoginSession } from '@/utils/cookie'
 
 // 已登录才执行需要鉴权的导航
 function requireAuth(): boolean {
-  return !!getToken()
+  return hasLoginSession()
 }
 
 function isEditableTarget(target: EventTarget | null): boolean {

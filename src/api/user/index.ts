@@ -19,6 +19,25 @@ const userService = {
     http.post<unknown, ApiResponse<unknown>>('/user/register', data).then(resolve).catch(reject)
   },
 
+  sendEmailCode(
+    data: { email: string; scene: 'REGISTER' | 'BIND' },
+    resolve: Callback<unknown>,
+    reject: Callback<unknown>
+  ) {
+    http
+      .post<unknown, ApiResponse<unknown>>('/user/email/code', data)
+      .then(resolve)
+      .catch(reject)
+  },
+
+  bindEmail(
+    data: { email: string; code: string },
+    resolve: Callback<unknown>,
+    reject: Callback<unknown>
+  ) {
+    http.put<unknown, ApiResponse<unknown>>('/user/email', data).then(resolve).catch(reject)
+  },
+
   info(resolve: Callback<IUserInfo>, reject: Callback<unknown>) {
     http.get<unknown, ApiResponse<IUserInfo>>('/user/').then(resolve).catch(reject)
   },

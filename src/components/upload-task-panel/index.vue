@@ -9,17 +9,19 @@ import { storeToRefs } from 'pinia'
 import { X, Check, LoaderCircle, FileWarning } from '@lucide/vue'
 import { useTaskStore } from '@/stores/task'
 import { EFileStatus } from '@/utils/common'
+import { useUploader } from '@/composables/useUploader'
 import { computed } from 'vue'
 
 const taskStore = useTaskStore()
 const { uploadTaskList: taskList, panelVisible } = storeToRefs(taskStore)
+const { resumeWaiting, cancelUpload } = useUploader()
 
 const visible = computed(() => taskList.value.length > 0 && panelVisible.value)
 
 // 主键是 task.id（simple-uploader 的文件 id，见 stores/task.ts 的 keyOf），
 // 用 filename 匹配会因同名文件/永远匹配不到而失效
 function remove(id: string) {
-  taskStore.remove(id)
+  cancelUpload(id)
 }
 
 function clearFinished() {
@@ -79,15 +81,26 @@ function closePanel() {
               <span class="truncate text-xs font-medium text-(--color-text)">
                 {{ task.filename }}
               </span>
-              <button
-                v-if="task.status !== 1"
-                type="button"
-                class="text-(--color-text-muted) hover:text-(--color-text) transition-colors"
-                :aria-label="`移除 ${task.filename}`"
-                @click="remove(task.id)"
-              >
-                <X :size="14" />
-              </button>
+              <div class="flex items-center gap-2">
+                <button
+                  v-if="task.status === EFileStatus.FAIL.code"
+                  type="button"
+                  class="text-xs text-(--color-primary) hover:opacity-80 transition-opacity"
+                  :aria-label="`重试 ${task.filename}`"
+                  @click="resumeWaiting(task.id)"
+                >
+                  重试
+                </button>
+                <button
+                  v-if="task.status !== 1"
+                  type="button"
+                  class="text-(--color-text-muted) hover:text-(--color-text) transition-colors"
+                  :aria-label="`移除 ${task.filename}`"
+                  @click="remove(task.id)"
+                >
+                  <X :size="14" />
+                </button>
+              </div>
             </div>
             <div class="mt-1.5 h-1.5 overflow-hidden rounded-full bg-(--color-surface-2)">
               <div

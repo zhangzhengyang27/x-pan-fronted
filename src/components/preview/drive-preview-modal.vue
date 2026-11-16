@@ -7,7 +7,8 @@
  * - 动态加载所有重型渲染器
  */
 import { computed, defineAsyncComponent, ref, watch } from 'vue'
-import { Download, ExternalLink, AlertCircle } from '@lucide/vue'
+import { useRouter } from 'vue-router'
+import { Download, ExternalLink, AlertCircle, Edit3 } from '@lucide/vue'
 import { resolvePreviewUrl } from '@/utils/preview'
 import { getPreviewPluginById } from '@/utils/preview-plugin'
 import ImageGalleryPreviewer from './image-gallery-previewer.vue'
@@ -21,6 +22,8 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['close', 'download'])
+
+const router = useRouter()
 
 // 非图片预览 URL（异步加载）
 const previewUrl = ref('')
@@ -45,6 +48,12 @@ const ActiveComponent = computed(() =>
 )
 
 const fileName = computed(() => currentItem.value?.filename || '')
+
+/** 当前预览类型是否支持在线编辑（Markdown/文本/Office） */
+const EDITABLE_OFFICE_KINDS = ['docx', 'excel', 'pptx']
+const canEdit = computed(() =>
+  ['markdown', 'text', ...EDITABLE_OFFICE_KINDS].includes(props.state.kind)
+)
 
 // 监听状态变化加载 URL
 // 用请求令牌避免快速切换文件时旧请求后到覆盖新值（竞态）
@@ -100,6 +109,19 @@ function openInNewTab() {
 function handleGalleryIndex(i: number) {
   // 透传到父组件更新 galleryIndex
   if (props.state) props.state.galleryIndex = i
+}
+
+/** 新标签页打开编辑器（Office 走 OnlyOffice，文本走 Vditor） */
+function openEditor() {
+  const item = currentItem.value
+  if (!item) return
+  const isOffice = EDITABLE_OFFICE_KINDS.includes(props.state.kind)
+  const { href } = router.resolve({
+    name: isOffice ? 'EditOffice' : 'EditMarkdown',
+    params: { fileId: String(item.fileId) },
+    query: { filename: item.filename || '' }
+  })
+  window.open(href, '_blank', 'noopener,noreferrer')
 }
 </script>
 
@@ -168,6 +190,12 @@ function handleGalleryIndex(i: number) {
     </div>
 
     <template #footer>
+      <BaseButton v-if="canEdit" variant="secondary" size="sm" @click="openEditor">
+        <span class="inline-flex items-center gap-1.5">
+          <Edit3 :size="14" />
+          编辑
+        </span>
+      </BaseButton>
       <BaseButton variant="ghost" size="sm" @click="openInNewTab">
         <span class="inline-flex items-center gap-1.5">
           <ExternalLink :size="14" />

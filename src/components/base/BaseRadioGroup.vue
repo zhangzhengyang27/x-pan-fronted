@@ -14,7 +14,7 @@ interface RadioOption {
 
 const props = defineProps({
   modelValue: { type: [String, Number], default: '' },
-  options: { type: Array as PropType<RadioOption[]>, default: () => [] },
+  options: { type: Array as PropType<RadioOption[]>, default: (): RadioOption[] => [] },
   direction: { type: String, default: 'horizontal' },
   disabled: { type: Boolean, default: false }
 })

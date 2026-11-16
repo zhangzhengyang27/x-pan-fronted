@@ -15,6 +15,7 @@ import { storeToRefs } from 'pinia'
 import { Search as SearchIcon } from '@lucide/vue'
 
 import BaseInput from '@/components/base/BaseInput.vue'
+import type { IFileVO } from '@/types'
 
 const fileStore = useFileStore()
 const breadcrumbStore = useBreadcrumbStore()
@@ -24,6 +25,8 @@ const { defaultParentId, defaultParentFilename, fileList } = storeToRefs(fileSto
 const searchKey = ref('')
 const showSuggest = ref(false)
 const suggestions = ref([])
+/** 是否同时搜索文件正文（全文检索） */
+const searchContent = ref(false)
 /** 后端联想词（字符串关键词，点击后直接搜索） */
 const suggestWords = ref<string[]>([])
 /** 热搜词 */
@@ -68,10 +71,8 @@ function onFocusSearch() {
 function onInputFocus() {
   if (!searchKey.value.trim()) {
     if (hotWords.value.length === 0) fetchHot()
-    showSuggest.value = true
-  } else {
-    showSuggest.value = suggestions.value.length > 0 || suggestWords.value.length > 0
   }
+  showSuggest.value = true
 }
 onMounted(() => {
   window.addEventListener('xpan:focus-search', onFocusSearch)
@@ -222,9 +223,11 @@ function doSearch() {
     fileTypes?: string
     dateFrom?: string
     dateTo?: string
+    mode: 'filename' | 'content'
   } = {
     keyword: parsed.keyword || searchKey.value,
-    fileTypes: parsed.fileType != null ? String(parsed.fileType) : '-1'
+    fileTypes: parsed.fileType != null ? String(parsed.fileType) : '-1',
+    mode: searchContent.value ? 'content' : 'filename'
   }
   if (parsed.dateFrom) params.dateFrom = parsed.dateFrom
   if (parsed.dateTo) params.dateTo = parsed.dateTo
@@ -258,7 +261,7 @@ function doSearch() {
 }
 
 // 点击建议项：执行搜索并进入结果列表
-function clickSuggestion(item) {
+function clickSuggestion(item: IFileVO) {
   showSuggest.value = false
   searchKey.value = item.filename || ''
   doSearch()
@@ -279,7 +282,7 @@ function clickSuggestion(item) {
         ref="inputRef"
         v-model="searchKey"
         type="search"
-        placeholder="搜索文件…"
+        :placeholder="searchContent ? '搜索文件名或正文…' : '搜索文件…'"
         :prefix="SearchIcon"
         name="xpan-search"
         autocomplete="off"
@@ -296,7 +299,7 @@ function clickSuggestion(item) {
     <!-- 搜索建议下拉（本地 Fuse + 后端 suggest 联想词 + 热搜词） -->
     <Transition name="modal">
       <div
-        v-if="showSuggest && (suggestions.length > 0 || suggestWords.length > 0 || hotWords.length > 0)"
+        v-if="showSuggest"
         class="absolute top-full left-0 right-0 mt-1 rounded-sm border border-(--color-border) bg-(--color-surface) shadow-lg overflow-hidden z-(--z-dropdown)"
       >
         <!-- 后端联想词 -->
@@ -344,6 +347,21 @@ function clickSuggestion(item) {
             <span class="truncate flex-1 text-(--color-text)">{{ word }}</span>
           </button>
         </template>
+
+        <!-- 搜索模式与提交 -->
+        <div class="flex items-center justify-between border-t border-(--color-border) px-3 py-2">
+          <label class="flex items-center gap-2 text-xs text-(--color-text-muted) cursor-pointer select-none">
+            <input v-model="searchContent" type="checkbox" class="accent-primary-500" />
+            搜索文件正文
+          </label>
+          <button
+            type="button"
+            class="text-xs font-medium text-primary-500 hover:underline"
+            @mousedown.prevent="doSearch"
+          >
+            搜索
+          </button>
+        </div>
       </div>
     </Transition>
   </div>

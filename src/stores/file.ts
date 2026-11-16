@@ -22,6 +22,10 @@ export interface SearchParams {
   dateTo?: string
   sizeMin?: number
   sizeMax?: number
+  /** filename=文件名搜索（默认），content=全文检索 */
+  mode?: 'filename' | 'content'
+  pageNum?: number
+  pageSize?: number
 }
 
 /** searchByParams 的可选回调：transform 加工结果列表，onFresh 在最新响应落地后触发 */
@@ -514,8 +518,37 @@ export const useFileStore = defineStore('file', (): FileStore => {
     isLoadingMore.value = false
     pageNum.value = 1
     setTableLoading(true)
+
+    const { mode, pageNum: paramPageNum, pageSize: paramPageSize, ...query } = params
+    if (mode === 'content') {
+      fileService.fulltextSearch(
+        {
+          ...query,
+          pageNum: paramPageNum ?? 1,
+          pageSize: paramPageSize ?? 50
+        },
+        (res: ApiResponse<PageVO<IFileVO>>) => {
+          if (seq !== requestSeq) return
+          const raw = res.data?.records || []
+          const list = hooks?.transform ? hooks.transform(raw) : raw
+          setFileList(list)
+          setTableLoading(false)
+          hasMore.value = Boolean(res.data?.hasMore)
+          total.value = Number(res.data?.total ?? list.length)
+          hooks?.onFresh?.(list)
+        },
+        (res: ApiResponse<unknown>) => {
+          if (seq !== requestSeq) return
+          setTableLoading(false)
+          if (hooks?.onError) hooks.onError(res)
+          else ElMessage.error(res.message)
+        }
+      )
+      return
+    }
+
     fileService.search(
-      params,
+      query,
       (res: ApiResponse<IFileVO[]>) => {
         if (seq !== requestSeq) return // 已有更新的请求，丢弃过期响应
         const raw = res.data || []

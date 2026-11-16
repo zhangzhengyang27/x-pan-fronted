@@ -15,7 +15,7 @@ const props = defineProps({
 })
 
 const containerRef = ref(null)
-let player = null
+let player: { destroy: () => void } | null = null
 
 onMounted(async () => {
   if (!containerRef.value) return

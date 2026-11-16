@@ -3,7 +3,7 @@
  * 支持图片 / 视频 / 音频 / PDF / 文本 / Office / 其它
  */
 import panUtil from '@/utils/common'
-import { getToken } from '@/utils/cookie'
+import { getXsrfToken } from '@/utils/cookie'
 import { resolvePreviewPlugin } from '@/utils/preview-plugin'
 
 export type PreviewKind =
@@ -174,12 +174,22 @@ export function resolvePreviewUrl(
       : ''
 
   // 并发去重：同一 key 的在途请求共享一个 Promise，避免重复请求后端
+  // 团队空间：需携带与主 axios 实例一致的 X-Space-Id，否则后端按个人空间归属校验会失败
+  let spaceId = ''
+  try {
+    spaceId = localStorage.getItem('xpan_space_id') || ''
+  } catch {
+    /* 隐私模式下读取失败：按个人空间处理 */
+  }
   const p = fetch(
     `${panUtil.getUrlPrefix()}/file/preview/url?fileId=${encodeURIComponent(String(fileId))}${sizeQuery}`,
     {
       method: 'POST',
+      // 登录态由同源 Cookie 携带；POST 需通过 CSRF 双提交校验
+      credentials: 'same-origin',
       headers: {
-        Authorization: getToken()
+        'X-XSRF-TOKEN': getXsrfToken(),
+        ...(spaceId ? { 'X-Space-Id': spaceId } : {})
       }
     }
   )

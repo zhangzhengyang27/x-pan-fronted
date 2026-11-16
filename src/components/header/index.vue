@@ -10,9 +10,10 @@ import { Cloud, Sun, Moon, Keyboard, Menu, Sparkles } from '@lucide/vue'
 import { useRoute } from 'vue-router'
 import { useTheme } from '@/composables/useTheme'
 import PanUserInfo from '@/components/user-info/index.vue'
+import SpaceSwitcher from '@/components/space-switcher/index.vue'
 import NotificationBell from '@/components/base/NotificationBell.vue'
 import PanTaskList from '@/components/task-list/index.vue'
-import { getToken } from '@/utils/cookie'
+import { hasLoginSession } from '@/utils/cookie'
 import PanSearch from '@/components/search/index.vue'
 import BaseTooltip from '@/components/base/BaseTooltip.vue'
 import AIAssistant from '@/components/base/AIAssistant.vue'
@@ -96,7 +97,7 @@ function openMobileSearch() {
       <PanTaskList />
 
       <!-- 通知 -->
-      <NotificationBell v-if="!!getToken()" />
+      <NotificationBell v-if="hasLoginSession()" />
 
       <!-- 头像 -->
       <PanUserInfo />
@@ -208,8 +209,11 @@ function openMobileSearch() {
           </button>
         </BaseTooltip>
 
+        <!-- 空间切换（登录后显示） -->
+        <SpaceSwitcher v-if="hasLoginSession()" />
+
         <!-- 通知铃铛（登录后显示） -->
-        <NotificationBell v-if="!!getToken()" />
+        <NotificationBell v-if="hasLoginSession()" />
 
         <!-- 用户信息 -->
         <PanUserInfo />

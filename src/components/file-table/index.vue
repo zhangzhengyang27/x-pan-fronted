@@ -24,6 +24,7 @@ import FileCardList from './FileCardList.vue'
 import { useFileTags } from '@/composables/useFileTags'
 import { getDownloadUrl, invalidatePreviewUrl } from '@/utils/preview'
 import { removeThumbnailFromCache } from '@/utils/thumbnail-cache'
+import { shouldSkipGlobalKeydown } from '@/utils/keyboard'
 import { invalidateVideoCoverCache } from '@/composables/useVideoCover'
 import { useDrivePreview } from '@/composables/useDrivePreview'
 import DrivePreviewModal from '@/components/preview/drive-preview-modal.vue'
@@ -293,6 +294,22 @@ function openNewPage(name: string, params: Record<string, string>, query: Record
   window.open(href, '_blank')
 }
 
+/** 新标签页打开在线编辑页（图片 / Office / Markdown / 纯文本） */
+function openEditor(row: Record<string, any>) {
+  if (!row) return
+  const name = String(row.filename || '').toLowerCase()
+  const i = name.lastIndexOf('.')
+  const suffix = i >= 0 ? name.slice(i + 1) : ''
+  const isImage = ['jpg', 'jpeg', 'png', 'webp'].includes(suffix)
+  const isOffice = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(suffix)
+  const { href } = router.resolve({
+    name: isImage ? 'EditImage' : isOffice ? 'EditOffice' : 'EditMarkdown',
+    params: { fileId: row.fileId },
+    query: { filename: row.filename || '' }
+  })
+  window.open(href, '_blank', 'noopener,noreferrer')
+}
+
 function clickFilename(row: Record<string, any>) {
   // 文件夹：进入目录（后端统一用 fileType === 0 判断，type === 'folder' 为冗余字段）
   if (row.fileType === 0) {
@@ -461,6 +478,9 @@ function goUp() {
 }
 
 function onKeyDown(e: KeyboardEvent) {
+  // 弹窗（预览/确认框等原生 dialog）打开或事件已被预览器等处理器处理时，
+  // 列表键盘操作必须跳过——否则看视频按 → 快进的同时会"打开高亮行"
+  if (shouldSkipGlobalKeydown(e)) return
   const tag = (e.target as HTMLElement)?.tagName?.toLowerCase()
   if (tag === 'input' || tag === 'textarea' || (e.target as HTMLElement)?.isContentEditable) return
   const len = filteredList.value.length
@@ -790,6 +810,14 @@ const ctxItems = computed(() => {
       action: () => (isFolder ? goInFolder(r.fileId) : onRowDblclick(r))
     },
     {
+      key: 'edit',
+      label: '在线编辑',
+      icon: Edit2,
+      // 仅单文件 Markdown/纯文本/图片/Office 支持（与后端编辑能力保持一致）
+      visible: !isMulti && !isFolder && /\.(md|markdown|txt|jpg|jpeg|png|webp|doc|docx|xls|xlsx|ppt|pptx)$/i.test(r.filename || ''),
+      action: () => openEditor(r)
+    },
+    {
       key: 'download',
       label: isMulti ? `下载 ${selectedRows.value.length} 项` : '下载',
       icon: Download,
@@ -961,15 +989,25 @@ defineExpose({
 onMounted(() => {
   fileStore.setMultipleSelection([])
   window.addEventListener('keydown', onKeyDown)
+  window.addEventListener('storage', onStorageChanged)
   setupIntersectionObserver()
   ensureFavoritesLoaded()
 })
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeyDown)
+  window.removeEventListener('storage', onStorageChanged)
   // 卸载时移除框选的 window 监听，避免操作已销毁实例
   removeSelListeners()
   teardownIntersectionObserver()
 })
+
+/** 其它标签页在线编辑保存后，自动失效该文件缓存并刷新当前文件列表 */
+function onStorageChanged(e: StorageEvent) {
+  if (!e.key || !e.key.startsWith('xpan:file-changed:')) return
+  const changedId = e.key.substring('xpan:file-changed:'.length)
+  if (changedId) invalidateMediaCache([{ fileId: changedId }])
+  fileStore.loadFileList()
+}
 
 </script>
 
@@ -1031,10 +1069,18 @@ onBeforeUnmount(() => {
                 rounded="rounded-md"
                 class="ring-1 ring-(--color-border)/60"
               />
-              <span
-                class="truncate text-[13.5px] font-medium text-(--color-text) group-hover:text-primary-600 transition-colors"
-              >
-                {{ row.filename }}
+              <span class="flex min-w-0 flex-col">
+                <span
+                  class="truncate text-[13.5px] font-medium text-(--color-text) group-hover:text-primary-600 transition-colors"
+                >
+                  {{ row.filename }}
+                </span>
+                <span
+                  v-if="row.matchText"
+                  class="truncate text-[11px] leading-4 text-(--color-text-muted)"
+                >
+                  {{ row.matchText }}
+                </span>
               </span>
             </button>
           </BaseTooltip>

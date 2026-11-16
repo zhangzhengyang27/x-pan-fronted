@@ -6,7 +6,6 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { Bell, CheckCheck } from '@lucide/vue'
 import notificationService, { type INotificationVO } from '@/api/notification'
-import { getToken } from '@/utils/cookie'
 import { ElMessage } from '@/composables/useToast'
 import BasePopover from '@/components/base/BasePopover.vue'
 

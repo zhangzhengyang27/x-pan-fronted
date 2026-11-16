@@ -20,7 +20,7 @@ import CopyButton from '@/components/buttons/copy-button/index.vue'
 import TransferButton from '@/components/buttons/transfer-button/index.vue'
 
 const props = defineProps({
-  buttonArray: { type: Array, default: () => [] },
+  buttonArray: { type: Array, default: (): string[] => [] },
   /** 显式传入选中行数组；未提供时回退到 store 多选 */
   selectedRows: { type: Array, default: undefined }
 })

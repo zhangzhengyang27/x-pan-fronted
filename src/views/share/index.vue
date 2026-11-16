@@ -9,12 +9,12 @@ import userService from '@/api/user'
 import fileService from '@/api/file'
 import {
   clearShareToken,
-  clearToken,
+  clearSession,
   getShareToken,
-  setShareToken,
-  setToken
+  setShareToken
 } from '@/utils/cookie'
 import shareService from '@/api/share'
+import type { IFileVO, IShareVO } from '@/types'
 import { onMounted, onUnmounted, reactive, ref, computed } from 'vue'
 import { useBreakpoint } from '@/composables/useMediaQuery'
 import { ElMessage, ElMessageBox } from '@/composables/useToast'
@@ -73,9 +73,9 @@ const selected = ref([])
 const downloadCount = ref(0)
 const downloadLimit = ref(0)
 const countdownText = ref('')
-let countdownTimer = null
+let countdownTimer: ReturnType<typeof setInterval> | null = null
 
-function startCountdown(expireAt) {
+function startCountdown(expireAt: string | null) {
   if (!expireAt) {
     countdownText.value = '永久有效'
     if (countdownTimer) clearInterval(countdownTimer)
@@ -120,7 +120,7 @@ const displayColumns = computed(() =>
     : columns
 )
 
-function refreshShareInfo(data) {
+function refreshShareInfo(data: IShareVO) {
   const u = data.shareUserInfoVO.username
   shareCodeHeader.value = u + '的分享：' + data.shareName
   shareDate.value = data.createTime
@@ -192,7 +192,7 @@ async function exit() {
   if (!ok) return
   userService.exit(
     () => {
-      clearToken()
+      clearSession()
       loginFlag.value = false
       username.value = ''
     },
@@ -207,9 +207,9 @@ function doLogin() {
   loading.value = true
   userService.login(
     { username: loginForm.username, password: loginForm.password },
-    (res) => {
+    () => {
       loading.value = false
-      setToken(res.data as unknown as string)
+      // 登录成功：后端已写入 HttpOnly Cookie
       loginDialogVisible.value = false
       loadUserInfo()
     },
@@ -239,30 +239,30 @@ function doCheckShareCode() {
   )
 }
 
-function handleSelectionChange(keys) {
+function handleSelectionChange(keys: (string | number)[]) {
   // keys 由 BaseTable 按 rowKey=fileId 生成；fileId 对分享文件必存在，
   // 用 index 兜底反而与 keys 不匹配，直接按 fileId 过滤即可。
   const rows = tableData.value.filter((r) => keys.includes(r.fileId))
   multipleSelection.value = rows
 }
 
-function clickFilename(row) {
+function clickFilename(row: Partial<IFileVO>) {
   if (row.folderFlag === 1) goInFolder(row)
 }
 
-function goInFolder(row) {
+function goInFolder(row: Partial<IFileVO>) {
   breadCrumbs.value.push({ id: row.fileId, name: row.filename })
   reloadTableData(row.fileId)
 }
 
-function reloadTableData(parentId) {
+function reloadTableData(parentId: string) {
   shareService.getShareFiles({ parentId }, (res) => {
     if (res.code === 0) tableData.value = res.data
     else window.location.reload()
   })
 }
 
-function goToThis(id) {
+function goToThis(id: string) {
   if (id === '-1') {
     breadCrumbs.value = [{ id: '-1', name: '全部文件' }]
     loadShareInfo()
@@ -277,7 +277,7 @@ function goToThis(id) {
   }
 }
 
-function doDownLoads(items, i = 0) {
+function doDownLoads(items: IFileVO[], i = 0) {
   if (items.length === i) return
   setTimeout(() => {
     doDownload(items[i])
@@ -285,7 +285,7 @@ function doDownLoads(items, i = 0) {
   }, 500)
 }
 
-function doDownload(item) {
+function doDownload(item: Partial<IFileVO>) {
   if (!item || !item.fileId) return ElMessage.warning('文件信息缺失，无法下载')
   if (item.folderFlag === 1) return ElMessage.error('文件夹暂不支持下载')
   userService.infoWithoutPageJump((res) => {
@@ -320,7 +320,7 @@ function doChoseTreeNodeCallBack() {
   doSaveFiles(treeCheckedNode.value.id)
 }
 
-function saveFiles(newItem) {
+function saveFiles(newItem?: Partial<IFileVO>) {
   if (newItem) item.value = newItem
   else if (!multipleSelection.value.length) return ElMessage.error('请选择要保存的文件')
   userService.infoWithoutPageJump((res) => {
@@ -340,7 +340,7 @@ function saveFiles(newItem) {
   })
 }
 
-function doSaveFiles(targetParentId) {
+function doSaveFiles(targetParentId: string) {
   let fileIds: string[] = []
   if (item.value) fileIds = [item.value.fileId]
   else fileIds = multipleSelection.value.map((it) => it.fileId)

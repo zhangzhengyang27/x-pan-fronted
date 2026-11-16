@@ -38,7 +38,7 @@ const form = reactive({
 
 // 倒计时
 const countdown = ref(0)
-let countdownTimer = null
+let countdownTimer: ReturnType<typeof setInterval> | null = null
 
 const countdownText = computed(() => {
   if (countdown.value <= 0) return '重新发送'

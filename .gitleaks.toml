@@ -1,0 +1,13 @@
+# Gitleaks 配置 —— X-Pan 前端
+[extend]
+useDefault = true
+
+[allowlist]
+description = "仅允许文档与示例占位符"
+regexes = [
+  '''请替换为''',
+]
+paths = [
+  '''.env.example''',
+  '''.env.local''',
+]

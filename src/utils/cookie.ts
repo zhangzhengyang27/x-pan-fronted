@@ -1,5 +1,8 @@
 /**
  * Cookie 工具 - TypeScript 版
+ *
+ * 登录 token 由后端写入 HttpOnly Cookie，前端 JavaScript 无法读取；
+ * 前端仅读写非敏感的登录标记与 CSRF Token。
  */
 
 'use strict'
@@ -7,6 +10,8 @@
 import Cookies from 'js-cookie'
 
 const LOGIN_TOKEN = 'login_token'
+const LOGIN_MARKER = 'xpan_logged_in'
+const CSRF_COOKIE = 'XSRF-TOKEN'
 const SHARE_TOKEN = 'share_token'
 const CLIENT_ID_KEY = 'client_id'
 const EMPTY_STR = ''
@@ -30,19 +35,30 @@ export function getClientId(): string {
   return id
 }
 
-/** 写入登录 token（默认 1 天，SameSite=Lax 防 CSRF） */
-export function setToken(token: string): void {
-  Cookies.set(LOGIN_TOKEN, token, { expires: 1, sameSite: 'Lax' })
+/**
+ * 是否存在登录态标记。
+ * 真正的 token 在 HttpOnly Cookie 中，前端只读取这个非敏感标记；
+ * 标记存在但会话已失效时，由 `/user/` 接口返回 code=10 触发重新登录。
+ */
+export function hasLoginSession(): boolean {
+  return Cookies.get(LOGIN_MARKER) === '1'
 }
 
-/** 读取登录 token；无则返回空串（保持调用方逻辑兼容） */
-export function getToken(): string {
-  const token = Cookies.get(LOGIN_TOKEN)
-  return token ?? EMPTY_STR
+/**
+ * 读取 CSRF Token（非 HttpOnly，双提交校验用）。
+ */
+export function getXsrfToken(): string {
+  return Cookies.get(CSRF_COOKIE) ?? EMPTY_STR
 }
 
-/** 清除登录 token */
-export function clearToken(): void {
+/**
+ * 清除前端可读的登录标记与 CSRF Token。
+ * HttpOnly 的 login_token 由后端在登出响应中清除。
+ */
+export function clearSession(): void {
+  Cookies.remove(LOGIN_MARKER)
+  Cookies.remove(CSRF_COOKIE)
+  // 兼容旧版本前端写入的非 HttpOnly token
   Cookies.remove(LOGIN_TOKEN)
 }
 
@@ -53,8 +69,7 @@ export function setShareToken(token: string): void {
 
 /** 读取分享 token */
 export function getShareToken(): string {
-  const token = Cookies.get(SHARE_TOKEN)
-  return token ?? EMPTY_STR
+  return Cookies.get(SHARE_TOKEN) ?? EMPTY_STR
 }
 
 /** 清除分享 token */

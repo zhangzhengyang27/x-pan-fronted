@@ -57,8 +57,56 @@ export interface ILoginReq {
 export interface IRegisterReq {
   username: string
   password: string
+  rePassword?: string
   email?: string
+  emailCode?: string
   answer?: string
+}
+
+// ─── 团队空间 ───────────────────────────────────────────────────
+export interface ISpaceVO {
+  /** 空间 ID（个人空间等于用户 ID） */
+  spaceId: string
+  spaceName: string
+  /** PERSONAL / TEAM */
+  spaceType: string
+  /** OWNER / ADMIN / MEMBER / VIEWER */
+  role: string
+  ownerUserId: string
+  ownerUsername: string
+  /** 根目录加密 ID */
+  rootFileId: string
+  usedSize: number
+  totalSize: number
+  memberCount: number
+  createTime?: string
+}
+
+export interface ISpaceMemberVO {
+  userId: string
+  username: string
+  role: string
+  joinTime?: string
+}
+
+export interface ISpaceInviteVO {
+  id: string
+  inviteCode: string
+  inviteUrl: string
+  expireTime?: string | null
+  maxUses: number
+  usedCount: number
+  status: number
+  createTime?: string
+}
+
+export interface ISpaceInvitePreviewVO {
+  spaceId: string
+  spaceName: string
+  ownerUsername: string
+  inviterUsername: string
+  memberCount: number
+  alreadyMember: boolean
 }
 
 // ─── 文件 ───────────────────────────────────────────────────────
@@ -98,6 +146,10 @@ export interface IFileVO {
   fileSizeDesc?: string
   /** 父文件夹名（详情/列表接口附带，用于展示位置） */
   parentFilename?: string
+  /** 全文检索命中片段（纯文本） */
+  matchText?: string
+  /** 全文检索命中字段：filename/content */
+  matchField?: string
 }
 
 export interface IUploadChunkReq {
@@ -165,6 +217,10 @@ export interface IShareVO {
   saveCount?: number
   /** 兼容创建/详情接口可能附带的文件信息 */
   fileList?: IFileVO[]
+  /** 分享详情报文：分享文件列表（对齐后端 ShareDetailVO） */
+  xPanUserFileVOList?: IFileVO[]
+  /** 分享详情报文：过期类型（0=永久） */
+  shareDay?: number
   fileId?: string
   /** 分享详情接口附带的分享者信息 */
   shareUserInfoVO?: { username: string }
@@ -209,22 +265,20 @@ export interface IOfflineCreateReq {
 }
 
 // ─── 文件版本 ───────────────────────────────────────────────────
-export type VersionOperation = 'UPLOAD' | 'ROLLBACK' | 'UPDATE' | 'DELETE'
+export type VersionOperation = 'UPLOAD' | 'MODIFY' | 'RENAME' | 'ROLLBACK' | 'DELETE'
 
+/** 对齐后端 FileVersionVO 契约 */
 export interface IFileVersionVO {
   id: string
   fileId: string
-  versionNumber: number
+  versionNo: number
   filename: string
-  fileSize: string | number
-  realPath: string
-  identifier: string
+  fileSizeDesc: string
+  contentHash?: string
   operation: VersionOperation
-  operatorId: string
-  operatorName?: string
-  comment?: string
   current: boolean
-  createTime: string
+  operationTime: string
+  remark?: string
 }
 
 // ─── 通用筛选/排序 ─────────────────────────────────────────────

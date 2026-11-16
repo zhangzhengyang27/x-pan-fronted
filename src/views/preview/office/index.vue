@@ -9,8 +9,8 @@
  * 4. 若后端转 PDF 失败（status=3）或未启用 LibreOffice，降级用 @vue-office 直接渲染原文件
  */
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
-import { Download, LoaderCircle, AlertTriangle } from '@lucide/vue'
+import { useRoute, useRouter } from 'vue-router'
+import { Download, LoaderCircle, AlertTriangle, Edit3 } from '@lucide/vue'
 import {
   getDownloadUrl,
   getFileExtension,
@@ -26,9 +26,24 @@ import previewService from '@/api/preview'
 import { ElMessage } from '@/composables/useToast'
 
 const route = useRoute()
+const router = useRouter()
 const fileId = computed(() => String(route.params.fileId || ''))
 const filename = computed(() => String(route.query.filename || 'office'))
 const ext = computed(() => getFileExtension(filename.value))
+
+/** 支持 OnlyOffice 在线编辑的扩展名 */
+const EDITABLE_EXTS = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx']
+const canEdit = computed(() => EDITABLE_EXTS.includes(ext.value))
+
+/** 新标签页打开 OnlyOffice 编辑器 */
+function openEditor() {
+  const { href } = router.resolve({
+    name: 'EditOffice',
+    params: { fileId: fileId.value },
+    query: { filename: filename.value }
+  })
+  window.open(href, '_blank', 'noopener,noreferrer')
+}
 
 const kind = computed(() => {
   const e = ext.value
@@ -152,14 +167,22 @@ onBeforeUnmount(clearPoll)
         <h1 class="text-base font-medium truncate">{{ filename }}</h1>
         <span class="text-xs text-(--color-text-muted) uppercase">.{{ ext }}</span>
       </div>
-      <a :href="downloadUrl" target="_blank">
-        <BaseButton variant="secondary" size="sm">
+      <div class="flex items-center gap-2">
+        <BaseButton v-if="canEdit" variant="primary" size="sm" @click="openEditor">
           <span class="inline-flex items-center gap-1.5">
-            <Download :size="14" />
-            下载
+            <Edit3 :size="14" />
+            在线编辑
           </span>
         </BaseButton>
-      </a>
+        <a :href="downloadUrl" target="_blank">
+          <BaseButton variant="secondary" size="sm">
+            <span class="inline-flex items-center gap-1.5">
+              <Download :size="14" />
+              下载
+            </span>
+          </BaseButton>
+        </a>
+      </div>
     </header>
     <main class="flex-1 min-h-0">
       <!-- 转换中 -->

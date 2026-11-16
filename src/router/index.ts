@@ -2,10 +2,11 @@ import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
 import 'nprogress/nprogress.css'
 import NProgress from 'nprogress'
-import { getToken, clearToken } from '@/utils/cookie'
+import { hasLoginSession, clearSession } from '@/utils/cookie'
 import userService from '@/api/user'
 import { useUserStore } from '@/stores/user'
 import { useFileStore } from '@/stores/file'
+import { useSpaceStore } from '@/stores/space'
 import { ElMessage } from '@/composables/useToast'
 
 const routes: RouteRecordRaw[] = [
@@ -74,6 +75,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/list-page/vault/index.vue')
       },
       {
+        path: '/spaces',
+        name: 'Spaces',
+        component: () => import('@/views/space/index.vue')
+      },
+      {
         path: '/stats',
         name: 'Stats',
         component: () => import('@/views/list-page/stats/index.vue')
@@ -96,6 +102,11 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/forget/index.vue')
   },
   {
+    path: '/join',
+    name: 'JoinSpace',
+    component: () => import('@/views/space/join.vue')
+  },
+  {
     path: '/share/:shareId',
     name: 'Share',
     component: () => import('@/views/share/index.vue')
@@ -104,6 +115,21 @@ const routes: RouteRecordRaw[] = [
     path: '/preview/code/:fileId',
     name: 'PreviewCode',
     component: () => import('@/views/preview/code/index.vue')
+  },
+  {
+    path: '/edit/markdown/:fileId',
+    name: 'EditMarkdown',
+    component: () => import('@/views/edit/markdown/index.vue')
+  },
+  {
+    path: '/edit/image/:fileId',
+    name: 'EditImage',
+    component: () => import('@/views/edit/image/index.vue')
+  },
+  {
+    path: '/edit/office/:fileId',
+    name: 'EditOffice',
+    component: () => import('@/views/edit/office/index.vue')
   },
   {
     path: '/preview/office/:fileId',
@@ -167,7 +193,7 @@ const whiteList = ['Login', 'Register', 'Forget', 'Share', 'Agreement', 'Privacy
 
 router.beforeEach((to, from, next) => {
   NProgress.start()
-  const hasToken = getToken()
+  const hasToken = hasLoginSession()
   const userStore = useUserStore()
   const fileStore = useFileStore()
   if (hasToken && toIndexPageList.indexOf(to.name as string) !== -1) {
@@ -203,21 +229,36 @@ router.beforeEach((to, from, next) => {
         window.clearTimeout(timeoutId)
         // 清掉上一次登录残留的目录缓存（避免新账号首屏显示旧目录）
         try { localStorage.removeItem('xpan:parentId') } catch {}
-        fileStore.setParentId(res.data.rootFileId)
-        fileStore.setDefaultParentId(res.data.rootFileId)
-        fileStore.setDefaultParentFilename(res.data.rootFilename)
+        const spaceStore = useSpaceStore()
+        const applyRoot = (rootFileId: string, rootFilename: string) => {
+          fileStore.setParentId(rootFileId)
+          fileStore.setDefaultParentId(rootFileId)
+          fileStore.setDefaultParentFilename(rootFilename)
+        }
         userStore.setUsername(res.data.username)
+        userStore.setEmail(res.data.email || '')
         // 初始化存储空间（后端字段为 usedSize/totalSize）
         if (res.data.usedSize !== undefined && res.data.totalSize !== undefined) {
           userStore.setQuota(res.data.usedSize, res.data.totalSize)
         }
+        if (spaceStore.currentSpaceId) {
+          // 已选择团队空间：以空间根目录和空间配额为准
+          spaceStore.loadSpaces().then(() => {
+            const current = spaceStore.currentSpace
+            applyRoot(current?.rootFileId || res.data.rootFileId,
+              current?.spaceName || res.data.rootFilename)
+            finishNext()
+          })
+          return
+        }
+        applyRoot(res.data.rootFileId, res.data.rootFilename)
         finishNext()
       },
       (res) => {
         window.clearTimeout(timeoutId)
         // 区分「用户取消登录」与「真实错误」：取消时停留在当前页，不强制跳转
         if (res && (res.code === 10 || res.code === 401)) {
-          clearToken()
+          clearSession()
           userStore.clear()
           next({ name: 'Login', query: { redirect: to.fullPath } })
           NProgress.done()

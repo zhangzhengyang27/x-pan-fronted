@@ -11,7 +11,7 @@ import axios, {
   type InternalAxiosRequestConfig
 } from 'axios'
 import { ElMessage } from '@/composables/useToast'
-import { getShareToken, getToken } from '@/utils/cookie'
+import { getShareToken, getXsrfToken } from '@/utils/cookie'
 import panUtil from '@/utils/common'
 import type { ApiResponse } from '@/types'
 
@@ -22,6 +22,7 @@ function genTraceId(): string {
 const simpleHttp: AxiosInstance = axios.create({
   baseURL: panUtil.getUrlPrefix(),
   timeout: 1000 * 60,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json;charset=utf-8'
   }
@@ -36,9 +37,12 @@ simpleHttp.interceptors.request.use(
     // 避免提取码校验成功后详情/文件列表/保存仍被拦截。token 缺失或过期时由页面引导重新输入提取码。
     const shareToken = getShareToken()
     if (shareToken) config.headers['Share-Token'] = shareToken
-    // 若已登录（如"保存到我的网盘"），顺带携带登录凭证；对 @LoginIgnore 的公开接口无副作用
-    const token = getToken()
-    if (token) config.headers['Authorization'] = token
+    // 已登录时（如"保存到我的网盘"）登录态由同源 HttpOnly Cookie 自动携带
+    const method = (config.method || 'get').toLowerCase()
+    if (!['get', 'head', 'options'].includes(method)) {
+      const xsrf = getXsrfToken()
+      if (xsrf) config.headers['X-XSRF-TOKEN'] = xsrf
+    }
     config.headers['X-Pan-Trace-Id'] = genTraceId()
     return config
   },

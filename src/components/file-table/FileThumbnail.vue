@@ -45,7 +45,7 @@ const imageLoaded = ref(false)
 const imageErrored = ref(false)
 
 const visual = computed(() => {
-  const t = props.file.fileType
+  const t = props.file.fileType as number
   if (t === 0) {
     return {
       bg: 'bg-linear-to-br from-primary-100 to-primary-200 dark:from-primary-900/40 dark:to-primary-800/40',

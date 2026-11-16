@@ -24,7 +24,7 @@ const { isDark } = useTheme()
 const containerRef = ref(null)
 const loading = ref(true)
 const error = ref('')
-let vditor = null
+let vditor: InstanceType<typeof Vditor> | null = null
 
 // 目录数据：{ level, text, index }，index 用于映射到渲染后的第 N 个标题节点
 const headings = ref<{ level: number; text: string; index: number }[]>([])

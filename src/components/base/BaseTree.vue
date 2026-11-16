@@ -6,15 +6,16 @@
 import type { PropType } from 'vue'
 import BaseTreeNode from '@/components/base/BaseTreeNode.vue'
 
-interface TreeNodeData {
+export interface TreeNodeData {
   id?: string | number
   label?: string
+  disabled?: boolean
   children?: TreeNodeData[]
   [key: string]: unknown
 }
 
 defineProps({
-  data: { type: Array as PropType<TreeNodeData[]>, default: () => [] }
+  data: { type: Array as PropType<TreeNodeData[]>, default: (): TreeNodeData[] => [] }
 })
 const emit = defineEmits<{
   select: [node: TreeNodeData]

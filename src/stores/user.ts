@@ -4,11 +4,13 @@ import { defineStore } from 'pinia'
 export interface UserStore {
   username: Ref<string>
   avatar: Ref<string>
+  email: Ref<string>
   usedSpace: Ref<number>
   totalSpace: Ref<number>
   usedPercent: ComputedRef<number>
   setUsername: (newUsername: string) => void
   setAvatar: (avatar: string) => void
+  setEmail: (email: string) => void
   setQuota: (used: number, total: number) => void
   clear: () => void
 }
@@ -16,6 +18,7 @@ export interface UserStore {
 export const useUserStore = defineStore('user', (): UserStore => {
   const username = ref<string>('')
   const avatar = ref<string>('')
+  const email = ref<string>('')
   const usedSpace = ref<number>(0)
   const totalSpace = ref<number>(100 * 1024 * 1024 * 1024) // 100 GB
 
@@ -32,6 +35,10 @@ export const useUserStore = defineStore('user', (): UserStore => {
     avatar.value = newAvatar || ''
   }
 
+  function setEmail(newEmail: string): void {
+    email.value = newEmail || ''
+  }
+
   function setQuota(used: number, total: number): void {
     if (typeof used === 'number') usedSpace.value = used
     if (typeof total === 'number' && total > 0) totalSpace.value = total
@@ -40,6 +47,7 @@ export const useUserStore = defineStore('user', (): UserStore => {
   function clear(): void {
     username.value = ''
     avatar.value = ''
+    email.value = ''
     usedSpace.value = 0
     totalSpace.value = 100 * 1024 * 1024 * 1024
   }
@@ -47,11 +55,13 @@ export const useUserStore = defineStore('user', (): UserStore => {
   return {
     username,
     avatar,
+    email,
     usedSpace,
     totalSpace,
     usedPercent,
     setUsername,
     setAvatar,
+    setEmail,
     setQuota,
     clear
   }

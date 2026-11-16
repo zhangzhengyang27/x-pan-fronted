@@ -15,6 +15,7 @@ import BaseButton from '@/components/base/BaseButton.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
 import BaseTooltip from '@/components/base/BaseTooltip.vue'
 import { useBreakpoint } from '@/composables/useMediaQuery'
+import type { IShareVO } from '@/types'
 
 const { isMobile } = useBreakpoint()
 const tableData = ref([])
@@ -57,7 +58,7 @@ function loadTableData() {
   )
 }
 
-function copyShare(row) {
+function copyShare(row: Partial<IShareVO>) {
   // 用浏览器当前地址动态拼接分享链接，避免数据库 shareUrl 指向后端端口（如 127.0.0.1:8081）打不开前端分享页面
   const url = `${window.location.origin}/share/${row.shareId}`
   const text = row.shareCode
@@ -70,7 +71,7 @@ function copyShare(row) {
   }
 }
 
-function fallbackCopy(text) {
+function fallbackCopy(text: string) {
   const ta = document.createElement('textarea')
   ta.value = text
   ta.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0'
@@ -115,7 +116,7 @@ function cancelShares() {
   doCancelShares(ids)
 }
 
-function cancelShare(row) {
+function cancelShare(row: Partial<IShareVO>) {
   doCancelShares([row.shareId])
 }
 
@@ -142,16 +143,16 @@ const summary = computed(() => {
   }
 })
 
-function isPublicShare(row) {
+function isPublicShare(row: Partial<IShareVO>) {
   return row.shareType === 0
 }
 
-function isExpired(row) {
+function isExpired(row: Partial<IShareVO>) {
   if (!row.shareEndTime) return false
   return new Date(row.shareEndTime).getTime() < Date.now()
 }
 
-function formatExpireTime(row) {
+function formatExpireTime(row: Partial<IShareVO>) {
   if (!row.shareEndTime) return '永久'
   return row.shareEndTime.split(' ')[0]
 }
