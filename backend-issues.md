@@ -178,3 +178,13 @@
 
 > 更新时间：2026-08-12
 > 关联文档：[product-optimization-plan.md](./product-optimization-plan.md) Step 7
+
+## BE-03：通知单条已读 400——加密 ID 无 Long 转换器（2026-11-16，移动端通知中心接入时发现）
+
+- **现象**：`PUT /notification/read/{id}` 的 id 是 `NotificationVO` 输出的 AES 加密字符串，
+  但 `NotificationController` 形参为 `Long id` 且全仓无 String→Long 解密 Converter → Spring
+  参数转换失败返回 400。**Web 端 NotificationBell 单条已读同样中招**（存量缺陷）。
+- **影响**：单条已读完全不可用（"全部已读"不受影响）。
+- **修复建议**：控制器改 `String id` 后 `IdUtil.decrypt`；或注册全局加密 ID 解密 Converter
+  （与 `fileId` 等其它加密 ID 端点的现有处理方式对齐）。
+- **移动端侧**：已包 try-catch + SnackBar 兜底（2026-11-16）。
