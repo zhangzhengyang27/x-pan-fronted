@@ -22,8 +22,8 @@ export interface SearchParams {
   dateTo?: string
   sizeMin?: number
   sizeMax?: number
-  /** filename=文件名搜索（默认），content=全文检索 */
-  mode?: 'filename' | 'content'
+  /** filename=文件名搜索（默认），content=全文检索，semantic=语义混合检索（不可用时后端降级为全文） */
+  mode?: 'filename' | 'content' | 'semantic'
   pageNum?: number
   pageSize?: number
 }
@@ -520,8 +520,13 @@ export const useFileStore = defineStore('file', (): FileStore => {
     setTableLoading(true)
 
     const { mode, pageNum: paramPageNum, pageSize: paramPageSize, ...query } = params
-    if (mode === 'content') {
-      fileService.fulltextSearch(
+    if (mode === 'content' || mode === 'semantic') {
+      // content=全文检索；semantic=语义混合检索（后端不可用时自动降级为全文）
+      const fetchPage =
+        mode === 'semantic'
+          ? fileService.semanticSearch.bind(fileService)
+          : fileService.fulltextSearch.bind(fileService)
+      fetchPage(
         {
           ...query,
           pageNum: paramPageNum ?? 1,

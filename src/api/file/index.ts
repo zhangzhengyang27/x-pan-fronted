@@ -102,6 +102,28 @@ const fileService = {
       .catch(reject)
   },
 
+  /** 语义搜索：向量 kNN + BM25 混合检索（后端语义链路不可用时自动降级为全文检索） */
+  semanticSearch(
+    params: {
+      keyword: string
+      fileTypes?: string
+      extensions?: string
+      dateFrom?: string
+      dateTo?: string
+      sizeMin?: number
+      sizeMax?: number
+      pageNum?: number
+      pageSize?: number
+    },
+    resolve: Callback<PageVO<IFileVO>>,
+    reject: Callback<unknown>
+  ) {
+    http
+      .get<unknown, ApiResponse<PageVO<IFileVO>>>('/search/semantic', { params })
+      .then(resolve)
+      .catch(reject)
+  },
+
   /** 搜索联想（P4-5 后端 suggest，基于用户历史 + 文件名前缀） */
   suggest(
     prefix: string,

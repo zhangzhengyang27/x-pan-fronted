@@ -223,11 +223,12 @@ function doSearch() {
     fileTypes?: string
     dateFrom?: string
     dateTo?: string
-    mode: 'filename' | 'content'
+    mode: 'filename' | 'content' | 'semantic'
   } = {
     keyword: parsed.keyword || searchKey.value,
     fileTypes: parsed.fileType != null ? String(parsed.fileType) : '-1',
-    mode: searchContent.value ? 'content' : 'filename'
+    // 正文模式走语义混合检索端点（后端语义链路不可用时自动降级为全文检索）
+    mode: searchContent.value ? 'semantic' : 'filename'
   }
   if (parsed.dateFrom) params.dateFrom = parsed.dateFrom
   if (parsed.dateTo) params.dateTo = parsed.dateTo
@@ -282,7 +283,7 @@ function clickSuggestion(item: IFileVO) {
         ref="inputRef"
         v-model="searchKey"
         type="search"
-        :placeholder="searchContent ? '搜索文件名或正文…' : '搜索文件…'"
+        :placeholder="searchContent ? '智能搜索（文件名/正文/语义）…' : '搜索文件…'"
         :prefix="SearchIcon"
         name="xpan-search"
         autocomplete="off"
@@ -352,7 +353,7 @@ function clickSuggestion(item: IFileVO) {
         <div class="flex items-center justify-between border-t border-(--color-border) px-3 py-2">
           <label class="flex items-center gap-2 text-xs text-(--color-text-muted) cursor-pointer select-none">
             <input v-model="searchContent" type="checkbox" class="accent-primary-500" />
-            搜索文件正文
+            智能搜索（正文语义）
           </label>
           <button
             type="button"
