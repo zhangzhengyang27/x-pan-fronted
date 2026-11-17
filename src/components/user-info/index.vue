@@ -6,7 +6,7 @@
 import { reactive, ref, onMounted, onUnmounted, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
-import { ChevronDown, LogOut, KeyRound, User, Monitor, Info, Camera, Mail } from '@lucide/vue'
+import { ChevronDown, LogOut, KeyRound, User, Monitor, Info, Camera, Mail, HardDrive } from '@lucide/vue'
 import userService from '@/api/user'
 import { clearSession, hasLoginSession } from '@/utils/cookie'
 import { useUserStore } from '@/stores/user'
@@ -23,6 +23,7 @@ import BaseField from '@/components/base/BaseField.vue'
 import BaseInput from '@/components/base/BaseInput.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import DeviceManagerDialog from '@/components/base/DeviceManagerDialog.vue'
+import StorageMountDialog from '@/components/base/StorageMountDialog.vue'
 
 const userStore = useUserStore()
 const { username, avatar, email, usedSpace, totalSpace, usedPercent } = storeToRefs(userStore)
@@ -47,6 +48,7 @@ const isLoggedIn = computed(() => !!userStore.username || hasLoginSession())
 const open = ref(false)
 const changePasswordDialogVisible = ref(false)
 const deviceManagerVisible = ref(false)
+const storageMountVisible = ref(false)
 const profileVisible = ref(false)
 const loading = ref(false)
 const profile = reactive<{
@@ -404,6 +406,14 @@ onMounted(initUserInfoIfNecessary)
       </button>
       <button
         type="button"
+        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-(--color-text) hover:bg-(--color-surface-2) transition-colors text-left"
+        @click="storageMountVisible = true"
+      >
+        <HardDrive :size="14" />
+        外部存储
+      </button>
+      <button
+        type="button"
         class="w-full flex items-center gap-2 px-3 py-2 text-sm text-danger hover:bg-(--color-surface-2) transition-colors text-left"
         @click="doExit"
       >
@@ -414,6 +424,9 @@ onMounted(initUserInfoIfNecessary)
 
     <!-- P3-5 设备管理弹窗 -->
     <DeviceManagerDialog v-model:open="deviceManagerVisible" />
+
+    <!-- 外部存储挂载管理弹窗 -->
+    <StorageMountDialog v-model:open="storageMountVisible" />
 
     <!-- 邮箱绑定弹窗 -->
     <BaseModal v-model:open="emailVisible" title="邮箱设置" size="md">
