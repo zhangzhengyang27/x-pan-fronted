@@ -5,8 +5,8 @@
  * 对齐 DeviceManagerDialog 交互模式。
  */
 import { ref, watch, reactive } from 'vue'
-import { HardDrive, Plus, LoaderCircle, Pencil, Trash2, PlugZap, X } from '@lucide/vue'
-import mountService, { type MountVO, type MountSave } from '@/api/mount'
+import { HardDrive, Plus, LoaderCircle, Pencil, Trash2, PlugZap, X, Folder, File as FileIcon, Download, ChevronRight, Upload as UploadIcon } from '@lucide/vue'
+import mountService, { type MountVO, type MountSave, type S3ObjectEntry } from '@/api/mount'
 import { ElMessage, ElMessageBox } from '@/composables/useToast'
 
 const props = defineProps({
@@ -14,12 +14,129 @@ const props = defineProps({
 })
 const emit = defineEmits<{ (e: 'update:open', v: boolean): void }>()
 
-const mode = ref<'list' | 'form'>('list')
+const mode = ref<'list' | 'form' | 'browse'>('list')
 const loading = ref(false)
 const testing = ref(false)
 const saving = ref(false)
 const mounts = ref<MountVO[]>([])
 const editingId = ref<string | null>(null)
+
+// 浏览模式状态
+const browsing = ref<MountVO | null>(null)
+const browsePath = ref('')
+const browseItems = ref<S3ObjectEntry[]>([])
+const browseLoading = ref(false)
+const browseTrail = ref<string[]>([]) // 面包屑段
+
+function openBrowse(m: MountVO) {
+  browsing.value = m
+  browsePath.value = ''
+  browseTrail.value = []
+  browseItems.value = []
+  mode.value = 'browse'
+  loadBrowse()
+}
+
+function loadBrowse() {
+  if (!browsing.value) return
+  browseLoading.value = true
+  mountService.browse(
+    browsing.value.id,
+    browsePath.value,
+    (res) => {
+      browseItems.value = res.data || []
+      browseLoading.value = false
+    },
+    (r) => {
+      browseLoading.value = false
+      ElMessage.error((r as { message?: string })?.message || '目录读取失败')
+    }
+  )
+}
+
+function enterDir(entry: S3ObjectEntry) {
+  if (!entry.dir) return
+  browsePath.value = entry.key
+  browseTrail.value.push(entry.display)
+  loadBrowse()
+}
+
+function upLevel() {
+  if (browseTrail.value.length === 0) {
+    mode.value = 'list'
+    return
+  }
+  browseTrail.value.pop()
+  browsePath.value = browseTrail.value.join('/')
+  loadBrowse()
+}
+
+const fileInput = ref<HTMLInputElement | null>(null)
+
+function pickUpload() {
+  fileInput.value?.click()
+}
+
+async function onUploadPicked(e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (!file || !browsing.value) return
+  mountService.upload(
+    browsing.value.id,
+    browsePath.value,
+    file,
+    () => {
+      ElMessage.success('上传成功')
+      loadBrowse()
+    },
+    (r) => {
+      ElMessage.error((r as { message?: string })?.message || '上传失败')
+    }
+  )
+}
+
+function download(entry: S3ObjectEntry) {
+  if (!browsing.value) return
+  mountService.previewUrl(
+    browsing.value.id,
+    entry.key,
+    (res) => {
+      window.open(res.data, '_blank', 'noopener')
+    },
+    (r) => {
+      ElMessage.error((r as { message?: string })?.message || '获取下载链接失败')
+    }
+  )
+}
+
+function removeEntry(entry: S3ObjectEntry) {
+  if (!browsing.value) return
+  ElMessageBox.confirm(
+    entry.dir
+      ? `删除目录"${entry.display}"及其全部内容？外部存储删除不可恢复。`
+      : `删除文件"${entry.display}"？外部存储删除不可恢复。`,
+    '删除',
+    { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' }
+  )
+    .then((ok) => {
+      if (!ok) return
+      mountService.deleteObject(
+        browsing.value!.id,
+        entry.key,
+        entry.dir,
+        (res) => {
+          const failed = res.data || []
+          ElMessage.success(failed.length ? `删除完成（${failed.length} 项失败）` : '已删除')
+          loadBrowse()
+        },
+        (r) => {
+          ElMessage.error((r as { message?: string })?.message || '删除失败')
+        }
+      )
+    })
+    .catch(() => {})
+}
 
 const form = reactive({
   name: '',
@@ -208,7 +325,7 @@ function remove(m: MountVO) {
         class="flex items-center gap-3 rounded-lg border border-(--color-border) px-3 py-2.5"
       >
         <HardDrive :size="16" class="text-(--color-text-secondary)" />
-        <div class="min-w-0 flex-1">
+        <div class="min-w-0 flex-1 cursor-pointer" title="进入浏览" @click="openBrowse(m)">
           <div class="flex items-center gap-2">
             <span class="truncate text-sm font-medium text-(--color-text)">{{ m.name }}</span>
             <span
@@ -257,8 +374,70 @@ function remove(m: MountVO) {
       </button>
     </div>
 
+    <!-- 浏览模式 -->
+    <div v-else-if="mode === 'browse' && browsing" class="flex flex-col gap-3">
+      <div class="flex items-center gap-1.5 text-sm">
+        <button type="button" class="text-(--color-text-secondary) hover:text-(--color-brand)" @click="upLevel">
+          {{ browseTrail.length ? '上级' : '返回' }}
+        </button>
+        <ChevronRight v-if="browseTrail.length" :size="12" class="text-(--color-text-secondary)" />
+        <span class="truncate font-medium text-(--color-text)">
+          {{ browsing.name }}{{ browseTrail.length ? ' / ' + browseTrail.join(' / ') : '' }}
+        </span>
+        <button
+          type="button"
+          class="ml-auto flex items-center gap-1 text-xs text-(--color-brand) hover:opacity-80"
+          @click="pickUpload"
+        >
+          <UploadIcon :size="12" />
+          上传到此目录
+        </button>
+        <input ref="fileInput" type="file" class="hidden" @change="onUploadPicked" />
+      </div>
+
+      <div v-if="browseLoading" class="flex justify-center py-6">
+        <LoaderCircle :size="20" class="animate-spin text-(--color-text-secondary)" />
+      </div>
+      <div v-else-if="browseItems.length === 0" class="py-6 text-center text-sm text-(--color-text-secondary)">
+        此目录为空
+      </div>
+      <div v-else class="flex max-h-80 flex-col divide-y divide-(--color-border) overflow-y-auto">
+        <div v-for="entry in browseItems" :key="entry.key" class="flex items-center gap-2 py-2">
+          <Folder v-if="entry.dir" :size="14" class="text-(--color-brand)" />
+          <FileIcon v-else :size="14" class="text-(--color-text-secondary)" />
+          <button
+            type="button"
+            class="min-w-0 flex-1 truncate text-left text-sm text-(--color-text) hover:text-(--color-brand)"
+            @click="entry.dir ? enterDir(entry) : download(entry)"
+          >
+            {{ entry.display }}
+          </button>
+          <span v-if="!entry.dir" class="shrink-0 text-xs text-(--color-text-secondary)">
+            {{ (entry.size / 1024).toFixed(1) }} KB
+          </span>
+          <button
+            v-if="!entry.dir"
+            type="button"
+            class="text-(--color-text-secondary) hover:text-(--color-brand)"
+            title="下载"
+            @click="download(entry)"
+          >
+            <Download :size="13" />
+          </button>
+          <button
+            type="button"
+            class="text-(--color-text-secondary) hover:text-danger"
+            title="删除"
+            @click="removeEntry(entry)"
+          >
+            <Trash2 :size="13" />
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- 表单模式 -->
-    <div v-else class="flex flex-col gap-3">
+    <div v-else-if="mode === 'form'" class="flex flex-col gap-3">
       <div class="flex items-center justify-between">
         <span class="text-sm font-medium text-(--color-text)">
           {{ editingId ? '编辑挂载点' : '添加挂载点' }}

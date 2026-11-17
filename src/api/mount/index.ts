@@ -75,6 +75,45 @@ const mountService = {
   testRaw(po: MountSave, resolve: Callback<string>, reject: Callback<unknown>) {
     http.post<unknown, ApiResponse<string>>('/mount/manage/test', po).then(resolve).catch(reject)
   },
+
+  /** 枚举挂载目录内容（path 相对挂载根；空 = 根） */
+  browse(id: string, path: string, resolve: Callback<S3ObjectEntry[]>, reject: Callback<unknown>) {
+    http
+      .get<unknown, ApiResponse<S3ObjectEntry[]>>(`/mount/${id}/list`, { params: { path, maxKeys: 200 } })
+      .then(resolve)
+      .catch(reject)
+  },
+
+  /** 上传（multipart 直传 ≤100MB；path 为目标目录） */
+  upload(id: string, path: string, file: File, resolve: Callback<string>, reject: Callback<unknown>) {
+    const form = new FormData()
+    form.append('file', file)
+    if (path) form.append('path', path)
+    http
+      .post<unknown, ApiResponse<string>>(`/mount/${id}/upload`, form, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+      .then(resolve)
+      .catch(reject)
+  },
+
+  /** 删除对象（dir=true 删除整个目录前缀，真删） */
+  deleteObject(id: string, path: string, isDir: boolean, resolve: Callback<string[]>, reject: Callback<unknown>) {
+    http
+      .delete<unknown, ApiResponse<string[]>>(`/mount/${id}`, {
+        params: { path, dir: isDir }
+      })
+      .then(resolve)
+      .catch(reject)
+  },
+
+  /** 预签名直链（预览/下载用） */
+  previewUrl(id: string, path: string, resolve: Callback<string>, reject: Callback<unknown>) {
+    http
+      .get<unknown, ApiResponse<string>>(`/mount/${id}/preview-url`, { params: { path } })
+      .then(resolve)
+      .catch(reject)
+  },
 }
 
 export default mountService
