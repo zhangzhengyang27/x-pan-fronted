@@ -23,7 +23,8 @@ import {
   BarChart3,
   Star,
   Copy as CopyIcon,
-  Users
+  Users,
+  MessageSquare as MessageSquareIcon
 } from '@lucide/vue'
 import { useResizable } from '@/composables/useResizable'
 import { useBreakpoint } from '@/composables/useMediaQuery'
@@ -59,6 +60,12 @@ const { width, startDrag } = useResizable('x-pan.navbar.width', {
 // ─── 导航分组 ──────────────────────────────────────────────────────────────
 const groups = computed(() => [
   {
+    title: '消息',
+    items: [
+      { key: 'Chat', label: '聊天', icon: MessageSquareIcon, path: '/chat', query: {} }
+    ]
+  },
+  {
     title: '文件',
     items: [
       { key: 'Files', label: '全部文件', icon: Files, path: '/files', query: {} },
@@ -84,6 +91,7 @@ const groups = computed(() => [
 ])
 
 const goMap: Record<string, { path: string }> = {
+  Chat: { path: '/chat' },
   Files: { path: '/files' },
   Imgs: { path: '/imgs' },
   Docs: { path: '/docs' },
