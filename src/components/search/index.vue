@@ -11,6 +11,7 @@ import fileService from '@/api/file'
 import { useFileStore } from '@/stores/file'
 import { useBreadcrumbStore } from '@/stores/breadcrumb'
 import { useNavbarStore } from '@/stores/navbar'
+import { ElMessage } from '@/composables/useToast'
 import { storeToRefs } from 'pinia'
 import { Search as SearchIcon } from '@lucide/vue'
 
@@ -212,6 +213,14 @@ function doSearch() {
 
   // P1-5：解析自然语言
   const parsed = parseNaturalLanguage(searchKey.value)
+
+  // NL 解析把整句都剥成筛选条件时（如"大于100MB的视频"），文件名模式没有可检索的
+  // 关键词——按整句字面搜文件名几乎必 0 结果且误导。语义模式用整句正合适（向量检索
+  // 适合自然语言），文件名模式则给出引导而不是发必空请求。
+  if (!parsed.keyword && !searchContent.value) {
+    ElMessage.info('未识别到文件名关键词：勾选「智能搜索」可按语义检索，或直接输入文件名')
+    return
+  }
 
   fileStore.setFileTypes('-1')
   navbarStore.change('Files')

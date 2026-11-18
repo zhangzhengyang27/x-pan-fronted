@@ -569,9 +569,9 @@ function setupIntersectionObserver() {
           entry.isIntersecting &&
           hasMore.value &&
           !isLoadingMore.value &&
-          !filterActive.value &&
-          !searchFlag.value
+          !filterActive.value
         ) {
+          // store.loadMore 内部区分目录翻页与搜索翻页（全文/语义），此处不再按 searchFlag 门控
           fileStore.loadMore()
         }
       }
@@ -594,7 +594,7 @@ function teardownIntersectionObserver() {
 
 // 移动端卡片列表滚动到底部时触发（等效桌面 loadMoreSentinel）
 function onLoadMore() {
-  if (hasMore.value && !isLoadingMore.value && !filterActive.value && !searchFlag.value) {
+  if (hasMore.value && !isLoadingMore.value && !filterActive.value) {
     fileStore.loadMore()
   }
 }
