@@ -1,6 +1,6 @@
 # ─── P4：前端镜像（nginx 静态服务）────────────────────────────
 # 阶段1：构建
-FROM node:20-alpine AS builder
+FROM node:26-alpine AS builder
 WORKDIR /app
 
 # 单独装依赖，利用层缓存
