@@ -113,7 +113,7 @@ http.interceptors.request.use(
  * 注：用户下载真实的 .json 文件时 Content-Type 也是 application/json——无 code 字段即放行，
  * 仅当解析出数字 code 才视为业务错误（当前 axios blob 下载仅打包下载 zip 一种，风险可控）。
  */
-export async function resolveBlobResponse(res: AxiosResponse): Promise<unknown> {
+export async function resolveBlobResponse(res: AxiosResponse): Promise<AxiosResponse> {
   const blob = res.data as unknown as Blob
   const contentType =
     ((res.headers?.['content-type'] as string) || blob?.type || '').toLowerCase()

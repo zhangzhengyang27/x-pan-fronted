@@ -32,7 +32,7 @@ const dirty = ref(false)
 const saving = ref(false)
 
 const containerRef = ref<HTMLElement | null>(null)
-let vditor: Vditor | null = null
+let vditor: InstanceType<typeof Vditor> | null = null
 let savedContent = ''
 let lockToken = ''
 let heartbeatTimer: number | undefined
