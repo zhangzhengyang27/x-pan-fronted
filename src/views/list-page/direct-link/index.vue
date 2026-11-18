@@ -9,6 +9,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { Link as LinkIcon, X, Copy, Power } from '@lucide/vue'
 import directLinkService, { type IDirectLinkVO } from '@/api/direct-link'
+import { buildDirectLinkUrl } from '@/utils/direct-link'
 import { ElMessage, ElMessageBox } from '@/composables/useToast'
 import BaseTable from '@/components/base/BaseTable.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
@@ -53,7 +54,8 @@ function loadTableData() {
 }
 
 function linkUrl(row: Partial<IDirectLinkVO>) {
-  return `${window.location.origin}/direct-link/stream?token=${row.token}`
+  // 直链是后端端点：必须带 API 前缀（nginx/dev 只反代 /api/），终审 Important 1 修复
+  return buildDirectLinkUrl(String(row.token || ''))
 }
 
 function copyLink(row: Partial<IDirectLinkVO>) {

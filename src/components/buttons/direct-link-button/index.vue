@@ -13,6 +13,7 @@ import { ElMessage } from '@/composables/useToast'
 import { useFileStore } from '@/stores/file'
 import { storeToRefs } from 'pinia'
 import directLinkService, { type IDirectLinkVO } from '@/api/direct-link'
+import { buildDirectLinkUrl } from '@/utils/direct-link'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseModal from '@/components/base/BaseModal.vue'
 import BaseInput from '@/components/base/BaseInput.vue'
@@ -87,7 +88,8 @@ async function doCreate() {
     (res) => {
       loading.value = false
       const vo = res.data as IDirectLinkVO
-      result.url = `${window.location.origin}/direct-link/stream?token=${vo.token}`
+      // 直链是后端端点：必须带 API 前缀（nginx/dev 只反代 /api/），终审 Important 1 修复
+      result.url = buildDirectLinkUrl(vo.token)
       title.value = '直链创建成功！'
       step.value = 2
     },
