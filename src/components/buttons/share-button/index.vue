@@ -20,6 +20,7 @@ import BaseButton from '@/components/base/BaseButton.vue'
 import BaseModal from '@/components/base/BaseModal.vue'
 import BaseInput from '@/components/base/BaseInput.vue'
 import BaseSelect from '@/components/base/BaseSelect.vue'
+import BaseCheckbox from '@/components/base/BaseCheckbox.vue'
 
 const props = defineProps({
   size: { type: String, default: 'sm' },
@@ -47,7 +48,8 @@ const form = reactive({
   shareType: '0',
   shareDayType: '0',
   shareCode: '',
-  downloadLimit: ''
+  downloadLimit: '',
+  forbidReshare: false
 })
 
 const errors = reactive({
@@ -133,6 +135,7 @@ async function openModal(item?: any) {
   form.shareDayType = '0'
   form.shareCode = randomCode()
   form.downloadLimit = ''
+  form.forbidReshare = false
   errors.shareName = ''
   errors.shareCode = ''
   errors.downloadLimit = ''
@@ -185,6 +188,7 @@ async function doConfirm() {
     shareFileIds: any[]
     shareCode?: string
     downloadLimit?: number
+    forbidReshare?: boolean
   } = {
     shareName: form.shareName,
     shareType: parseInt(form.shareType, 10),
@@ -194,6 +198,7 @@ async function doConfirm() {
   if (form.shareCode) payload.shareCode = form.shareCode
   if (form.downloadLimit !== '' && Number(form.downloadLimit) >= 0)
     payload.downloadLimit = parseInt(form.downloadLimit, 10)
+  if (form.forbidReshare) payload.forbidReshare = true
   shareService.createShare(
     payload,
     (res) => {
@@ -332,6 +337,9 @@ defineExpose({ openModal })
             <p v-if="!errors.downloadLimit" class="mt-1 text-[11px] text-(--color-text-muted)">
               达到上限后分享将失效，0 或留空表示不限制
             </p>
+          </div>
+          <div>
+            <BaseCheckbox v-model="form.forbidReshare" label="禁止转载（他人不可转存到自己网盘）" />
           </div>
         </div>
       </div>

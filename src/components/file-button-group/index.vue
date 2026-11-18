@@ -16,6 +16,7 @@ import DownloadButton from '@/components/buttons/download-button/index.vue'
 import DeleteButton from '@/components/buttons/delete-button/index.vue'
 import RenameButton from '@/components/buttons/rename-button/index.vue'
 import ShareButton from '@/components/buttons/share-button/index.vue'
+import DirectLinkButton from '@/components/buttons/direct-link-button/index.vue'
 import CopyButton from '@/components/buttons/copy-button/index.vue'
 import TransferButton from '@/components/buttons/transfer-button/index.vue'
 
@@ -32,6 +33,7 @@ const map = {
   delete: DeleteButton,
   rename: RenameButton,
   share: ShareButton,
+  directLink: DirectLinkButton,
   copy: CopyButton,
   transfer: TransferButton
 }
@@ -61,6 +63,7 @@ const items = computed<any[]>(() =>
     <RenameButton v-if="enabled.has('rename')" :size="isMobile ? 'small' : 'default'" />
     <!-- ShareButton 显式接收选中行数组（这是修复点：保证无参点击也能拿到完整对象） -->
     <ShareButton v-if="enabled.has('share')" :size="isMobile ? 'small' : 'default'" :item="items" />
+    <DirectLinkButton v-if="enabled.has('directLink')" :size="isMobile ? 'small' : 'default'" :item="items" />
     <CopyButton v-if="enabled.has('copy')" :size="isMobile ? 'small' : 'default'" />
     <TransferButton v-if="enabled.has('transfer')" :size="isMobile ? 'small' : 'default'" />
   </div>

@@ -23,6 +23,7 @@ import {
   BarChart3,
   Star,
   Copy as CopyIcon,
+  Link as LinkIcon,
   Users,
   MessageSquare as MessageSquareIcon
 } from '@lucide/vue'
@@ -91,6 +92,7 @@ const groups = computed<{ title: string; items: NavItem[] }[]>(() => [
     title: '工具',
     items: [
       { key: 'Shares', label: '我的分享', icon: Share2, path: '/shares', query: {} },
+      { key: 'DirectLinks', label: '直链管理', icon: LinkIcon, path: '/direct-links', query: {} },
       { key: 'Spaces', label: '团队空间', icon: Users, path: '/spaces', query: {} },
       { key: 'Offline', label: '离线下载', icon: DownloadIcon, path: '/offline', query: {} },
       { key: 'Vault', label: '隐私保险箱', icon: Shield, path: '/vault', query: {} },
@@ -109,6 +111,7 @@ const goMap: Record<string, { path: string }> = {
   Videos: { path: '/videos' },
   Musics: { path: '/musics' },
   Shares: { path: '/shares' },
+  DirectLinks: { path: '/direct-links' },
   Recycles: { path: '/recycles' },
   Offline: { path: '/offline' },
   Vault: { path: '/vault' },

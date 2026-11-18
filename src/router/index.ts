@@ -60,6 +60,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/list-page/share/index.vue')
       },
       {
+        path: '/direct-links',
+        name: 'DirectLinks',
+        component: () => import('@/views/list-page/direct-link/index.vue')
+      },
+      {
         path: '/videos',
         name: 'Videos',
         component: () => import('@/views/list-page/video/index.vue')
