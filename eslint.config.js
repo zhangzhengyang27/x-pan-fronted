@@ -16,6 +16,7 @@ const globals = {
   FileReader: 'readonly',
   FileList: 'readonly',
   Blob: 'readonly',
+  MediaRecorder: 'readonly',
   URL: 'readonly',
   ResizeObserver: 'readonly',
   HTMLElement: 'readonly',

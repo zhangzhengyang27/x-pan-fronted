@@ -21,6 +21,12 @@ export type WsMessageType =
   | 'SHARE_STATS_UPDATE'
   | 'UPLOAD_FINISHED'
   | 'SYSTEM_NOTICE'
+  | 'CHAT_NEW'
+  | 'CHAT_READ'
+  | 'CHAT_RECALL'
+  | 'CHAT_FRIEND_APPLY'
+  | 'CHAT_GROUP_INVITE'
+  | 'CHAT_GROUP_DISMISSED'
 
 export interface WsMessage<T = unknown> {
   type: WsMessageType
