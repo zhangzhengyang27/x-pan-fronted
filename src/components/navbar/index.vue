@@ -27,6 +27,7 @@ import {
   MessageSquare as MessageSquareIcon
 } from '@lucide/vue'
 import { useResizable } from '@/composables/useResizable'
+import { useChatStore } from '@/stores/chat'
 import { useBreakpoint } from '@/composables/useMediaQuery'
 
 const store = useNavbarStore()
@@ -58,11 +59,21 @@ const { width, startDrag } = useResizable('x-pan.navbar.width', {
 })
 
 // ─── 导航分组 ──────────────────────────────────────────────────────────────
-const groups = computed(() => [
+interface NavItem {
+  key: string
+  label: string
+  icon: typeof Files
+  path: string
+  query: Record<string, string>
+  badge?: number
+}
+
+const chatStore = useChatStore()
+const groups = computed<{ title: string; items: NavItem[] }[]>(() => [
   {
     title: '消息',
     items: [
-      { key: 'Chat', label: '聊天', icon: MessageSquareIcon, path: '/chat', query: {} }
+      { key: 'Chat', label: '聊天', icon: MessageSquareIcon, path: '/chat', query: {}, badge: chatStore.totalUnread }
     ]
   },
   {
@@ -179,6 +190,10 @@ function navigate(item: any) {
                 >
                   <component :is="item.icon" :size="16" :stroke-width="2" class="shrink-0" />
                   <span class="truncate">{{ item.label }}</span>
+                  <span
+                    v-if="item.badge"
+                    class="ml-auto min-w-4 h-4 px-1 rounded-full bg-red-500 text-white text-[10px] leading-4 text-center"
+                  >{{ item.badge > 99 ? '99+' : item.badge }}</span>
                 </button>
               </div>
             </template>

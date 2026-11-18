@@ -2,7 +2,7 @@
  * chat store —— 站内 IM 状态：会话列表 / 消息缓存 / 好友与申请 / WS 事件接入
  */
 import { defineStore } from 'pinia'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import chatApi, {
   type IChatConversationVO,
   type IChatFriendApplyVO,
@@ -17,6 +17,8 @@ export const useChatStore = defineStore('chat', () => {
   const activeConversationId = ref<number | null>(null)
   /** 会话消息缓存：conversationId → 升序消息数组 */
   const messagesByConv = ref<Record<number, IChatMessageVO[]>>({})
+  /** 已全量初始化的会话（WS 预填充不算——首开仍需全量拉历史） */
+  const loadedConversations = ref<Set<number>>(new Set())
   const friends = ref<IChatFriendVO[]>([])
   const applies = ref<IChatFriendApplyVO[]>([])
   const conversationsLoaded = ref(false)
@@ -65,17 +67,18 @@ export const useChatStore = defineStore('chat', () => {
 
   function openConversation(conversationId: number) {
     activeConversationId.value = conversationId
-    if (!messagesByConv.value[conversationId]) {
-      messagesByConv.value[conversationId] = []
+    if (!loadedConversations.value.has(conversationId)) {
+      // 首开：全量拉取（合并写入，防在途 CHAT_NEW 被旧快照覆盖）
       chatApi.history(conversationId, {}, (res) => {
         if (res.code === 0 && activeConversationId.value === conversationId) {
-          messagesByConv.value[conversationId] = res.data || []
+          appendMessages(conversationId, res.data || [])
+          loadedConversations.value.add(conversationId)
           markReadIfBehind(conversationId)
         }
       }, () => {})
     } else {
-      // 已有缓存 → 增量拉取断线期间的消息
-      const cached = messagesByConv.value[conversationId]
+      // 已初始化 → 增量拉取断线期间的消息
+      const cached = messagesByConv.value[conversationId] || []
       const lastSeq = cached.length ? cached[cached.length - 1].seq : 0
       chatApi.history(conversationId, { afterSeq: lastSeq }, (res) => {
         if (res.code === 0 && activeConversationId.value === conversationId) {
@@ -91,6 +94,7 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   function appendMessages(conversationId: number, incoming: IChatMessageVO[]) {
+    if (!loadedConversations.value.has(conversationId)) return
     const list = messagesByConv.value[conversationId] || (messagesByConv.value[conversationId] = [])
     const seen = new Set(list.map((m) => m.id))
     for (const message of incoming) {
@@ -105,8 +109,11 @@ export const useChatStore = defineStore('chat', () => {
     const lastSeq = list.length ? list[list.length - 1].seq : conv?.maxSeq ?? 0
     if (conv && conv.lastReadSeq < lastSeq) {
       chatApi.markRead(conversationId, lastSeq, () => {
-        conv.lastReadSeq = lastSeq
-        conv.unread = Math.max(0, conv.maxSeq - lastSeq)
+        // 响应乱序防护：只前推
+        if (lastSeq > conv.lastReadSeq) {
+          conv.lastReadSeq = lastSeq
+          conv.unread = Math.max(0, conv.maxSeq - lastSeq)
+        }
       }, () => {})
     }
   }
@@ -178,25 +185,42 @@ export const useChatStore = defineStore('chat', () => {
     if (target) target.status = 'RECALLED'
   }
 
-  function loadOlder(conversationId: number): Promise<boolean> {
+  const loadingOlder = ref(false)
+
+  function loadOlder(conversationId: number): Promise<number> {
     return new Promise((resolve) => {
+      if (loadingOlder.value) return resolve(0)
       const list = messagesByConv.value[conversationId] || []
-      if (!list.length) return resolve(false)
+      if (!list.length) return resolve(0)
+      loadingOlder.value = true
       const firstSeq = list[0].seq
       chatApi.history(conversationId, { beforeSeq: firstSeq, limit: 50 }, (res) => {
+        loadingOlder.value = false
         if (res.code === 0 && activeConversationId.value === conversationId) {
           const older = res.data || []
-          messagesByConv.value[conversationId] = [...older, ...list]
-          resolve(older.length >= 50)
+          const live = messagesByConv.value[conversationId] || []
+          const seen = new Set(live.map((m) => m.id))
+          const fresh = older.filter((m) => !seen.has(m.id))
+          messagesByConv.value[conversationId] = [...fresh, ...live]
+          resolve(fresh.length)
           return
         }
-        resolve(false)
-      }, () => resolve(false))
+        resolve(0)
+      }, () => {
+        loadingOlder.value = false
+        resolve(0)
+      })
     })
   }
 
   // ─── WS 事件接入（useWebSocket 单例） ─────────────────
   const ws = useWebSocket()
+  // 断线重连成功 → 会话列表 + 当前会话增量补偿（防在途消息静默丢失）
+  watch(ws.isConnected, (connected) => {
+    if (!connected) return
+    if (conversationsLoaded.value) loadConversations()
+    if (activeConversationId.value != null) openConversation(activeConversationId.value)
+  })
   ws.on('CHAT_NEW', (payload) => {
     const message = payload as unknown as IChatMessageVO
     if (!message || !message.conversationId) return
@@ -253,6 +277,7 @@ export const useChatStore = defineStore('chat', () => {
     totalUnread,
     pendingApplies,
     currentUsername,
+    loadingOlder,
     loadConversations,
     loadFriends,
     loadApplies,

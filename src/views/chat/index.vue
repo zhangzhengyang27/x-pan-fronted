@@ -3,7 +3,7 @@
  * ChatPage —— 站内 IM：会话列表 + 聊天窗 + 好友管理抽屉
  * 消息类型：文本 / 图片 / 文件卡片（转存）/ 语音条；撤回（2 分钟内）/ 转发 / emoji
  */
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import {
   MessageSquare as MessageIcon,
   Users as UsersIcon,
@@ -39,6 +39,7 @@ const showEmoji = ref(false)
 const showGroupCreate = ref(false)
 const draft = ref('')
 const listLoading = ref(false)
+const hasOlder = ref(true)
 const recording = ref(false)
 const recordTimer = ref<number | null>(null)
 const recordSeconds = ref(0)
@@ -70,12 +71,28 @@ onMounted(() => {
   chatStore.loadApplies()
 })
 
+// 卸载清理：停止录音并释放麦克风（否则离开页面后持续采集、倒计时到点还会替用户发送）
+onBeforeUnmount(() => {
+  try {
+    mediaRecorder?.state === 'recording' && mediaRecorder.stop()
+    mediaRecorder?.stream.getTracks().forEach((t) => t.stop())
+  } catch {
+    // 忽略
+  }
+  if (recordTimer.value != null) clearInterval(recordTimer.value)
+  recording.value = false
+})
+
 watch(
   () => chatStore.activeConversationId,
   async () => {
+    draft.value = ''
+    showEmoji.value = false
+    showForwardPicker.value = null
+    forwardTargets.value = new Set()
+    hasOlder.value = true
     await nextTick()
     scrollToBottom()
-    // 进入会话即清未读（store 内部已发已读请求）
   }
 )
 
@@ -96,9 +113,12 @@ function openConversation(id: number) {
 }
 
 async function loadOlder() {
-  if (chatStore.activeConversationId == null) return
+  if (chatStore.activeConversationId == null || listLoading.value) return
+  // 近顶才触发（防滚动事件风暴）；0 条返回表示已到顶
+  if (scrollRef.value && scrollRef.value.scrollTop > 120) return
   listLoading.value = true
-  await chatStore.loadOlder(chatStore.activeConversationId)
+  const fetched = await chatStore.loadOlder(chatStore.activeConversationId)
+  if (fetched === 0) hasOlder.value = false
   listLoading.value = false
 }
 
@@ -437,7 +457,7 @@ function fmtTime(time: string): string {
         </div>
 
         <div ref="scrollRef" class="flex-1 overflow-y-auto min-h-0 p-4 space-y-3" @scroll.passive="loadOlder">
-          <p v-if="listLoading" class="text-center text-xs text-(--color-text-muted)">加载更早的消息…</p>
+          <p v-if="listLoading && hasOlder" class="text-center text-xs text-(--color-text-muted)">加载更早的消息…</p>
           <div
             v-for="message in activeMessages"
             :key="message.id"
