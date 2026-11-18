@@ -128,7 +128,8 @@ watch(view, (v) => {
   fileTableRef.value?.setView(v)
 })
 
-const buttonArray = ref(['upload', 'createFolder'])
+// directLink（P0-1）：文件页工具栏提供直链创建入口（管理页见 /direct-links）
+const buttonArray = ref(['upload', 'createFolder', 'directLink'])
 const selectedCount = computed(() => multipleSelection.value.length)
 const selectedRows = computed(() => multipleSelection.value)
 const isAllSelected = computed(() => {
