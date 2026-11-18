@@ -72,6 +72,8 @@ const selected = ref([])
 // 分享统计
 const downloadCount = ref(0)
 const downloadLimit = ref(0)
+// P0-4 禁止转载（1=禁止转存，隐藏"保存到我的 X 盘"入口）
+const forbidReshare = ref(0)
 const countdownText = ref('')
 let countdownTimer: ReturnType<typeof setInterval> | null = null
 
@@ -128,6 +130,7 @@ function refreshShareInfo(data: IShareVO) {
   tableData.value = data.xPanUserFileVOList
   downloadCount.value = data.downloadCount || 0
   downloadLimit.value = data.downloadLimit || 0
+  forbidReshare.value = data.forbidReshare || 0
   startCountdown(data.shareDay === 0 ? null : data.shareEndTime)
 }
 
@@ -477,7 +480,16 @@ onUnmounted(() => {
 
           <!-- 操作按钮 -->
           <div class="flex items-center gap-2">
-            <BaseButton variant="primary" size="lg" block @click="saveFiles(undefined)">
+            <BaseBadge v-if="forbidReshare === 1" variant="neutral" size="sm">
+              <span class="inline-flex items-center gap-1">该分享禁止转载，仅支持下载</span>
+            </BaseBadge>
+            <BaseButton
+              v-else
+              variant="primary"
+              size="lg"
+              block
+              @click="saveFiles(undefined)"
+            >
               <span class="inline-flex items-center gap-2">
                 <Save :size="16" :stroke-width="2" />
                 保存到我的 X 盘
@@ -540,7 +552,13 @@ onUnmounted(() => {
                   class="flex items-center gap-1 justify-end transition-opacity"
                   :class="isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'"
                 >
-                  <BaseButton variant="primary" size="sm" @click="saveFiles(row)" title="保存到我的R盘">
+                  <BaseButton
+                    v-if="forbidReshare !== 1"
+                    variant="primary"
+                    size="sm"
+                    @click="saveFiles(row)"
+                    title="保存到我的R盘"
+                  >
                     <Copy :size="14" :stroke-width="2" />
                   </BaseButton>
                   <BaseButton variant="secondary" size="sm" @click="doDownload(row)" title="下载">

@@ -196,6 +196,8 @@ export interface IShareCreateReq {
   shareCode?: string
   expireHours?: number
   downloadLimit?: number
+  /** 禁止转载（P0-4：true=禁止他人转存到自己网盘） */
+  forbidReshare?: boolean
 }
 
 // IShareVO 对齐后端分享相关 VO（XPanShareUrlVO / XPanShareUrlListVO / ShareDetailVO）。
@@ -215,6 +217,8 @@ export interface IShareVO {
   downloadLimit?: number
   visitCount?: number
   saveCount?: number
+  /** 禁止转载（P0-4：1=禁止他人转存到自己网盘） */
+  forbidReshare?: number
   /** 兼容创建/详情接口可能附带的文件信息 */
   fileList?: IFileVO[]
   /** 分享详情报文：分享文件列表（对齐后端 ShareDetailVO） */
