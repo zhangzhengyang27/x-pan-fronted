@@ -83,7 +83,7 @@ async function generateQR(text: string) {
   }
 }
 
-function handleFilename(name) {
+function handleFilename(name: string) {
   if (name?.length > 10) return name.substring(0, 11) + '...'
   return name
 }

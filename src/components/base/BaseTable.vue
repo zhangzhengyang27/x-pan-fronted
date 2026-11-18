@@ -29,13 +29,13 @@ type Row = Record<string, any>
 
 const props = defineProps({
   columns: { type: Array as PropType<TableColumn[]>, required: true },
-  data: { type: Array as PropType<Row[]>, default: () => [] },
+  data: { type: Array as PropType<Row[]>, default: (): Row[] => [] },
   loading: { type: Boolean, default: false },
   skeleton: { type: Boolean, default: false },
   error: { type: [String, Object] as PropType<string | { message?: string }>, default: '' },
   rowKey: { type: String, default: 'id' },
   selectable: { type: Boolean, default: false },
-  selected: { type: Array as PropType<RowKey[]>, default: () => [] },
+  selected: { type: Array as PropType<RowKey[]>, default: (): RowKey[] => [] },
   activeKey: { type: [String, Number] as PropType<RowKey>, default: '' },
   emptyText: { type: String, default: '暂无数据' },
   skeletonRows: { type: Number, default: 5 },

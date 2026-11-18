@@ -22,6 +22,10 @@ export interface SearchParams {
   dateTo?: string
   sizeMin?: number
   sizeMax?: number
+  /** filename=文件名搜索（默认），content=全文检索，semantic=语义混合检索（不可用时后端降级为全文） */
+  mode?: 'filename' | 'content' | 'semantic'
+  pageNum?: number
+  pageSize?: number
 }
 
 /** searchByParams 的可选回调：transform 加工结果列表，onFresh 在最新响应落地后触发 */
@@ -150,6 +154,15 @@ export const useFileStore = defineStore('file', (): FileStore => {
   const total = ref<number>(0)
   const hasMore = ref<boolean>(false)
   const isLoadingMore = ref<boolean>(false)
+
+  // 最近一次全文/语义搜索的请求上下文（供 loadMore 翻页复用；文件名模式无翻页，置 null）
+  const lastSearchRequest = ref<{
+    mode: 'content' | 'semantic'
+    query: Omit<SearchParams, 'mode' | 'pageNum' | 'pageSize'>
+    pageSize: number
+    pageNum: number
+    hooks?: SearchByParamsHooks
+  } | null>(null)
 
   // 请求序列号：快速切换目录/筛选时，仅采纳最新一次请求的响应，避免旧响应覆盖新数据
   let requestSeq = 0
@@ -423,7 +436,11 @@ export const useFileStore = defineStore('file', (): FileStore => {
   }
 
   function loadMore(): void {
-    if (searchFlag.value || !hasMore.value || isLoadingMore.value) return
+    if (!hasMore.value || isLoadingMore.value) return
+    if (searchFlag.value) {
+      loadMoreSearchResults()
+      return
+    }
     isLoadingMore.value = true
     const seq = ++requestSeq
     const next = pageNum.value + 1
@@ -449,12 +466,47 @@ export const useFileStore = defineStore('file', (): FileStore => {
     )
   }
 
+  /**
+   * 搜索结果（全文/语义）翻页加载：追加下一页并同步 hasMore/total 游标。
+   * 此前哨兵在搜索模式下可见但 loadMore 被 searchFlag 硬门控，滚动到底无任何响应。
+   */
+  function loadMoreSearchResults(): void {
+    const last = lastSearchRequest.value
+    if (!last) return
+    isLoadingMore.value = true
+    const seq = ++requestSeq
+    const next = last.pageNum + 1
+    const fetchPage =
+      last.mode === 'semantic'
+        ? fileService.semanticSearch.bind(fileService)
+        : fileService.fulltextSearch.bind(fileService)
+    fetchPage(
+      { ...last.query, pageNum: next, pageSize: last.pageSize },
+      (res: ApiResponse<PageVO<IFileVO>>) => {
+        isLoadingMore.value = false
+        if (seq !== requestSeq) return
+        const raw = res.data?.records || []
+        const list = last.hooks?.transform ? last.hooks.transform(raw) : raw
+        appendFileList(list)
+        last.pageNum = next
+        hasMore.value = Boolean(res.data?.hasMore)
+        total.value = Number(res.data?.total ?? total.value)
+      },
+      (res: ApiResponse<unknown>) => {
+        isLoadingMore.value = false
+        if (seq !== requestSeq) return
+        ElMessage.error(res.message)
+      }
+    )
+  }
+
   function searchWithFilter(filter: SearchFilter): void {
     if (!searchFlag.value) setSearchFlag(true)
     const seq = ++requestSeq
     // 与 loadFileList 一致：重置 loadMore 标志和页码，避免旧目录的滚动加载/页码污染搜索结果
     isLoadingMore.value = false
     pageNum.value = 1
+    lastSearchRequest.value = null
     setTableLoading(true)
     const params: {
       keyword: string
@@ -514,8 +566,52 @@ export const useFileStore = defineStore('file', (): FileStore => {
     isLoadingMore.value = false
     pageNum.value = 1
     setTableLoading(true)
+
+    const { mode, pageNum: paramPageNum, pageSize: paramPageSize, ...query } = params
+    if (mode === 'content' || mode === 'semantic') {
+      // content=全文检索；semantic=语义混合检索（后端不可用时自动降级为全文）
+      const fetchPage =
+        mode === 'semantic'
+          ? fileService.semanticSearch.bind(fileService)
+          : fileService.fulltextSearch.bind(fileService)
+      // 记录翻页上下文，供 loadMore 追加下一页
+      lastSearchRequest.value = {
+        mode,
+        query,
+        pageSize: paramPageSize ?? 50,
+        pageNum: paramPageNum ?? 1,
+        hooks
+      }
+      fetchPage(
+        {
+          ...query,
+          pageNum: paramPageNum ?? 1,
+          pageSize: paramPageSize ?? 50
+        },
+        (res: ApiResponse<PageVO<IFileVO>>) => {
+          if (seq !== requestSeq) return
+          const raw = res.data?.records || []
+          const list = hooks?.transform ? hooks.transform(raw) : raw
+          setFileList(list)
+          setTableLoading(false)
+          hasMore.value = Boolean(res.data?.hasMore)
+          total.value = Number(res.data?.total ?? list.length)
+          hooks?.onFresh?.(list)
+        },
+        (res: ApiResponse<unknown>) => {
+          if (seq !== requestSeq) return
+          setTableLoading(false)
+          if (hooks?.onError) hooks.onError(res)
+          else ElMessage.error(res.message)
+        }
+      )
+      return
+    }
+
+    // 文件名模式无翻页，清空翻页上下文
+    lastSearchRequest.value = null
     fileService.search(
-      params,
+      query,
       (res: ApiResponse<IFileVO[]>) => {
         if (seq !== requestSeq) return // 已有更新的请求，丢弃过期响应
         const raw = res.data || []

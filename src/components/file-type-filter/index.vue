@@ -36,7 +36,7 @@ const visible = computed(() => {
   return route.name === 'Files' && !fileStore.searchFlag
 })
 
-function pick(t) {
+function pick(t: (typeof types)[number]) {
   if (current.value === t.value) return
   // P2-8: 更新 query.type，由 file/index.vue 的 watch 统一应用筛选并保留目录上下文
   router.replace({ path: '/files', query: t.query ? { type: t.query } : {} })

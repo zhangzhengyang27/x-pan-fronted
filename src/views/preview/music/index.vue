@@ -10,27 +10,32 @@ import panUtil from '@/utils/common'
 import { ElMessage } from '@/composables/useToast'
 import { getDownloadUrl, getPreviewUrl, resolvePreviewUrl } from '@/utils/preview'
 import BaseButton from '@/components/base/BaseButton.vue'
+import type { IFileVO } from '@/types'
+
+interface MusicItem extends IFileVO {
+  displayName?: string
+}
 
 const route = useRoute()
-const musicList = ref([])
+const musicList = ref<MusicItem[]>([])
 const musicName = ref('')
 const musicSrc = ref('')
 const playing = ref(false)
 const audioRef = ref(null)
-const activeIndex = ref('')
+const activeIndex = ref<string | number>('')
 const currentTime = ref(0)
 const duration = ref(0)
 
 const downloadUrl = computed(() => getDownloadUrl(String(route.params.fileId || '')))
 
-function renderList(dataList) {
+function renderList(dataList: IFileVO[]) {
   musicList.value = (dataList || []).map((it) => ({
     ...it,
     displayName: it.filename.length > 30 ? it.filename.slice(0, 30) + '…' : it.filename
   }))
 }
 
-async function playMusic(item, idx) {
+async function playMusic(item: MusicItem, idx: number) {
   musicName.value = item.filename
   // 优先使用签名 URL（短时效、绑定 fileId），失败降级到授权 query 直链
   let url = ''

@@ -80,6 +80,50 @@ const fileService = {
       .catch(reject)
   },
 
+  /** 全文检索：文件名 + 正文 + 标签 */
+  fulltextSearch(
+    params: {
+      keyword: string
+      fileTypes?: string
+      extensions?: string
+      dateFrom?: string
+      dateTo?: string
+      sizeMin?: number
+      sizeMax?: number
+      pageNum?: number
+      pageSize?: number
+    },
+    resolve: Callback<PageVO<IFileVO>>,
+    reject: Callback<unknown>
+  ) {
+    http
+      .get<unknown, ApiResponse<PageVO<IFileVO>>>('/search/fulltext', { params })
+      .then(resolve)
+      .catch(reject)
+  },
+
+  /** 语义搜索：向量 kNN + BM25 混合检索（后端语义链路不可用时自动降级为全文检索） */
+  semanticSearch(
+    params: {
+      keyword: string
+      fileTypes?: string
+      extensions?: string
+      dateFrom?: string
+      dateTo?: string
+      sizeMin?: number
+      sizeMax?: number
+      pageNum?: number
+      pageSize?: number
+    },
+    resolve: Callback<PageVO<IFileVO>>,
+    reject: Callback<unknown>
+  ) {
+    http
+      .get<unknown, ApiResponse<PageVO<IFileVO>>>('/search/semantic', { params })
+      .then(resolve)
+      .catch(reject)
+  },
+
   /** 搜索联想（P4-5 后端 suggest，基于用户历史 + 文件名前缀） */
   suggest(
     prefix: string,
@@ -197,7 +241,119 @@ const fileService = {
       .get<unknown, ApiResponse<UserFileStatsVO>>('/files/stats')
       .then(resolve)
       .catch(reject)
+  },
+
+  // ─── 在线编辑（Markdown/文本） ───────────────────────────────────────────
+  /** 查询文件详情（含乐观锁版本号） */
+  getDetail(fileId: string) {
+    return http.get<unknown, ApiResponse<IFileDetailVO>>('/file/detail', { params: { fileId } })
+  },
+
+  /** 保存文件内容（覆盖写入并生成新版本） */
+  saveContent(data: {
+    fileId: string
+    baseVersion: number
+    file: Blob
+    filename?: string
+    remark?: string
+  }) {
+    const form = new FormData()
+    form.append('fileId', data.fileId)
+    form.append('baseVersion', String(data.baseVersion))
+    if (data.remark) form.append('remark', data.remark)
+    form.append('file', data.file, data.filename || 'content.md')
+    return http.put<unknown, ApiResponse<IFileContentVO>>('/file/content', form, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+  },
+
+  /** 申请文件编辑锁 */
+  acquireEditSession(fileId: string) {
+    return http.post<unknown, ApiResponse<IFileEditSessionVO>>(
+      '/file/edit/session',
+      null,
+      { params: { fileId } }
+    )
+  },
+
+  /** 释放文件编辑锁 */
+  releaseEditSession(fileId: string, lockToken?: string) {
+    return http.delete<unknown, ApiResponse<unknown>>('/file/edit/session', {
+      params: { fileId, lockToken }
+    })
+  },
+
+  // ─── 在线编辑（OnlyOffice） ──────────────────────────────────────────────
+  /** 创建 Office 编辑会话，返回 DocsAPI 配置 */
+  createOfficeSession(fileId: string) {
+    return http.post<unknown, ApiResponse<IOfficeEditorConfigVO>>(
+      '/file/office/session',
+      null,
+      { params: { fileId } }
+    )
+  },
+
+  /** 查询 Office 编辑会话状态（保存结果/是否关闭/是否转换扩展名） */
+  getOfficeSessionStatus(sessionId: string) {
+    return http.get<unknown, ApiResponse<IOfficeSessionStatusVO>>('/file/office/status', {
+      params: { sessionId }
+    })
+  },
+
+  /** 关闭 Office 编辑会话并释放编辑锁 */
+  closeOfficeSession(sessionId: string) {
+    return http.post<unknown, ApiResponse<unknown>>('/file/office/close', null, {
+      params: { sessionId }
+    })
   }
+}
+
+export interface IFileDetailVO {
+  fileId: string
+  parentId?: string
+  filename: string
+  fileSizeDesc?: string
+  sizeBytes?: number
+  fileType?: number
+  version: number
+  contentHash?: string
+  editable?: boolean
+  fileMtime?: string
+  updateTime?: string
+}
+
+export interface IFileContentVO {
+  version: number
+  contentHash: string
+  sizeBytes: number
+  fileSizeDesc: string
+  fileMtime: string
+  updateTime: string
+}
+
+export interface IFileEditSessionVO {
+  lockToken: string
+  expireAt: number
+  version: number
+}
+
+export interface IOfficeEditorConfigVO {
+  documentServerUrl: string
+  sessionId: string
+  filename: string
+  fileType?: number
+  version: number
+  config: Record<string, unknown>
+}
+
+export interface IOfficeSessionStatusVO {
+  sessionId: string
+  status: 'editing' | 'saved' | 'closed' | 'expired'
+  version?: number
+  filename?: string
+  fileType?: number
+  savedAt?: number
+  renamed?: boolean
 }
 
 export interface UserFileStatsVO {

@@ -12,6 +12,7 @@ import BaseBadge from '@/components/base/BaseBadge.vue'
 import BaseTooltip from '@/components/base/BaseTooltip.vue'
 import fileService from '@/api/file'
 import { ElMessage, ElMessageBox } from '@/composables/useToast'
+import type { IFileVersionVO, VersionOperation } from '@/types'
 
 const props = defineProps({
   fileId: { type: String, required: true },
@@ -22,7 +23,7 @@ const props = defineProps({
 const emit = defineEmits(['update:open', 'rolled-back'])
 
 const loading = ref(false)
-const versions = ref([])
+const versions = ref<IFileVersionVO[]>([])
 
 async function load() {
   if (!props.fileId) return
@@ -55,19 +56,25 @@ watch(
   { immediate: true }
 )
 
-function operationMeta(op) {
-  return (
-    {
-      UPLOAD: { label: '上传', icon: Upload, variant: 'primary' },
-      MODIFY: { label: '修改', icon: Edit3, variant: 'warning' },
-      RENAME: { label: '改名', icon: Edit3, variant: 'neutral' },
-      ROLLBACK: { label: '回滚', icon: RotateCcw, variant: 'success' },
-      DELETE: { label: '删除', icon: Trash2, variant: 'danger' }
-    }[op] || { label: op || '未知', icon: FileText, variant: 'neutral' }
-  )
+interface OperationMeta {
+  label: string
+  icon: typeof Upload
+  variant: 'primary' | 'warning' | 'neutral' | 'success' | 'danger'
 }
 
-function versionIconBg(op) {
+const OPERATION_META: Record<VersionOperation, OperationMeta> = {
+  UPLOAD: { label: '上传', icon: Upload, variant: 'primary' },
+  MODIFY: { label: '修改', icon: Edit3, variant: 'warning' },
+  RENAME: { label: '改名', icon: Edit3, variant: 'neutral' },
+  ROLLBACK: { label: '回滚', icon: RotateCcw, variant: 'success' },
+  DELETE: { label: '删除', icon: Trash2, variant: 'danger' }
+}
+
+function operationMeta(op: VersionOperation): OperationMeta {
+  return OPERATION_META[op] || { label: op || '未知', icon: FileText, variant: 'neutral' }
+}
+
+function versionIconBg(op: VersionOperation) {
   const v = operationMeta(op).variant
   switch (v) {
     case 'primary':
@@ -83,7 +90,7 @@ function versionIconBg(op) {
   }
 }
 
-function versionIconFg(op) {
+function versionIconFg(op: VersionOperation) {
   const v = operationMeta(op).variant
   switch (v) {
     case 'primary':
@@ -99,12 +106,12 @@ function versionIconFg(op) {
   }
 }
 
-function shortHash(hash) {
+function shortHash(hash: string) {
   if (!hash) return ''
   return hash.length > 10 ? `${hash.slice(0, 6)}…${hash.slice(-4)}` : hash
 }
 
-async function doRollback(v) {
+async function doRollback(v: IFileVersionVO) {
   // ElMessageBox.confirm（useToast 假封装）恒 resolve(true/false)，取消时 false；
   // try/catch 等 reject 是死代码，会导致取消也执行回滚
   const ok = await ElMessageBox.confirm(
@@ -130,7 +137,7 @@ async function doRollback(v) {
   )
 }
 
-async function doDelete(v) {
+async function doDelete(v: IFileVersionVO) {
   if (v.current) return ElMessage.warning('不能删除当前正在使用的版本')
   const ok = await ElMessageBox.confirm(`确定删除 v${v.versionNo}？此操作不可恢复。`, '删除版本', {
     confirmButtonText: '删除',

@@ -9,7 +9,7 @@ import { onUnmounted, ref } from 'vue'
 import Uploader from 'simple-uploader.js'
 import type { UploaderFile, UploaderChunk } from 'simple-uploader.js'
 import { MD5 } from '@/utils/md5'
-import { getToken } from '@/utils/cookie'
+import { getXsrfToken } from '@/utils/cookie'
 import panUtil, { EFileStatus } from '@/utils/common'
 import fileService from '@/api/file'
 import { ElMessage } from '@/composables/useToast'
@@ -46,10 +46,12 @@ export function useUploader() {
       query: (file: UploaderFile) => ({
         parentId: (file as unknown as { __uploadParentId?: string }).__uploadParentId || fileStore.paramParentId
       }),
-      // 函数式 headers（simple-uploader 会对每次请求 evalOpts，见 d.ts UploaderOptions）：
-      // 上传过程中后端可能通过 new-access-token 续期轮换 token，实时读取 cookie 里的
-      // 最新值，避免「创建 Uploader 时的 token 快照」在长上传中途过期导致 401
-      headers: () => ({ Authorization: getToken() }),
+      // 登录态由同源 HttpOnly Cookie 自动携带；这里只补充 CSRF 双提交头
+      withCredentials: true,
+      headers: () => {
+        const xsrf = getXsrfToken()
+        return xsrf ? { 'X-XSRF-TOKEN': xsrf } : {}
+      },
       checkChunkUploadedByResponse: (chunk: UploaderChunk, message: string) => {
         let obj: { data?: { uploadedChunks?: number[] } } = {}
         try {
@@ -64,11 +66,13 @@ export function useUploader() {
         }
         return false
       },
-      maxChunkRetries: 0,
-      chunkRetryInterval: null,
+      // 分片失败自动重试：一次网络抖动就判死整个上传的体验不可接受（500 可能是
+      // 服务端瞬时错误，也移出永久错误列表；404/415/501 仍是协议级不可恢复错误）
+      maxChunkRetries: 3,
+      chunkRetryInterval: 2000,
       progressCallbacksInterval: 500,
       successStatuses: [200, 201, 202],
-      permanentErrors: [404, 415, 500, 501],
+      permanentErrors: [404, 415, 501],
       initialPaused: false
     }
 
@@ -177,6 +181,21 @@ export function useUploader() {
       status: EFileStatus.WAITING.code,
       statusText: EFileStatus.WAITING.text
     })
+  }
+
+  /** 终态（成功/失败）任务不需要 cancel 底层上传 */
+  function isTerminalStatus(status: number): boolean {
+    return status === EFileStatus.SUCCESS.code || status === EFileStatus.FAIL.code
+  }
+
+  /**
+   * 从面板移除任务：非终态任务同时取消底层上传，否则移除后分片仍在后台传输、
+   * 白耗流量且完成后还会触发成功提示
+   */
+  function cancelUpload(id: string) {
+    const task = taskStore.getUploadTask(id)
+    if (task?.target && !isTerminalStatus(task.status)) task.target.cancel()
+    taskStore.remove(id)
   }
 
   function onFileProgress(rootFile: UploaderFile, file: UploaderFile) {
@@ -338,5 +357,5 @@ export function useUploader() {
     _attachCount = Math.max(0, _attachCount - 1)
   })
 
-  return { addFiles, ready }
+  return { addFiles, ready, resumeWaiting, cancelUpload }
 }

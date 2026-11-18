@@ -22,7 +22,7 @@ import {
 import offlineService from '@/api/offline'
 import { ElMessage, ElMessageBox } from '@/composables/useToast'
 import { useWebSocket } from '@/composables/useWebSocket'
-import { getToken } from '@/utils/cookie'
+import { hasLoginSession } from '@/utils/cookie'
 import type { IOfflineTaskVO } from '@/types'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseInput from '@/components/base/BaseInput.vue'
@@ -197,8 +197,7 @@ const offRemoved = ws.on<{ taskId: string }>('OFFLINE_TASK_REMOVED', applyRemove
 
 onMounted(() => {
   loadTasks()
-  const token = getToken()
-  if (token && !ws.isConnected.value) ws.connect(token)
+  if (hasLoginSession() && !ws.isConnected.value) ws.connect()
   watchFallback()
 })
 

@@ -22,7 +22,8 @@ import {
   Shield,
   BarChart3,
   Star,
-  Copy as CopyIcon
+  Copy as CopyIcon,
+  Users
 } from '@lucide/vue'
 import { useResizable } from '@/composables/useResizable'
 import { useBreakpoint } from '@/composables/useMediaQuery'
@@ -72,6 +73,7 @@ const groups = computed(() => [
     title: '工具',
     items: [
       { key: 'Shares', label: '我的分享', icon: Share2, path: '/shares', query: {} },
+      { key: 'Spaces', label: '团队空间', icon: Users, path: '/spaces', query: {} },
       { key: 'Offline', label: '离线下载', icon: DownloadIcon, path: '/offline', query: {} },
       { key: 'Vault', label: '隐私保险箱', icon: Shield, path: '/vault', query: {} },
       { key: 'Stats', label: '存储统计', icon: BarChart3, path: '/stats', query: {} },
@@ -81,7 +83,7 @@ const groups = computed(() => [
   }
 ])
 
-const goMap = {
+const goMap: Record<string, { path: string }> = {
   Files: { path: '/files' },
   Imgs: { path: '/imgs' },
   Docs: { path: '/docs' },
@@ -93,7 +95,8 @@ const goMap = {
   Vault: { path: '/vault' },
   Stats: { path: '/stats' },
   Favorites: { path: '/favorites' },
-  Dedup: { path: '/dedup' }
+  Dedup: { path: '/dedup' },
+  Spaces: { path: '/spaces' }
 }
 
 function go(key: string) {

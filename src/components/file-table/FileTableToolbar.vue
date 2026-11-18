@@ -8,9 +8,10 @@ import { Download, Trash2 } from '@lucide/vue'
 import TransferButton from '@/components/buttons/transfer-button/index.vue'
 import CopyButton from '@/components/buttons/copy-button/index.vue'
 import { ElMessage } from '@/composables/useToast'
+import type { IFileVO } from '@/types'
 
 const props = defineProps({
-  selectedRows: { type: Array, default: () => [] }
+  selectedRows: { type: Array, default: (): IFileVO[] => [] }
 })
 
 const emit = defineEmits(['batch-download', 'batch-delete'])

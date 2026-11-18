@@ -38,7 +38,7 @@ function onClose() {
   emit('update:open', false)
   emit('close')
 }
-function onBackdrop(e) {
+function onBackdrop(e: MouseEvent) {
   if (e.target === dialogRef.value) onClose()
 }
 

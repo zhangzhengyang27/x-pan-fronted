@@ -12,7 +12,7 @@ const fileStore = useFileStore()
 
 const { breadcrumbList: breadCrumbs } = storeToRefs(breadcrumbStore)
 
-function goToThis(id) {
+function goToThis(id: string) {
   if (id === '-1') return
   const next = []
   for (const item of breadCrumbs.value) {

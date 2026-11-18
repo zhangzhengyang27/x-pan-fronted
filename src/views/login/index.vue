@@ -7,7 +7,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { Cloud, User, KeyRound, LogIn, Eye, EyeOff } from '@lucide/vue'
 import { ElMessage } from '@/composables/useToast'
 import userService from '@/api/user'
-import { setToken } from '@/utils/cookie'
+import { clearSession } from '@/utils/cookie'
 import { useFileStore } from '@/stores/file'
 import { useUserStore } from '@/stores/user'
 
@@ -20,7 +20,7 @@ const loginForm = reactive({ username: '', password: '' })
 const fileStore = useFileStore()
 const userStore = useUserStore()
 const { setParentId, setDefaultParentId, setDefaultParentFilename, clearParentCache } = fileStore
-const { setUsername } = userStore
+const { setUsername, setEmail } = userStore
 const usernameRef = ref<HTMLInputElement | null>(null)
 
 function resolveRedirect(): { name: string } | { path: string } {
@@ -33,7 +33,7 @@ function resolveRedirect(): { name: string } | { path: string } {
 }
 
 function doLogin() {
-  if (!loginForm.username) return ElMessage.error('请输入用户名')
+  if (!loginForm.username) return ElMessage.error('请输入用户名或邮箱')
   if (!loginForm.password) return ElMessage.error('请输入密码')
   submitLogin()
 }
@@ -42,8 +42,8 @@ function submitLogin() {
   loading.value = true
   userService.login(
     loginForm,
-    (res) => {
-      setToken(res.data as unknown as string)
+    () => {
+      // 登录成功：后端通过 Set-Cookie 写入 HttpOnly 登录态，前端不再保存 token
       userService.info(
         (infoRes) => {
           clearParentCache()
@@ -51,13 +51,17 @@ function submitLogin() {
           setDefaultParentId(infoRes.data.rootFileId)
           setDefaultParentFilename(infoRes.data.rootFilename)
           setUsername(infoRes.data.username)
+          setEmail(infoRes.data.email || '')
           loading.value = false
           // 登录成功:跳回 redirect 指定的来源页,仅接受站内相对路径
           router.replace(resolveRedirect())
         },
         (errRes) => {
-          // 用户信息获取失败:token 已写入,清掉避免进入死循环
-          setToken('')
+          // 用户信息获取失败：注销刚建立的会话并清理前端登录标记，避免进入死循环
+          userService.exit(
+            () => clearSession(),
+            () => clearSession()
+          )
           ElMessage.error(errRes?.message || '获取用户信息失败')
           loading.value = false
         }
@@ -107,7 +111,7 @@ onMounted(async () => {
           <!-- 用户名 -->
           <div>
             <label class="block text-sm font-medium mb-2 text-(--color-text)">
-              用户名
+              用户名 / 邮箱
             </label>
             <div class="relative">
               <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-(--color-text-muted)">
@@ -118,7 +122,7 @@ onMounted(async () => {
                 v-model="loginForm.username"
                 type="text"
                 name="username"
-                placeholder="输入您的账号"
+                placeholder="输入用户名或邮箱"
                 autocomplete="username"
                 autocapitalize="off"
                 autocorrect="off"

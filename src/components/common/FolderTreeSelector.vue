@@ -11,6 +11,7 @@
 import { computed, ref, watch } from 'vue'
 import { Home, LoaderCircle, AlertCircle } from '@lucide/vue'
 import BaseTree from '@/components/base/BaseTree.vue'
+import type { TreeNodeData } from '@/components/base/BaseTree.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import fileService from '@/api/file'
 import { ElMessage } from '@/composables/useToast'
@@ -23,7 +24,7 @@ const props = defineProps({
   /** 提交按钮文案 */
   confirmText: { type: String, default: '确定' },
   /** 禁用的 fileId 列表（不能选为目标的，例如要移动的文件夹本身） */
-  excludeIds: { type: Array, default: () => [] }
+  excludeIds: { type: Array, default: (): string[] => [] }
 })
 
 const emit = defineEmits(['update:open', 'update:modelValue', 'confirm'])
@@ -95,7 +96,7 @@ function pickRoot() {
   selectedLabel.value = '根目录'
 }
 
-function onTreeSelect(node) {
+function onTreeSelect(node: TreeNodeData) {
   if (node.disabled) {
     ElMessage.warning('不能选择该文件夹')
     return
@@ -108,7 +109,7 @@ function updateSelectedLabel() {
   if (selectedId.value === null) {
     selectedLabel.value = '根目录'
   } else {
-    const find = (nodes) => {
+    const find = (nodes: TreeNodeData[]): string | null => {
       for (const n of nodes) {
         if (n.id === selectedId.value) return n.label
         if (n.children?.length) {

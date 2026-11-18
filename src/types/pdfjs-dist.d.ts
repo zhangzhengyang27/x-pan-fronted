@@ -2,6 +2,7 @@ declare module 'pdfjs-dist/build/pdf.mjs' {
   export interface PDFDocumentProxy {
     numPages: number
     getPage(pageNumber: number): Promise<PDFPageProxy>
+    destroy(): Promise<void>
   }
   export interface PDFPageProxy {
     getTextContent(): Promise<TextContent>

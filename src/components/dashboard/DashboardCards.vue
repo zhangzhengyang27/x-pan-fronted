@@ -49,7 +49,7 @@ const quotaColor = computed(() => {
   return 'var(--color-primary-500)'
 })
 
-function formatSize(bytes) {
+function formatSize(bytes: number) {
   if (!bytes || bytes < 0) return '0 B'
   const units = ['B', 'KB', 'MB', 'GB', 'TB']
   let i = 0

@@ -3,9 +3,9 @@
  * RegisterPage —— 注册页（夸克风格重设计）
  * 密码强度指示器 + 两次密码校验
  */
-import { computed, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { Cloud, User, KeyRound, UserPlus, Eye, EyeOff } from '@lucide/vue'
+import { Cloud, User, KeyRound, UserPlus, Eye, EyeOff, Mail, ShieldCheck } from '@lucide/vue'
 import { ElMessage } from '@/composables/useToast'
 import userService from '@/api/user'
 
@@ -13,8 +13,52 @@ const router = useRouter()
 const loading = ref(false)
 const showPassword = ref(false)
 const showConfirmPassword = ref(false)
+const sendingCode = ref(false)
+const countdown = ref(0)
+let countdownTimer: number | undefined
 
-const registerForm = reactive({ username: '', password: '', rePassword: '' })
+const registerForm = reactive({
+  username: '',
+  email: '',
+  emailCode: '',
+  password: '',
+  rePassword: ''
+})
+
+const EMAIL_RE = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/
+
+/** 发送注册邮箱验证码（60 秒倒计时） */
+function sendEmailCode(): void {
+  if (!EMAIL_RE.test(registerForm.email)) {
+    ElMessage.error('请输入正确的邮箱地址')
+    return
+  }
+  if (sendingCode.value || countdown.value > 0) return
+  sendingCode.value = true
+  userService.sendEmailCode(
+    { email: registerForm.email, scene: 'REGISTER' },
+    () => {
+      sendingCode.value = false
+      ElMessage.success('验证码已发送，请查收邮箱')
+      countdown.value = 60
+      countdownTimer = window.setInterval(() => {
+        countdown.value -= 1
+        if (countdown.value <= 0 && countdownTimer) {
+          window.clearInterval(countdownTimer)
+          countdownTimer = undefined
+        }
+      }, 1000)
+    },
+    (res) => {
+      sendingCode.value = false
+      ElMessage.error(res.message || '验证码发送失败')
+    }
+  )
+}
+
+onBeforeUnmount(() => {
+  if (countdownTimer) window.clearInterval(countdownTimer)
+})
 
 const passwordStrength = computed(() => {
   const pwd = registerForm.password
@@ -42,6 +86,8 @@ const rePasswordError = computed(() => {
 function doRegister() {
   if (!/^[0-9A-Za-z]{6,16}$/.test(registerForm.username))
     return ElMessage.error('用户名为 6-16 位字母数字')
+  if (!EMAIL_RE.test(registerForm.email)) return ElMessage.error('请输入正确的邮箱地址')
+  if (!/^\d{6}$/.test(registerForm.emailCode)) return ElMessage.error('请输入 6 位邮箱验证码')
   if (registerForm.password.length < 8 || registerForm.password.length > 16)
     return ElMessage.error('密码为 8-16 位')
   if (registerForm.password !== registerForm.rePassword) return ElMessage.error('两次密码不一致')
@@ -101,6 +147,51 @@ const goLogin = () => router.push({ name: 'Login' })
                 autocomplete="username"
                 class="w-full pl-10 pr-3.5 py-2.5 text-sm rounded-sm border border-(--color-border) bg-(--color-surface) text-(--color-text) placeholder-(--color-text-muted) transition-colors duration-150 focus:outline-none focus:border-(--color-border-focus) focus:ring-2 focus:ring-(--color-ring)"
               />
+            </div>
+          </div>
+
+          <!-- 邮箱 -->
+          <div>
+            <label class="block text-sm font-medium mb-2 text-(--color-text)">邮箱</label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-(--color-text-muted)">
+                <Mail :size="16" :stroke-width="2" />
+              </div>
+              <input
+                v-model="registerForm.email"
+                type="email"
+                placeholder="用于登录与找回账号"
+                autocomplete="email"
+                class="w-full pl-10 pr-3.5 py-2.5 text-sm rounded-sm border border-(--color-border) bg-(--color-surface) text-(--color-text) placeholder-(--color-text-muted) transition-colors duration-150 focus:outline-none focus:border-(--color-border-focus) focus:ring-2 focus:ring-(--color-ring)"
+              />
+            </div>
+          </div>
+
+          <!-- 邮箱验证码 -->
+          <div>
+            <label class="block text-sm font-medium mb-2 text-(--color-text)">邮箱验证码</label>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-(--color-text-muted)">
+                <ShieldCheck :size="16" :stroke-width="2" />
+              </div>
+              <input
+                v-model="registerForm.emailCode"
+                type="text"
+                inputmode="numeric"
+                maxlength="6"
+                placeholder="6 位验证码"
+                autocomplete="one-time-code"
+                class="w-full pl-10 pr-28 py-2.5 text-sm rounded-sm border border-(--color-border) bg-(--color-surface) text-(--color-text) placeholder-(--color-text-muted) transition-colors duration-150 focus:outline-none focus:border-(--color-border-focus) focus:ring-2 focus:ring-(--color-ring)"
+              />
+              <button
+                type="button"
+                :disabled="sendingCode || countdown > 0"
+                class="absolute inset-y-0 right-0 pr-3 text-xs font-medium transition-colors disabled:opacity-50"
+                :style="{ color: 'var(--color-primary-500)' }"
+                @click="sendEmailCode"
+              >
+                {{ countdown > 0 ? `${countdown}s 后重发` : sendingCode ? '发送中…' : '获取验证码' }}
+              </button>
             </div>
           </div>
 

@@ -31,16 +31,18 @@ const props = defineProps({
   roundFlag: Boolean,
   circleFlag: Boolean,
   size: String,
-  item: Object
+  item: { type: Object as PropType<IFileVO>, default: null }
 })
 
 import { computed, onBeforeUnmount, ref } from 'vue'
+import type { PropType } from 'vue'
 import { Download } from '@lucide/vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import { ElMessage } from '@/composables/useToast'
 import { useFileStore } from '@/stores/file'
 import { storeToRefs } from 'pinia'
 import panUtil from '@/utils/common'
+import type { IFileVO } from '@/types'
 
 // BaseButton 尺寸：small → sm，default → md
 const btnSize = computed(() => (props.size === 'small' ? 'sm' : 'md'))
@@ -50,7 +52,7 @@ const { multipleSelection } = storeToRefs(fileStore)
 
 const loading = ref(false)
 
-const doDownload = (item) => {
+const doDownload = (item: IFileVO) => {
   if (!item || !item.fileId) {
     ElMessage.warning('文件信息缺失，无法下载')
     return
@@ -70,7 +72,7 @@ const doDownload = (item) => {
 
 let downloadTimer: ReturnType<typeof setTimeout> | null = null
 
-const doDownLoads = (items, i = 0) => {
+const doDownLoads = (items: IFileVO[], i = 0) => {
   if (!i) {
     i = 0
   }

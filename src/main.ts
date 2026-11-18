@@ -7,7 +7,7 @@ import './styles/tokens.css'
 import { registerBuiltinPreviewPlugins } from '@/plugins/preview'
 import { initTheme } from '@/composables/useTheme'
 import { useWebSocket } from '@/composables/useWebSocket'
-import { getToken } from '@/utils/cookie'
+import { hasLoginSession } from '@/utils/cookie'
 import { ElMessage } from '@/composables/useToast'
 
 const app = createApp(App)
@@ -28,11 +28,12 @@ const ws = useWebSocket()
 
 // 监听路由：登录页 → 自动连接；登出 → 断开
 router.afterEach((to) => {
-  const token = getToken()
-  if (token && !ws.isConnected.value && to.path !== '/login') {
+  const loggedIn = hasLoginSession()
+  if (loggedIn && !ws.isConnected.value && to.path !== '/login') {
     console.log('[WS] 检测到登录态，建立连接')
-    ws.connect(token)
-  } else if (!token && ws.isConnected.value) {
+    // 浏览器端不传 token：后端从握手 Cookie 读取登录态
+    ws.connect()
+  } else if (!loggedIn && ws.isConnected.value) {
     console.log('[WS] 检测到登出，断开连接')
     ws.disconnect()
   }

@@ -15,13 +15,14 @@ import axios, {
   type AxiosResponse,
   type InternalAxiosRequestConfig
 } from 'axios'
-import { clearToken, getClientId, getToken, setToken } from '@/utils/cookie'
+import { clearSession, getClientId, getXsrfToken } from '@/utils/cookie'
 import { ElMessage, ElMessageBox } from '@/composables/useToast'
 import panUtil from '@/utils/common'
 import { useBreadcrumbStore } from '@/stores/breadcrumb'
 import { useFileStore } from '@/stores/file'
 import { useNavbarStore } from '@/stores/navbar'
 import { useUserStore } from '@/stores/user'
+import { useSpaceStore } from '@/stores/space'
 import { useFavorites } from '@/composables/useFavorites'
 import { useRecent } from '@/composables/useRecent'
 import type { ApiResponse } from '@/types'
@@ -31,12 +32,13 @@ function toLogin(): void {
   const fileStore = useFileStore()
   const navbarStore = useNavbarStore()
   const userStore = useUserStore()
-  // 先清空 token，避免路由守卫陷入「有 token → Login → Index → ...」的死循环
-  clearToken()
+  // 先清空前端登录标记，避免路由守卫陷入「有标记 → Login → Index → ...」的死循环
+  clearSession()
   fileStore.clear()
   breadcrumbStore.clear()
   navbarStore.clear()
   userStore.clear()
+  useSpaceStore().reset()
   // 收藏（模块级内存缓存）/最近访问（localStorage）跨页面共享，登出/登录失效时
   // 一并清空并重置加载标记，避免切换账号后看到上一个账号的数据
   useFavorites().clear()
@@ -58,6 +60,8 @@ function genTraceId(): string {
 const http: AxiosInstance = axios.create({
   baseURL: panUtil.getUrlPrefix(),
   timeout: 1000 * 60,
+  // 登录态在 HttpOnly Cookie 中，跨域/同源请求都需要显式携带
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json;charset=utf-8'
   }
@@ -65,13 +69,26 @@ const http: AxiosInstance = axios.create({
 
 http.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    if (config.data && typeof config.data !== 'string') {
+    // FormData 必须原样交给浏览器序列化（自动携带 multipart boundary），不能 JSON.stringify
+    if (config.data && typeof config.data !== 'string' && !(config.data instanceof FormData)) {
       config.data = JSON.stringify(config.data)
     }
-    const token = getToken()
-    if (token) config.headers['Authorization'] = token
+    // 登录态由 HttpOnly Cookie 自动携带，前端不再读取/注入 Authorization
     // 多端并存登录：每端带稳定 clientId，后端按 userId_clientId 隔离会话
     config.headers['X-Client-Id'] = getClientId()
+    // 团队空间：当前选中的空间 ID（空表示个人空间），后端据此切换文件归属与权限
+    try {
+      const spaceId = localStorage.getItem('xpan_space_id')
+      if (spaceId) config.headers['X-Space-Id'] = spaceId
+    } catch {
+      /* 隐私模式下读取失败：按个人空间处理 */
+    }
+    // CSRF 双提交：状态变更请求回传非 HttpOnly 的 XSRF-TOKEN
+    const method = (config.method || 'get').toLowerCase()
+    if (!['get', 'head', 'options'].includes(method)) {
+      const xsrf = getXsrfToken()
+      if (xsrf) config.headers['X-XSRF-TOKEN'] = xsrf
+    }
     config.headers['X-Pan-Trace-Id'] = genTraceId()
     return config
   },
@@ -88,16 +105,44 @@ http.interceptors.request.use(
  * 业务代码想直接拿到 ApiResponse<T>。这里用类型断言绕过泛型约束，
  * 实际运行期返回的就是后端的业务 JSON。
  */
+/**
+ * blob 响应处理：真文件流（zip 等）原样放行；业务错误（HTTP 200 + JSON 业务体）走统一错误路径。
+ *
+ * 背景：后端对业务失败（会话过期 code=10、无权访问等）返回 HTTP 200 + JSON，
+ * 若不嗅探 Content-Type，错误 JSON 会被当成下载内容存成损坏的 zip，且 code=10 不触发重登录。
+ * 注：用户下载真实的 .json 文件时 Content-Type 也是 application/json——无 code 字段即放行，
+ * 仅当解析出数字 code 才视为业务错误（当前 axios blob 下载仅打包下载 zip 一种，风险可控）。
+ */
+export async function resolveBlobResponse(res: AxiosResponse): Promise<AxiosResponse> {
+  const blob = res.data as unknown as Blob
+  const contentType =
+    ((res.headers?.['content-type'] as string) || blob?.type || '').toLowerCase()
+  if (contentType.includes('application/json') && blob?.text) {
+    const text = await blob.text()
+    let parsed: unknown = null
+    try {
+      parsed = JSON.parse(text)
+    } catch {
+      parsed = null
+    }
+    if (parsed && typeof (parsed as ApiResponse).code === 'number') {
+      const payload = parsed as ApiResponse
+      if (payload.code === 10) {
+        toLogin()
+      }
+      return Promise.reject(payload) as unknown as AxiosResponse
+    }
+  }
+  // 与 JSON 路径一样返回 res.data，调用方拿到的就是 Blob 本体
+  return blob as unknown as AxiosResponse
+}
+
 http.interceptors.response.use(
   (res: AxiosResponse<ApiResponse>) => {
-    // token 续期：后端在过半续期时通过响应头下发新 token，这里更新本地 cookie
-    const newToken = res.headers?.['new-access-token'] as string | undefined
-    if (newToken) setToken(newToken)
-    // Blob 响应（打包下载 zip 等）没有业务 code 字段，不能按业务 JSON 校验
-    // （否则 `res.data.code !== 0` 恒真导致下载永远被 reject），直接放行，
-    // 与 JSON 路径一样返回 res.data，调用方拿到的就是 Blob 本体
+    // token 续期：后端会在响应中同步刷新 HttpOnly Cookie；
+    // New-Access-Token 响应头仅保留给非浏览器客户端，前端不再写入可读 Cookie
     if (res.config.responseType === 'blob' || res.data instanceof Blob) {
-      return res.data as unknown as AxiosResponse
+      return resolveBlobResponse(res)
     }
     if (res.data && res.data.code === 10) {
       toLogin()

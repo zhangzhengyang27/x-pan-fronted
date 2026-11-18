@@ -45,7 +45,7 @@ function prev() {
     resetView()
   }
 }
-function pick(i) {
+function pick(i: number) {
   activeIdx.value = i
   resetView()
 }
@@ -66,14 +66,14 @@ function rotate() {
   rotation.value = (rotation.value + 90) % 360
 }
 
-function onWheel(e) {
+function onWheel(e: WheelEvent) {
   if (!e.ctrlKey && !e.metaKey) return
   e.preventDefault()
   if (e.deltaY < 0) zoomIn()
   else zoomOut()
 }
 
-function onKey(e) {
+function onKey(e: KeyboardEvent) {
   if (e.key === 'ArrowRight') next()
   else if (e.key === 'ArrowLeft') prev()
   else if (e.key === 'Escape') close()

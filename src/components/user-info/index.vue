@@ -3,16 +3,17 @@
  * AppUserInfo —— 用户菜单 + 修改密码弹窗
  * 使用 BaseDropdown + BaseModal + BaseField + BaseInput + BaseButton
  */
-import { reactive, ref, onMounted, computed } from 'vue'
+import { reactive, ref, onMounted, onUnmounted, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
-import { ChevronDown, LogOut, KeyRound, User, Monitor, Info, Camera } from '@lucide/vue'
+import { ChevronDown, LogOut, KeyRound, User, Monitor, Info, Camera, Mail, HardDrive } from '@lucide/vue'
 import userService from '@/api/user'
-import { clearToken, getToken } from '@/utils/cookie'
+import { clearSession, hasLoginSession } from '@/utils/cookie'
 import { useUserStore } from '@/stores/user'
 import { useBreadcrumbStore } from '@/stores/breadcrumb'
 import { useFileStore } from '@/stores/file'
 import { useNavbarStore } from '@/stores/navbar'
+import { useSpaceStore } from '@/stores/space'
 import { useTaskStore } from '@/stores/task'
 import { ElMessage, ElNotification, ElMessageBox } from '@/composables/useToast'
 
@@ -22,9 +23,10 @@ import BaseField from '@/components/base/BaseField.vue'
 import BaseInput from '@/components/base/BaseInput.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import DeviceManagerDialog from '@/components/base/DeviceManagerDialog.vue'
+import StorageMountDialog from '@/components/base/StorageMountDialog.vue'
 
 const userStore = useUserStore()
-const { username, avatar, usedSpace, totalSpace, usedPercent } = storeToRefs(userStore)
+const { username, avatar, email, usedSpace, totalSpace, usedPercent } = storeToRefs(userStore)
 
 // 头像直链 URL（后端 avatar 已是可访问的图片 URL，方案1独立存储）
 const avatarUrl = computed(() => avatar.value || '')
@@ -41,11 +43,12 @@ function goLogin() {
   router.push({ path: '/login', query: { redirect: router.currentRoute.value.fullPath } })
 }
 // 已登录判定：username 存在 或 Cookie 中存在 token（即"已登录但信息未取到"也按已登录处理）
-const isLoggedIn = computed(() => !!userStore.username || !!getToken())
+const isLoggedIn = computed(() => !!userStore.username || hasLoginSession())
 
 const open = ref(false)
 const changePasswordDialogVisible = ref(false)
 const deviceManagerVisible = ref(false)
+const storageMountVisible = ref(false)
 const profileVisible = ref(false)
 const loading = ref(false)
 const profile = reactive<{
@@ -61,12 +64,13 @@ const changePasswordForm = reactive({
 })
 
 function clearAll() {
-  clearToken()
+  clearSession()
   breadcrumbStore.clear()
   userStore.clear()
   fileStore.clear()
   navbarStore.clear()
   taskStore.clear()
+  useSpaceStore().reset()
   window.location.reload()
 }
 
@@ -88,6 +92,78 @@ function openChangePassword() {
   changePasswordDialogVisible.value = true
 }
 
+// ─── 邮箱绑定 ────────────────────────────────────────────────
+const emailVisible = ref(false)
+const emailForm = reactive({ email: '', code: '' })
+const emailSending = ref(false)
+const emailSaving = ref(false)
+const emailCountdown = ref(0)
+let emailTimer: number | undefined
+
+function clearEmailTimer() {
+  if (emailTimer) {
+    window.clearInterval(emailTimer)
+    emailTimer = undefined
+  }
+}
+
+function openEmailEditor() {
+  open.value = false
+  emailForm.email = email.value || ''
+  emailForm.code = ''
+  emailVisible.value = true
+}
+
+function sendBindEmailCode() {
+  if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(emailForm.email.trim())) {
+    return ElMessage.error('请输入正确的邮箱地址')
+  }
+  if (emailSending.value || emailCountdown.value > 0) return
+  emailSending.value = true
+  userService.sendEmailCode(
+    { email: emailForm.email.trim(), scene: 'BIND' },
+    () => {
+      emailSending.value = false
+      ElMessage.success('验证码已发送，请查收邮箱')
+      emailCountdown.value = 60
+      clearEmailTimer()
+      emailTimer = window.setInterval(() => {
+        emailCountdown.value -= 1
+        if (emailCountdown.value <= 0) clearEmailTimer()
+      }, 1000)
+    },
+    (res) => {
+      emailSending.value = false
+      ElMessage.error(res.message || '验证码发送失败')
+    }
+  )
+}
+
+function saveEmail() {
+  if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(emailForm.email.trim())) {
+    return ElMessage.error('请输入正确的邮箱地址')
+  }
+  if (!/^\d{6}$/.test(emailForm.code.trim())) {
+    return ElMessage.error('请输入 6 位邮箱验证码')
+  }
+  emailSaving.value = true
+  userService.bindEmail(
+    { email: emailForm.email.trim(), code: emailForm.code.trim() },
+    () => {
+      emailSaving.value = false
+      emailVisible.value = false
+      userStore.setEmail(emailForm.email.trim())
+      ElNotification.success({ title: '成功', message: '邮箱已绑定，可使用邮箱登录' })
+    },
+    (res) => {
+      emailSaving.value = false
+      ElMessage.error(res.message || '邮箱绑定失败')
+    }
+  )
+}
+
+onUnmounted(clearEmailTimer)
+
 function openDeviceManager() {
   open.value = false
   deviceManagerVisible.value = true
@@ -107,6 +183,7 @@ function openProfile() {
         profile.rootFileId = res.data.rootFileId || profile.rootFileId
         profile.rootFilename = res.data.rootFilename || profile.rootFilename
         if (res.data.avatar) userStore.setAvatar(res.data.avatar)
+        if (res.data.email) userStore.setEmail(res.data.email)
       },
       () => {}
     )
@@ -239,6 +316,7 @@ function initUserInfoIfNecessary() {
         fileStore.setDefaultParentId(res.data.rootFileId)
         fileStore.setDefaultParentFilename(res.data.rootFilename)
         userStore.setUsername(res.data.username)
+        userStore.setEmail(res.data.email || '')
         if (res.data.avatar) userStore.setAvatar(res.data.avatar)
         // 同步存储空间数据（后端 UserInfoVO 字段为 usedSize/totalSize）
         if (res.data.usedSize !== undefined && res.data.totalSize !== undefined) {
@@ -305,6 +383,14 @@ onMounted(initUserInfoIfNecessary)
       <button
         type="button"
         class="w-full flex items-center gap-2 px-3 py-2 text-sm text-(--color-text) hover:bg-(--color-surface-2) transition-colors text-left"
+        @click="openEmailEditor"
+      >
+        <Mail :size="14" />
+        邮箱设置
+      </button>
+      <button
+        type="button"
+        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-(--color-text) hover:bg-(--color-surface-2) transition-colors text-left"
         @click="openChangePassword"
       >
         <KeyRound :size="14" />
@@ -320,6 +406,14 @@ onMounted(initUserInfoIfNecessary)
       </button>
       <button
         type="button"
+        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-(--color-text) hover:bg-(--color-surface-2) transition-colors text-left"
+        @click="storageMountVisible = true"
+      >
+        <HardDrive :size="14" />
+        外部存储
+      </button>
+      <button
+        type="button"
         class="w-full flex items-center gap-2 px-3 py-2 text-sm text-danger hover:bg-(--color-surface-2) transition-colors text-left"
         @click="doExit"
       >
@@ -330,6 +424,44 @@ onMounted(initUserInfoIfNecessary)
 
     <!-- P3-5 设备管理弹窗 -->
     <DeviceManagerDialog v-model:open="deviceManagerVisible" />
+
+    <!-- 外部存储挂载管理弹窗 -->
+    <StorageMountDialog v-model:open="storageMountVisible" />
+
+    <!-- 邮箱绑定弹窗 -->
+    <BaseModal v-model:open="emailVisible" title="邮箱设置" size="md">
+      <div class="flex flex-col gap-4">
+        <p class="text-xs text-(--color-text-muted)">
+          当前邮箱：{{ email || '未绑定' }}。绑定后可使用邮箱登录与找回账号。
+        </p>
+        <BaseField label="新邮箱" required>
+          <BaseInput v-model="emailForm.email" placeholder="name@example.com" autocomplete="email" />
+        </BaseField>
+        <BaseField label="邮箱验证码" required>
+          <div class="flex items-center gap-2">
+            <div class="flex-1 min-w-0">
+              <BaseInput
+                v-model="emailForm.code"
+                placeholder="6 位验证码"
+                input-mode="numeric"
+              />
+            </div>
+            <BaseButton
+              variant="secondary"
+              :loading="emailSending"
+              :disabled="emailCountdown > 0"
+              @click="sendBindEmailCode"
+            >
+              {{ emailCountdown > 0 ? `${emailCountdown}s 后重发` : '获取验证码' }}
+            </BaseButton>
+          </div>
+        </BaseField>
+      </div>
+      <template #footer>
+        <BaseButton variant="secondary" @click="emailVisible = false">取消</BaseButton>
+        <BaseButton variant="primary" :loading="emailSaving" @click="saveEmail">保存</BaseButton>
+      </template>
+    </BaseModal>
 
     <BaseModal
       v-model:open="changePasswordDialogVisible"

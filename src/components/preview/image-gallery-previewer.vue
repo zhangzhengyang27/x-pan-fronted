@@ -9,6 +9,7 @@
  * - 加载态占位
  */
 import { onMounted, ref, watch, onBeforeUnmount, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import {
   ChevronLeft,
   ChevronRight,
@@ -17,6 +18,7 @@ import {
   ZoomOut,
   RotateCcw,
   Download,
+  Edit3,
   Play,
   Pause
 } from '@lucide/vue'
@@ -41,8 +43,29 @@ const props = withDefaults(
 
 const emit = defineEmits(['update:activeIndex', 'close', 'download'])
 
+const router = useRouter()
+
+// 可在线编辑的图片格式（与后端保存底座/编辑器能力保持一致）
+const EDITABLE_IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'webp']
+const canEditCurrent = computed(() => {
+  const name = (currentItem.value?.filename || '').toLowerCase()
+  const i = name.lastIndexOf('.')
+  return i >= 0 && EDITABLE_IMAGE_EXTS.includes(name.slice(i + 1))
+})
+
+function openEditor() {
+  const item = currentItem.value
+  if (!item) return
+  const { href } = router.resolve({
+    name: 'EditImage',
+    params: { fileId: String(item.fileId) },
+    query: { filename: item.filename || '' }
+  })
+  window.open(href, '_blank', 'noopener,noreferrer')
+}
+
 // fileId → URL 缓存（避免重复请求）
-const urlMap = ref({})
+const urlMap = ref<Record<string, string>>({})
 const loadingIds = ref(new Set())
 const scale = ref(1)
 const rotation = ref(0)
@@ -50,7 +73,7 @@ const rotation = ref(0)
 // ─── P1.10：幻灯片自动播放 ─────────────────────────────────────────────────
 const isPlaying = ref(false)
 const intervalMs = 3000
-let slideTimer = null
+let slideTimer: ReturnType<typeof setInterval> | null = null
 
 function startSlideshow() {
   if (slideTimer) return
@@ -83,7 +106,7 @@ const currentSrc = computed(() => {
 //（ptoken 约 5 分钟过期，全量解析既浪费后端签发压力，多数 URL 到头来也没被看到）
 const LAZY_WINDOW = 5
 
-async function ensureUrl(it) {
+async function ensureUrl(it: GalleryItem) {
   if (!it || urlMap.value[it.fileId] || loadingIds.value.has(it.fileId)) return
   loadingIds.value.add(it.fileId)
   try {
@@ -125,7 +148,7 @@ function prev() {
   emit('update:activeIndex', i)
   resetView()
 }
-function pick(i) {
+function pick(i: number) {
   emit('update:activeIndex', i)
   resetView()
 }
@@ -145,14 +168,14 @@ function download() {
   if (currentItem.value) emit('download', currentItem.value)
 }
 
-function onWheel(e) {
+function onWheel(e: WheelEvent) {
   if (!e.ctrlKey && !e.metaKey) return
   e.preventDefault()
   if (e.deltaY < 0) zoomIn()
   else zoomOut()
 }
 
-function onKey(e) {
+function onKey(e: KeyboardEvent) {
   if (e.key === 'ArrowRight') next()
   else if (e.key === 'ArrowLeft') prev()
   else if (e.key === 'Escape') close()
@@ -238,6 +261,16 @@ onBeforeUnmount(() => {
           @click="rotate"
         >
           <RotateCcw :size="16" />
+        </button>
+        <button
+          v-if="canEditCurrent"
+          type="button"
+          class="size-9 rounded-sm hover:bg-white/10 flex items-center justify-center"
+          aria-label="编辑"
+          title="在线编辑"
+          @click="openEditor"
+        >
+          <Edit3 :size="16" />
         </button>
         <button
           type="button"

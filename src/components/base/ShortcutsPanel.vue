@@ -121,7 +121,7 @@ const filteredShortcuts = computed(() => {
 })
 
 /** 统一的全局键盘监听（页面级） */
-function onKeydown(e) {
+function onKeydown(e: KeyboardEvent) {
   // ? 唤出
   if (e.key === '?' || (e.shiftKey && e.key === '/')) {
     const t = e.target as HTMLElement | null

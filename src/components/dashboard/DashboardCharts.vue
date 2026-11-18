@@ -25,7 +25,12 @@ const userStore = useUserStore()
 const { usedSpace } = storeToRefs(userStore)
 
 // ─── 存储历史 ─────────────────────────────────────────────────────────────
-function loadHistory() {
+interface StorageHistoryPoint {
+  date: string
+  bytes: number
+}
+
+function loadHistory(): StorageHistoryPoint[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return []
@@ -35,9 +40,9 @@ function loadHistory() {
   }
 }
 
-const history = ref(loadHistory())
+const history = ref<StorageHistoryPoint[]>(loadHistory())
 
-function recordToday(bytes) {
+function recordToday(bytes: number) {
   const total = bytes || 0
   const today = new Date().toISOString().slice(0, 10)
   const idx = history.value.findIndex((h) => h.date === today)
@@ -74,7 +79,7 @@ const chartData = computed(() => {
   return { path, fillPath, data, max, w, h, stepX }
 })
 
-function formatBytes(b) {
+function formatBytes(b: number) {
   if (b < 1024) return `${b} B`
   if (b < 1024 * 1024) return `${(b / 1024).toFixed(1)} KB`
   if (b < 1024 * 1024 * 1024) return `${(b / 1024 / 1024).toFixed(1)} MB`

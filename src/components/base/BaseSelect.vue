@@ -13,7 +13,10 @@ interface SelectOption {
 
 defineProps({
   modelValue: { type: [String, Number], default: '' },
-  options: { type: Array as PropType<Array<SelectOption | string | number>>, default: () => [] }, // [{label, value}] 或 [string]
+  options: {
+    type: Array as PropType<Array<SelectOption | string | number>>,
+    default: (): Array<SelectOption | string | number> => []
+  }, // [{label, value}] 或 [string]
   placeholder: { type: String, default: '请选择' },
   disabled: { type: Boolean, default: false },
   size: { type: String, default: 'md' },

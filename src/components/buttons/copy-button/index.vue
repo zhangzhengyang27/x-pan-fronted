@@ -39,7 +39,7 @@ function collectFileIds() {
   return multipleSelection.value.map((f) => f.fileId)
 }
 
-function onConfirm({ targetId }) {
+function onConfirm({ targetId }: { targetId?: string | null }) {
   const fileIds = collectFileIds()
   if (fileIds.length === 0) {
     ElMessage.error('没有可复制的文件')

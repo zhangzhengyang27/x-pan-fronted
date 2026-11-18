@@ -80,7 +80,6 @@ import {
   getPreviewUrl,
   resolveShikiLanguage,
   getFileExtension,
-  isShikiLangSupported,
   decodeTextContent
 } from '@/utils/preview'
 import { useTheme } from '@/composables/useTheme'

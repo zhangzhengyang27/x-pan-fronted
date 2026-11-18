@@ -196,6 +196,42 @@ function openHistory() {
   historyPanel.value = { open: true, fileId: panUtil.handleId(props.file.fileId) }
 }
 
+// ─── 在线编辑（文本 / 图片） ────────────────────────────────────────────────
+function fileSuffix(name: string): string {
+  const i = name.lastIndexOf('.')
+  return i >= 0 ? name.slice(i + 1).toLowerCase() : ''
+}
+
+const EDITABLE_TEXT_EXTS = ['md', 'markdown', 'txt']
+const EDITABLE_IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'webp']
+const EDITABLE_OFFICE_EXTS = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx']
+
+const canEditFile = computed(() => {
+  if (!props.file || props.file.fileType === 0) return false
+  const suffix = fileSuffix(props.file.filename || '')
+  return (
+    EDITABLE_TEXT_EXTS.includes(suffix) ||
+    EDITABLE_IMAGE_EXTS.includes(suffix) ||
+    EDITABLE_OFFICE_EXTS.includes(suffix)
+  )
+})
+
+function editFile() {
+  if (!props.file) return
+  const suffix = fileSuffix(props.file.filename || '')
+  const name = EDITABLE_IMAGE_EXTS.includes(suffix)
+    ? 'EditImage'
+    : EDITABLE_OFFICE_EXTS.includes(suffix)
+      ? 'EditOffice'
+      : 'EditMarkdown'
+  const { href } = router.resolve({
+    name,
+    params: { fileId: props.file.fileId },
+    query: { filename: props.file.filename || '' }
+  })
+  window.open(href, '_blank', 'noopener,noreferrer')
+}
+
 // ─── 智能打标 ───────────────────────────────────────────────────────────────
 const tagInput = ref('')
 
@@ -419,6 +455,15 @@ watch(
 
         <!-- 更多操作 -->
         <div class="px-3 py-2 space-y-0.5">
+          <button
+            v-if="canEditFile"
+            type="button"
+            class="w-full flex items-center gap-3 h-8 px-2.5 rounded-md text-[13px] text-(--color-text-muted) hover:bg-(--color-surface-2) hover:text-(--color-text) transition-colors"
+            @click="editFile"
+          >
+            <Edit3 :size="14" :stroke-width="1.75" />
+            在线编辑
+          </button>
           <button
             v-if="file.fileType !== 0"
             type="button"

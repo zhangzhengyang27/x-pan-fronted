@@ -11,10 +11,12 @@ import fileService from '@/api/file'
 import { useFileStore } from '@/stores/file'
 import { useBreadcrumbStore } from '@/stores/breadcrumb'
 import { useNavbarStore } from '@/stores/navbar'
+import { ElMessage } from '@/composables/useToast'
 import { storeToRefs } from 'pinia'
 import { Search as SearchIcon } from '@lucide/vue'
 
 import BaseInput from '@/components/base/BaseInput.vue'
+import type { IFileVO } from '@/types'
 
 const fileStore = useFileStore()
 const breadcrumbStore = useBreadcrumbStore()
@@ -24,6 +26,8 @@ const { defaultParentId, defaultParentFilename, fileList } = storeToRefs(fileSto
 const searchKey = ref('')
 const showSuggest = ref(false)
 const suggestions = ref([])
+/** 是否同时搜索文件正文（全文检索） */
+const searchContent = ref(false)
 /** 后端联想词（字符串关键词，点击后直接搜索） */
 const suggestWords = ref<string[]>([])
 /** 热搜词 */
@@ -68,10 +72,8 @@ function onFocusSearch() {
 function onInputFocus() {
   if (!searchKey.value.trim()) {
     if (hotWords.value.length === 0) fetchHot()
-    showSuggest.value = true
-  } else {
-    showSuggest.value = suggestions.value.length > 0 || suggestWords.value.length > 0
   }
+  showSuggest.value = true
 }
 onMounted(() => {
   window.addEventListener('xpan:focus-search', onFocusSearch)
@@ -212,6 +214,14 @@ function doSearch() {
   // P1-5：解析自然语言
   const parsed = parseNaturalLanguage(searchKey.value)
 
+  // NL 解析把整句都剥成筛选条件时（如"大于100MB的视频"），文件名模式没有可检索的
+  // 关键词——按整句字面搜文件名几乎必 0 结果且误导。语义模式用整句正合适（向量检索
+  // 适合自然语言），文件名模式则给出引导而不是发必空请求。
+  if (!parsed.keyword && !searchContent.value) {
+    ElMessage.info('未识别到文件名关键词：勾选「智能搜索」可按语义检索，或直接输入文件名')
+    return
+  }
+
   fileStore.setFileTypes('-1')
   navbarStore.change('Files')
   fileStore.setSearchKey(parsed.keyword || searchKey.value)
@@ -222,9 +232,12 @@ function doSearch() {
     fileTypes?: string
     dateFrom?: string
     dateTo?: string
+    mode: 'filename' | 'content' | 'semantic'
   } = {
     keyword: parsed.keyword || searchKey.value,
-    fileTypes: parsed.fileType != null ? String(parsed.fileType) : '-1'
+    fileTypes: parsed.fileType != null ? String(parsed.fileType) : '-1',
+    // 正文模式走语义混合检索端点（后端语义链路不可用时自动降级为全文检索）
+    mode: searchContent.value ? 'semantic' : 'filename'
   }
   if (parsed.dateFrom) params.dateFrom = parsed.dateFrom
   if (parsed.dateTo) params.dateTo = parsed.dateTo
@@ -258,7 +271,7 @@ function doSearch() {
 }
 
 // 点击建议项：执行搜索并进入结果列表
-function clickSuggestion(item) {
+function clickSuggestion(item: IFileVO) {
   showSuggest.value = false
   searchKey.value = item.filename || ''
   doSearch()
@@ -279,7 +292,7 @@ function clickSuggestion(item) {
         ref="inputRef"
         v-model="searchKey"
         type="search"
-        placeholder="搜索文件…"
+        :placeholder="searchContent ? '智能搜索（文件名/正文/语义）…' : '搜索文件…'"
         :prefix="SearchIcon"
         name="xpan-search"
         autocomplete="off"
@@ -296,7 +309,7 @@ function clickSuggestion(item) {
     <!-- 搜索建议下拉（本地 Fuse + 后端 suggest 联想词 + 热搜词） -->
     <Transition name="modal">
       <div
-        v-if="showSuggest && (suggestions.length > 0 || suggestWords.length > 0 || hotWords.length > 0)"
+        v-if="showSuggest"
         class="absolute top-full left-0 right-0 mt-1 rounded-sm border border-(--color-border) bg-(--color-surface) shadow-lg overflow-hidden z-(--z-dropdown)"
       >
         <!-- 后端联想词 -->
@@ -344,6 +357,21 @@ function clickSuggestion(item) {
             <span class="truncate flex-1 text-(--color-text)">{{ word }}</span>
           </button>
         </template>
+
+        <!-- 搜索模式与提交 -->
+        <div class="flex items-center justify-between border-t border-(--color-border) px-3 py-2">
+          <label class="flex items-center gap-2 text-xs text-(--color-text-muted) cursor-pointer select-none">
+            <input v-model="searchContent" type="checkbox" class="accent-primary-500" />
+            智能搜索（正文语义）
+          </label>
+          <button
+            type="button"
+            class="text-xs font-medium text-primary-500 hover:underline"
+            @mousedown.prevent="doSearch"
+          >
+            搜索
+          </button>
+        </div>
       </div>
     </Transition>
   </div>
