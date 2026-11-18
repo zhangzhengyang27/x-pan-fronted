@@ -34,6 +34,7 @@ const view = ref<'chats' | 'friends'>('chats')
 const showFriendDrawer = ref(false)
 const showFilePicker = ref(false)
 const showForwardPicker = ref<IChatMessageVO | null>(null)
+const forwardTargets = ref<Set<number>>(new Set())
 const showEmoji = ref(false)
 const showGroupCreate = ref(false)
 const draft = ref('')
@@ -277,9 +278,19 @@ function transferFileCard(message: IChatMessageVO) {
     .catch(() => ElMessage.error('转存失败'))
 }
 
-function forwardTo(message: IChatMessageVO, conversationId: number) {
-  chatStore.forward(message, [conversationId])
+function toggleForwardTarget(conversationId: number) {
+  const next = new Set(forwardTargets.value)
+  if (next.has(conversationId)) next.delete(conversationId)
+  else next.add(conversationId)
+  forwardTargets.value = next
+}
+
+function confirmForward() {
+  const message = showForwardPicker.value
+  if (!message || forwardTargets.value.size === 0) return
+  chatStore.forward(message, [...forwardTargets.value])
   showForwardPicker.value = null
+  forwardTargets.value = new Set()
   ElMessage.success('已转发')
 }
 
@@ -565,17 +576,29 @@ function fmtTime(time: string): string {
             <button @click="showForwardPicker = null"><CloseIcon :size="16" /></button>
           </div>
           <div class="flex-1 overflow-y-auto p-2">
-            <button
-              v-for="conv in chatStore.conversations"
+            <label
+              v-for="conv in chatStore.conversations.filter((c) => c.conversationId !== chatStore.activeConversationId)"
               :key="conv.conversationId"
-              class="w-full flex items-center gap-2 px-3 py-2 rounded-sm text-left hover:bg-(--color-surface-2)"
-              @click="forwardTo(showForwardPicker as IChatMessageVO, conv.conversationId)"
+              class="flex items-center gap-2 px-3 py-2 rounded-sm text-left hover:bg-(--color-surface-2) cursor-pointer"
             >
-              <span class="size-8 rounded-full bg-primary-500/20 text-primary-600 flex items-center justify-center text-xs font-bold">
+              <input
+                type="checkbox"
+                class="accent-primary-500"
+                :checked="forwardTargets.has(conv.conversationId)"
+                @change="toggleForwardTarget(conv.conversationId)"
+              />
+              <span class="size-7 rounded-full bg-primary-500/20 text-primary-600 flex items-center justify-center text-xs font-bold shrink-0">
                 {{ conv.type === 'GROUP' ? '群' : (conv.displayName || '?').slice(0, 1) }}
               </span>
               <span class="flex-1 truncate text-sm">{{ conv.displayName }}</span>
-            </button>
+            </label>
+          </div>
+          <div class="px-4 py-3 border-t border-(--color-border)">
+            <button
+              class="w-full h-9 rounded-sm bg-primary-500 text-white text-sm disabled:opacity-50"
+              :disabled="forwardTargets.size === 0"
+              @click="confirmForward"
+            >转发（{{ forwardTargets.size }}）</button>
           </div>
         </div>
       </div>
