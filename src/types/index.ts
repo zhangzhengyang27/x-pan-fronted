@@ -223,6 +223,9 @@ export interface IShareVO {
   forbidReshare?: number
   /** 文件收集开关（P3-5：1=允许访问者上传到被分享文件夹） */
   collectEnabled?: number
+  /** 举报待复核隐藏（1=对外不可访问，管理员可恢复） */
+  reportHidden?: number
+  reportHiddenTime?: string
   /** 兼容创建/详情接口可能附带的文件信息 */
   fileList?: IFileVO[]
   /** 分享详情报文：分享文件列表（对齐后端 ShareDetailVO） */

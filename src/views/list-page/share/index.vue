@@ -128,6 +128,8 @@ const summary = computed(() => {
   const now = Date.now()
   const active = rows.filter((r) => {
     if (r.shareStatus === 1) return false
+    // 举报待复核隐藏不算有效分享：访问者已经无法打开，统计应与实际状态一致
+    if (r.reportHidden === 1) return false
     if (r.shareDayType === 0) return true
     return new Date(r.shareEndTime).getTime() > now
   })
@@ -255,6 +257,7 @@ function formatExpireTime(row: Partial<IShareVO>) {
         <div class="flex items-center gap-3">
           <Share2 :size="18" :stroke-width="2" class="shrink-0" style="color: var(--color-primary-500);" />
           <span class="truncate text-(--color-text)">{{ row.shareName || '未命名' }}</span>
+          <BaseBadge v-if="row.reportHidden === 1" variant="danger" size="sm">待复核</BaseBadge>
         </div>
       </template>
 
@@ -278,7 +281,7 @@ function formatExpireTime(row: Partial<IShareVO>) {
       <template #cell-expireTime="{ row }">
         <span
           class="tabular-nums text-sm"
-          :style="isExpired(row) ? 'color: vardanger;' : 'color: var(--color-text-muted);'"
+          :style="isExpired(row) ? 'color: var(--color-danger);' : 'color: var(--color-text-muted);'"
         >
           {{ formatExpireTime(row) }}
           <span v-if="isExpired(row)" class="ml-1">(已过期)</span>
@@ -315,7 +318,7 @@ function formatExpireTime(row: Partial<IShareVO>) {
             <BaseButton
               variant="secondary"
               size="sm"
-              :disabled="row.shareStatus === 1 || isExpired(row)"
+              :disabled="row.shareStatus === 1 || row.reportHidden === 1 || isExpired(row)"
               @click="toggleCollect(row)"
             >
               <Inbox :size="14" :stroke-width="2" />
