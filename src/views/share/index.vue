@@ -69,6 +69,12 @@ const treeCheckedNode = ref(null)
 
 const selected = ref([])
 
+// 分享目录分页：进入文件夹后按 100 条/页加载，支持“加载更多”
+const sharePageNum = ref(1)
+const shareCurrentParentId = ref('')
+const shareHasMore = ref(false)
+const sharePageLoading = ref(false)
+
 // 分享统计
 const downloadCount = ref(0)
 const downloadLimit = ref(0)
@@ -128,6 +134,10 @@ function refreshShareInfo(data: IShareVO) {
   shareDate.value = data.createTime
   shareExpireDate.value = data.shareDay === 0 ? '永久有效' : data.shareEndTime
   tableData.value = data.xPanUserFileVOList
+  shareHasMore.value = false
+  sharePageNum.value = 1
+  shareCurrentParentId.value = ''
+  selected.value = []
   downloadCount.value = data.downloadCount || 0
   downloadLimit.value = data.downloadLimit || 0
   forbidReshare.value = data.forbidReshare || 0
@@ -258,11 +268,31 @@ function goInFolder(row: Partial<IFileVO>) {
   reloadTableData(row.fileId)
 }
 
-function reloadTableData(parentId: string) {
-  shareService.getShareFiles({ parentId }, (res) => {
-    if (res.code === 0) tableData.value = res.data
-    else window.location.reload()
-  })
+function reloadTableData(parentId: string, pageNum = 1, append = false) {
+  sharePageLoading.value = true
+  shareService.getShareFiles(
+    { parentId, pageNum, pageSize: 100 },
+    (res) => {
+      sharePageLoading.value = false
+      if (res.code === 0) {
+        const page = res.data
+        tableData.value = append
+          ? [...tableData.value, ...(page.records || [])]
+          : page.records || []
+        shareHasMore.value = !!page.hasMore
+        sharePageNum.value = page.pageNum || pageNum
+        shareCurrentParentId.value = parentId
+        if (!append) selected.value = []
+      } else {
+        window.location.reload()
+      }
+    }
+  )
+}
+
+function loadMoreShareFiles() {
+  if (!shareHasMore.value || sharePageLoading.value) return
+  reloadTableData(shareCurrentParentId.value, sharePageNum.value + 1, true)
 }
 
 function goToThis(id: string) {
@@ -567,6 +597,16 @@ onUnmounted(() => {
                 </div>
               </template>
             </BaseTable>
+            <div v-if="shareHasMore" class="mt-4 flex justify-center">
+              <BaseButton
+                variant="secondary"
+                size="sm"
+                :loading="sharePageLoading"
+                @click="loadMoreShareFiles"
+              >
+                加载更多
+              </BaseButton>
+            </div>
           </div>
         </div>
       </div>

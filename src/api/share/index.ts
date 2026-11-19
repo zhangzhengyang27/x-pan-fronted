@@ -6,7 +6,7 @@
 
 import http, { type ApiResponse } from '@/utils/http'
 import simpleHttp, { type ApiResponse as SA } from '@/utils/simple-http'
-import type { IShareCreateReq, IShareVO, IFileVO, IShareStatsVO } from '@/types'
+import type { IShareCreateReq, IShareVO, IFileVO, IShareStatsVO, PageVO } from '@/types'
 
 type Callback<T> = (res: ApiResponse<T>) => void
 type SimpleCallback<T> = (res: SA<T>) => void
@@ -28,8 +28,11 @@ const shareService = {
     simpleHttp.post<unknown, SA<unknown>>('/share/code/check', data).then(resolve)
   },
 
-  getShareFiles(params: { parentId: string }, resolve: SimpleCallback<IFileVO[]>) {
-    simpleHttp.get<unknown, SA<IFileVO[]>>('/share/file/list', { params }).then(resolve)
+  getShareFiles(
+    params: { parentId: string; pageNum?: number; pageSize?: number },
+    resolve: SimpleCallback<PageVO<IFileVO>>
+  ) {
+    simpleHttp.get<unknown, SA<PageVO<IFileVO>>>('/share/file/list', { params }).then(resolve)
   },
 
   saveShareFiles(
