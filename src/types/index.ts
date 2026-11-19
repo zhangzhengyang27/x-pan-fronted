@@ -198,6 +198,8 @@ export interface IShareCreateReq {
   downloadLimit?: number
   /** 禁止转载（P0-4：true=禁止他人转存到自己网盘） */
   forbidReshare?: boolean
+  /** 文件收集（P3-5：仅单个文件夹分享可开启） */
+  collectEnabled?: boolean
 }
 
 // IShareVO 对齐后端分享相关 VO（XPanShareUrlVO / XPanShareUrlListVO / ShareDetailVO）。
@@ -219,6 +221,8 @@ export interface IShareVO {
   saveCount?: number
   /** 禁止转载（P0-4：1=禁止他人转存到自己网盘） */
   forbidReshare?: number
+  /** 文件收集开关（P3-5：1=允许访问者上传到被分享文件夹） */
+  collectEnabled?: number
   /** 兼容创建/详情接口可能附带的文件信息 */
   fileList?: IFileVO[]
   /** 分享详情报文：分享文件列表（对齐后端 ShareDetailVO） */

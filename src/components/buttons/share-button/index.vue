@@ -9,7 +9,7 @@
  * - 下载次数限制
  * - 第二步显示 QR 码 + 下载统计信息
  */
-import { reactive, ref, nextTick } from 'vue'
+import { computed, reactive, ref, nextTick } from 'vue'
 import { Share2, Copy, Check, QrCode, Lock } from '@lucide/vue'
 import { toDataURL } from 'qrcode'
 import { ElMessage } from '@/composables/useToast'
@@ -42,6 +42,10 @@ const shareNameInputRef = ref(null)
 // 外部通过 ref.openModal(file | file[]) 传入的目标文件；为空时回退到 props.item / 多选
 const currentItem = ref<any>(null)
 const currentItems = ref<any[]>([])
+// 文件收集只支持单个文件夹分享；多选/普通文件时禁用开关，避免后端拒绝时用户困惑
+const canCollect = computed(
+  () => currentItems.value.length === 1 && currentItems.value[0]?.folderFlag === 1
+)
 
 const form = reactive({
   shareName: '',
@@ -49,7 +53,8 @@ const form = reactive({
   shareDayType: '0',
   shareCode: '',
   downloadLimit: '',
-  forbidReshare: false
+  forbidReshare: false,
+  collectEnabled: false
 })
 
 const errors = reactive({
@@ -136,6 +141,7 @@ async function openModal(item?: any) {
   form.shareCode = randomCode()
   form.downloadLimit = ''
   form.forbidReshare = false
+  form.collectEnabled = false
   errors.shareName = ''
   errors.shareCode = ''
   errors.downloadLimit = ''
@@ -189,6 +195,7 @@ async function doConfirm() {
     shareCode?: string
     downloadLimit?: number
     forbidReshare?: boolean
+    collectEnabled?: boolean
   } = {
     shareName: form.shareName,
     shareType: parseInt(form.shareType, 10),
@@ -199,6 +206,7 @@ async function doConfirm() {
   if (form.downloadLimit !== '' && Number(form.downloadLimit) >= 0)
     payload.downloadLimit = parseInt(form.downloadLimit, 10)
   if (form.forbidReshare) payload.forbidReshare = true
+  if (form.collectEnabled && canCollect.value) payload.collectEnabled = true
   shareService.createShare(
     payload,
     (res) => {
@@ -338,8 +346,16 @@ defineExpose({ openModal })
               达到上限后分享将失效，0 或留空表示不限制
             </p>
           </div>
-          <div>
+          <div class="space-y-2">
             <BaseCheckbox v-model="form.forbidReshare" label="禁止转载（他人不可转存到自己网盘）" />
+            <BaseCheckbox
+              v-model="form.collectEnabled"
+              label="开启文件收集（仅单个文件夹分享，访问者可上传到该文件夹）"
+              :disabled="!canCollect"
+            />
+            <p v-if="!canCollect" class="text-[11px] text-(--color-text-muted)">
+              文件收集仅支持单个文件夹分享
+            </p>
           </div>
         </div>
       </div>

@@ -56,9 +56,30 @@ const shareService = {
     simpleHttp.get<unknown, SA<IShareVO>>('/share/simple', { params }).then(resolve)
   },
 
-  reportShare(data: { shareId: string; reason: string }, resolve: SimpleCallback<unknown>) {
+  collectShare(
+    file: File,
+    resolve: SimpleCallback<unknown>,
+    reject: SimpleCallback<unknown> = () => {}
+  ) {
+    // 文件收集接口走 Share-Token（@NeedShareCode），simpleHttp 会自动带 token；
+    // 不把 shareId 放请求体，避免伪造 IDOR，后端只认 token 中的分享 ID。
+    const form = new FormData()
+    form.append('file', file)
+    simpleHttp
+      .post<unknown, SA<unknown>>('/share/collect', form, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+      .then(resolve)
+      .catch(reject)
+  },
+
+  reportShare(
+    data: { shareId: string; reason: string },
+    resolve: SimpleCallback<unknown>,
+    reject: SimpleCallback<unknown> = () => {}
+  ) {
     // 举报要求登录：后端会绑定 userId 做限流与追溯；未登录时由页面先弹登录框
-    simpleHttp.post<unknown, SA<unknown>>('/share/report', data).then(resolve)
+    simpleHttp.post<unknown, SA<unknown>>('/share/report', data).then(resolve).catch(reject)
   }
 }
 

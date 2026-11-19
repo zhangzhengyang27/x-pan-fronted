@@ -84,6 +84,10 @@ const reportReason = ref('')
 const reportLoading = ref(false)
 // P0-4 禁止转载（1=禁止转存，隐藏"保存到我的 X 盘"入口）
 const forbidReshare = ref(0)
+// P3-5 文件收集：分享创建者开启后，访问者可上传到被分享文件夹
+const collectEnabled = ref(0)
+const collectInput = ref<HTMLInputElement | null>(null)
+const collecting = ref(false)
 const countdownText = ref('')
 let countdownTimer: ReturnType<typeof setInterval> | null = null
 
@@ -145,6 +149,7 @@ function refreshShareInfo(data: IShareVO) {
   downloadCount.value = data.downloadCount || 0
   downloadLimit.value = data.downloadLimit || 0
   forbidReshare.value = data.forbidReshare || 0
+  collectEnabled.value = data.collectEnabled || 0
   startCountdown(data.shareDay === 0 ? null : data.shareEndTime)
 }
 
@@ -361,20 +366,49 @@ function openReport() {
   reportDialogVisible.value = true
 }
 
+function chooseCollectFile() {
+  if (collecting.value) return
+  collectInput.value?.click()
+}
+
+function onCollectFile(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (!file) return
+  if (file.size > 2 * 1024 * 1024 * 1024) {
+    return ElMessage.warning('文件收集单文件不能超过 2GB')
+  }
+  collecting.value = true
+  shareService.collectShare(
+    file,
+    () => {
+      collecting.value = false
+      ElMessage.success('文件已上传到收集箱')
+      loadShareInfo()
+    },
+    () => {
+      collecting.value = false
+    }
+  )
+}
+
 function doReport() {
   const reason = reportReason.value.trim()
   if (!reason) return ElMessage.warning('请填写举报理由')
   if (reason.length > 500) return ElMessage.warning('举报理由不能超过500字')
   reportLoading.value = true
-  shareService.reportShare({ shareId: getShareId(), reason }, (res) => {
-    reportLoading.value = false
-    if (res.code === 0) {
+  shareService.reportShare(
+    { shareId: getShareId(), reason },
+    () => {
+      reportLoading.value = false
       reportDialogVisible.value = false
       ElMessage.success('举报已提交，管理员会尽快处理')
-    } else {
-      ElMessage.error(res.message || '举报提交失败')
+    },
+    () => {
+      reportLoading.value = false
     }
-  })
+  )
 }
 
 function doChoseTreeNodeCallBack() {
@@ -555,6 +589,17 @@ onUnmounted(() => {
                 保存到我的 X 盘
               </span>
             </BaseButton>
+          </div>
+
+          <div v-if="collectEnabled === 1" class="mt-3 flex items-center justify-between gap-3 rounded-md border border-(--color-border) px-3 py-2">
+            <div class="min-w-0">
+              <p class="text-xs font-medium text-(--color-text)">文件收集箱</p>
+              <p class="text-[11px]" style="color: var(--color-text-muted);">分享者已开启收集，上传的文件会进入该分享文件夹</p>
+            </div>
+            <BaseButton size="sm" variant="secondary" :loading="collecting" @click="chooseCollectFile">
+              上传文件
+            </BaseButton>
+            <input ref="collectInput" type="file" class="hidden" @change="onCollectFile" />
           </div>
 
           <div class="mt-3 flex justify-end">

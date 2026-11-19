@@ -30,7 +30,9 @@ const simpleHttp: AxiosInstance = axios.create({
 
 simpleHttp.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    if (config.data && typeof config.data !== 'string') {
+    // FormData 必须原样交给浏览器生成 multipart boundary；JSON.stringify 会把它变成
+    // `{}` 或空体，导致文件收集等匿名上传接口 415/文件为空。
+    if (config.data && typeof config.data !== 'string' && !(config.data instanceof FormData)) {
       config.data = JSON.stringify(config.data)
     }
     // 分享页凭证：自动携带 Share-Token，供后端 @NeedShareCode 切面校验，
