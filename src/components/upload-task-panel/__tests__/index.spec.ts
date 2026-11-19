@@ -75,6 +75,29 @@ describe('upload-task-panel 重试 / 移除', () => {
     expect(task?.status).toBe(EFileStatus.WAITING.code)
   })
 
+  it('上传中任务可暂停，底层 pause 被调用且状态变为暂停', async () => {
+    const store = useTaskStore()
+    store.add(makeTask('t4', EFileStatus.UPLOADING.code))
+    const wrapper = mount(TaskPanel, { global: { stubs: { teleport: true } } })
+
+    const task = store.getUploadTask('t4')
+    await wrapper.find('[aria-label="暂停 f-t4.txt"]').trigger('click')
+    expect(task?.target.pause).toHaveBeenCalled()
+    expect(task?.status).toBe(EFileStatus.PAUSE.code)
+    expect(store.getUploadTask('t4')?.statusText).toBe(EFileStatus.PAUSE.text)
+  })
+
+  it('暂停任务可继续，底层 resume 被调用并回到等待上传', async () => {
+    const store = useTaskStore()
+    store.add(makeTask('t5', EFileStatus.PAUSE.code))
+    const wrapper = mount(TaskPanel, { global: { stubs: { teleport: true } } })
+
+    const task = store.getUploadTask('t5')
+    await wrapper.find('[aria-label="继续 f-t5.txt"]').trigger('click')
+    expect(task?.target.resume).toHaveBeenCalled()
+    expect(task?.status).toBe(EFileStatus.WAITING.code)
+  })
+
   it('移除非终态任务时取消底层上传，不再白耗流量', async () => {
     const store = useTaskStore()
     store.add(makeTask('t2', EFileStatus.UPLOADING.code))

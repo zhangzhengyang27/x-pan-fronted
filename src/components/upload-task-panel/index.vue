@@ -14,7 +14,7 @@ import { computed } from 'vue'
 
 const taskStore = useTaskStore()
 const { uploadTaskList: taskList, panelVisible } = storeToRefs(taskStore)
-const { resumeWaiting, cancelUpload } = useUploader()
+const { resumeWaiting, pauseUpload, cancelUpload } = useUploader()
 
 const visible = computed(() => taskList.value.length > 0 && panelVisible.value)
 
@@ -83,6 +83,24 @@ function closePanel() {
               </span>
               <div class="flex items-center gap-2">
                 <button
+                  v-if="task.status === EFileStatus.UPLOADING.code"
+                  type="button"
+                  class="text-xs text-(--color-text-muted) hover:text-(--color-primary) transition-colors"
+                  :aria-label="`暂停 ${task.filename}`"
+                  @click="pauseUpload(task.id)"
+                >
+                  暂停
+                </button>
+                <button
+                  v-else-if="task.status === EFileStatus.PAUSE.code"
+                  type="button"
+                  class="text-xs text-(--color-primary) hover:opacity-80 transition-opacity"
+                  :aria-label="`继续 ${task.filename}`"
+                  @click="resumeWaiting(task.id)"
+                >
+                  继续
+                </button>
+                <button
                   v-if="task.status === EFileStatus.FAIL.code"
                   type="button"
                   class="text-xs text-(--color-primary) hover:opacity-80 transition-opacity"
@@ -108,9 +126,11 @@ function closePanel() {
                 :class="
                   task.status === 6
                     ? 'bg-danger'
-                    : task.status === 4 || task.status === 5
-                      ? 'bg-success'
-                      : 'bg-(--color-primary)'
+                    : task.status === 4
+                      ? 'bg-warning'
+                      : task.status === 5
+                        ? 'bg-success'
+                        : 'bg-(--color-primary)'
                 "
                 :style="{ width: `${task.percentage}%` }"
               />
@@ -128,6 +148,9 @@ function closePanel() {
                 class="text-danger"
               />
               <span>{{ task.statusText }} · {{ task.percentage }}%</span>
+              <span v-if="task.status === 3 || task.status === 4">
+                · {{ task.speed }} · 剩余 {{ task.timeRemaining }}
+              </span>
             </p>
           </div>
         </div>

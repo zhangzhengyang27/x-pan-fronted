@@ -183,6 +183,21 @@ export function useUploader() {
     })
   }
 
+  /**
+   * 暂停正在上传的任务：simple-uploader 会停止后续分片请求；
+   * 只对 UPLOADING 开放，解析中/等待中由 MD5 回调自动 resume，提前标暂停会被覆盖。
+   */
+  function pauseUpload(id: string) {
+    const task = taskStore.getUploadTask(id)
+    if (!task?.target || task.status !== EFileStatus.UPLOADING.code) return
+    task.target.pause()
+    taskStore.updateStatus({
+      id,
+      status: EFileStatus.PAUSE.code,
+      statusText: EFileStatus.PAUSE.text
+    })
+  }
+
   /** 终态（成功/失败）任务不需要 cancel 底层上传 */
   function isTerminalStatus(status: number): boolean {
     return status === EFileStatus.SUCCESS.code || status === EFileStatus.FAIL.code
@@ -203,7 +218,15 @@ export function useUploader() {
     // 导致前几次进度事件被跳过，只剩 0% 和 100%
     const progress = Number(file.progress()) || 0
     const item = taskStore.getUploadTask(file.id)
-    if (item && item.status !== EFileStatus.UPLOADING.code && progress > 0 && progress < 1) {
+    // 用户主动暂停后仍可能收到一个在途进度事件；不能把 PAUSE 覆盖回 UPLOADING，
+    // 否则面板会立刻从“继续”变回“暂停”，暂停状态看起来失效。
+    if (
+      item &&
+      item.status !== EFileStatus.UPLOADING.code &&
+      item.status !== EFileStatus.PAUSE.code &&
+      progress > 0 &&
+      progress < 1
+    ) {
       taskStore.updateStatus({
         id: file.id,
         status: EFileStatus.UPLOADING.code,
@@ -357,5 +380,5 @@ export function useUploader() {
     _attachCount = Math.max(0, _attachCount - 1)
   })
 
-  return { addFiles, ready, resumeWaiting, cancelUpload }
+  return { addFiles, ready, resumeWaiting, pauseUpload, cancelUpload }
 }
