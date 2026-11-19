@@ -7,7 +7,7 @@
  * - BaseTable（分享类型/提取码/过期时间/浏览次数/操作）
  */
 import { computed, onMounted, ref } from 'vue'
-import { Share2, Link as LinkIcon, X, Globe, Lock, Eye } from '@lucide/vue'
+import { Share2, Link as LinkIcon, X, Globe, Lock, Eye, Inbox } from '@lucide/vue'
 import shareService from '@/api/share'
 import { ElMessage, ElMessageBox } from '@/composables/useToast'
 import BaseTable from '@/components/base/BaseTable.vue'
@@ -30,7 +30,8 @@ const columns: { key: string; title: string; width: string | number; align?: 'le
   { key: 'shareCode', title: '提取码', width: 100, align: 'center' },
   { key: 'expireTime', title: '过期时间', width: 160, align: 'center' },
   { key: 'visitCount', title: '浏览次数', width: 100, align: 'center' },
-  { key: 'actions', title: '操作', width: 160, align: 'right' }
+  { key: 'collect', title: '文件收集', width: 110, align: 'center' },
+  { key: 'actions', title: '操作', width: 200, align: 'right' }
 ]
 
 // 移动端隐藏「分享类型/提取码/浏览次数」次要列，避免横向溢出
@@ -142,6 +143,22 @@ const summary = computed(() => {
     remainingQuota: remaining
   }
 })
+
+function toggleCollect(row: Partial<IShareVO>) {
+  const shareId = row.shareId
+  if (!shareId) return
+  const enabled = row.collectEnabled !== 1
+  shareService.setShareCollect(
+    shareId,
+    enabled,
+    (res) => {
+      if (res.code !== 0) return ElMessage.error(res.message)
+      ElMessage.success(enabled ? '已开启文件收集' : '已关闭文件收集')
+      loadTableData()
+    },
+    (res) => ElMessage.error(res.message)
+  )
+}
 
 function isPublicShare(row: Partial<IShareVO>) {
   return row.shareType === 0
@@ -268,6 +285,15 @@ function formatExpireTime(row: Partial<IShareVO>) {
         </span>
       </template>
 
+      <template #cell-collect="{ row }">
+        <BaseBadge :variant="row.collectEnabled === 1 ? 'success' : 'neutral'">
+          <span class="inline-flex items-center gap-1">
+            <Inbox :size="12" :stroke-width="2" />
+            {{ row.collectEnabled === 1 ? '已开启' : '未开启' }}
+          </span>
+        </BaseBadge>
+      </template>
+
       <template #cell-visitCount="{ row }">
         <span class="inline-flex items-center gap-1 tabular-nums text-sm text-(--color-text)">
           <Eye :size="12" :stroke-width="2" style="color: var(--color-text-muted);" />
@@ -283,6 +309,16 @@ function formatExpireTime(row: Partial<IShareVO>) {
           <BaseTooltip text="复制链接" position="top">
             <BaseButton variant="secondary" size="sm" @click="copyShare(row)">
               <LinkIcon :size="14" :stroke-width="2" />
+            </BaseButton>
+          </BaseTooltip>
+          <BaseTooltip :text="row.collectEnabled === 1 ? '关闭文件收集' : '开启文件收集'" position="top">
+            <BaseButton
+              variant="secondary"
+              size="sm"
+              :disabled="row.shareStatus === 1 || isExpired(row)"
+              @click="toggleCollect(row)"
+            >
+              <Inbox :size="14" :stroke-width="2" />
             </BaseButton>
           </BaseTooltip>
           <BaseTooltip text="取消分享" position="top">

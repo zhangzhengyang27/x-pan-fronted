@@ -73,6 +73,21 @@ const shareService = {
       .catch(reject)
   },
 
+  /** 修改已有分享的文件收集开关；开启只对“单个文件夹分享”生效，后端会再次校验 */
+  setShareCollect(
+    shareId: string,
+    enabled: boolean,
+    resolve: Callback<unknown>,
+    reject: Callback<unknown>
+  ) {
+    http
+      .put<unknown, ApiResponse<unknown>>(`/share/${encodeURIComponent(shareId)}/collect`, null, {
+        params: { enabled }
+      })
+      .then(resolve)
+      .catch(reject)
+  },
+
   reportShare(
     data: { shareId: string; reason: string },
     resolve: SimpleCallback<unknown>,
