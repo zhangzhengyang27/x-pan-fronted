@@ -8,6 +8,7 @@ import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useVideoThumbnails } from '@/composables/useVideoThumbnails'
 import { ElMessage } from '@/composables/useToast'
 import { clearVideoProgress, loadVideoProgress, saveVideoProgress } from '@/utils/video-progress'
+import previewService from '@/api/preview'
 
 const props = defineProps({
   fileId: { type: [String, Number], required: true },
@@ -27,6 +28,8 @@ let destroyed = false
 // P3-4 续播：记录当前 video 元素与最近一次落盘时间，timeupdate 每 5 秒最多写一次
 let progressVideo: HTMLVideoElement | null = null
 let lastProgressSave = 0
+// P3-4 字幕：Blob URL 必须显式 revoke，否则切换多个视频会持续占用内存
+let subtitleObjectUrl: string | null = null
 
 // P3-1：视频关键帧缩略图
 const { generate: generateThumbnails } = useVideoThumbnails()
@@ -129,6 +132,16 @@ function initPlayer(url: string): Promise<void> {
   return initPromise
 }
 
+async function resolveSubtitleUrl(): Promise<string | null> {
+  const vtt = await previewService.videoSubtitle(String(props.fileId))
+  if (!vtt) return null
+  // 组件已卸载时不再创建 Blob URL，否则 unmount 的 revoke 会漏掉它
+  if (destroyed) return null
+  // 用 Blob URL 而不是把 VTT 文本塞进 URL，避免长字幕触发 URL 长度限制
+  subtitleObjectUrl = URL.createObjectURL(new Blob([vtt], { type: 'text/vtt' }))
+  return subtitleObjectUrl
+}
+
 async function doInitPlayer(url: string) {
   await initArtplayer()
   // await 之后必须复查：组件可能已卸载（不再创建、不再绑定 window keydown），
@@ -137,6 +150,11 @@ async function doInitPlayer(url: string) {
   // await 期间外部签名 URL 可能已更新（快速切换），创建时以最新 URL 为准
   const targetUrl = props.url || url
   currentUrl = targetUrl
+
+  // 字幕请求与播放器初始化并行等待：没有字幕时后端 404，耗时很短；
+  // 失败一律返回 null，不阻塞播放
+  const subtitleUrl = await resolveSubtitleUrl()
+  if (destroyed || player || !containerRef.value) return
 
   const playerOptions: any = {
     container: containerRef.value,
@@ -174,6 +192,10 @@ async function doInitPlayer(url: string) {
       height: 90,
       column: 1
     }
+  }
+  if (subtitleUrl) {
+    // name 显示在设置面板，方便用户知道当前字幕来源
+    playerOptions.subtitle = { url: subtitleUrl, type: 'vtt', name: '字幕', encoding: 'utf-8' }
   }
 
   player = new ArtplayerCtor(playerOptions)
@@ -328,6 +350,10 @@ onBeforeUnmount(() => {
       /* noop */
     }
     player = null
+  }
+  if (subtitleObjectUrl) {
+    URL.revokeObjectURL(subtitleObjectUrl)
+    subtitleObjectUrl = null
   }
 })
 </script>
