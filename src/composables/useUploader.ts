@@ -44,7 +44,7 @@ export function useUploader() {
       fileParameterName: 'file',
       // 用文件 add 时快照的 parentId，避免上传过程中切换目录导致分片落到错误目录
       query: (file: UploaderFile) => ({
-        parentId: (file as unknown as { __uploadParentId?: string }).__uploadParentId || fileStore.paramParentId
+        parentId: (file as unknown as { __uploadParentId?: string }).__uploadParentId ?? fileStore.paramParentId
       }),
       // 登录态由同源 HttpOnly Cookie 自动携带；这里只补充 CSRF 双提交头
       withCredentials: true,
@@ -92,8 +92,11 @@ export function useUploader() {
     try {
       files.forEach((f) => {
         f.pause()
-        // 绑定 add 时刻的目标目录，上传分片时以它为准，避免切换目录导致落错位置
-        ;(f as unknown as { __uploadParentId?: string }).__uploadParentId = fileStore.paramParentId
+        // 绑定 add 时刻的目标目录，上传分片时以它为准，避免切换目录导致落错位置。
+        // 续传场景 resumePersistedTask 已经写入原任务快照，不能被当前目录覆盖。
+        const markedParentId = (f as unknown as { __uploadParentId?: string }).__uploadParentId
+        const uploadParentId = markedParentId ?? fileStore.paramParentId
+        ;(f as unknown as { __uploadParentId?: string }).__uploadParentId = uploadParentId
         if (f.size > panUtil.getMaxFileSize()) {
           // 单个文件超限：只移除该文件并提示，不中断同批其它正常文件。
           // 直接 cancel() 会将该文件从上传器 files 中移除，避免其永久卡在暂停态残留。
@@ -112,6 +115,7 @@ export function useUploader() {
           target: f,
           filename: f.name,
           uniqueIdentifier: f.uniqueIdentifier,
+          fileSizeBytes: f.size,
           fileSize: panUtil.translateFileSize(f.size),
           uploadedSize: panUtil.translateFileSize(0),
           status: EFileStatus.PARSING.code,
@@ -119,7 +123,7 @@ export function useUploader() {
           timeRemaining: panUtil.translateTime(Number.POSITIVE_INFINITY),
           speed: panUtil.translateSpeed(f.averageSpeed),
           percentage: 0,
-          parentId: fileStore.paramParentId
+          parentId: uploadParentId
         })
 
         MD5(f.file, (e, md5) => {
@@ -128,7 +132,15 @@ export function useUploader() {
             resumeWaiting(f.id)
             return
           }
+          // P2-11 续传：用户重新选择了原任务文件时，先用 MD5 确认内容一致，
+          // 不一致就明确提示并按新文件上传，绝不能复用旧 identifier 合并出错误内容。
+          const resumeIdentifier = (f as unknown as { __resumeIdentifier?: string }).__resumeIdentifier
+          if (resumeIdentifier && resumeIdentifier !== md5) {
+            ElMessage.error('文件内容与原上传任务不一致，已按新文件重新上传')
+          }
           f.uniqueIdentifier = md5
+          // 立即把 identifier 写回任务元数据，刷新后才能按同一 identifier 续传
+          taskStore.updateIdentifier(f.id, md5)
           fileService.secUpload(
             {
               filename: f.name,
@@ -137,7 +149,7 @@ export function useUploader() {
               // 同源），MD5 计算是异步的，期间用户可能已切换目录，不能用实时 paramParentId，
               // 否则秒传命中时文件会落进切换后的目录
               parentId:
-                (f as unknown as { __uploadParentId?: string }).__uploadParentId ||
+                (f as unknown as { __uploadParentId?: string }).__uploadParentId ??
                 fileStore.paramParentId
             },
             (res) => {
@@ -359,6 +371,55 @@ export function useUploader() {
   }
 
   /**
+   * P2-11：用户从本地重新选择原文件后续传。
+   *
+   * 只持久化任务元数据、不持久化 File/Blob：刷新后浏览器已拿不到原 File 句柄，
+   * 让用户重新选择同一文件是跨浏览器可行的方案。设置 __resumeIdentifier 后，
+   * onFilesAdded 会先用 MD5 校验内容，再复用原 identifier 让 simple-uploader 跳过已传分片。
+   *
+   * @returns 是否已把文件交给上传器；名称/大小不符直接拒绝，原任务保留
+   */
+  function resumePersistedTask(taskId: string, file: File): boolean {
+    const task = taskStore.getUploadTask(taskId)
+    if (!task) {
+      ElMessage.error('上传任务已不存在')
+      return false
+    }
+    if (file.name !== task.filename) {
+      ElMessage.error('请选择原任务对应的文件：' + task.filename)
+      return false
+    }
+    if (task.fileSizeBytes != null && file.size !== task.fileSizeBytes) {
+      ElMessage.error('文件大小与原任务不一致，请选择原文件')
+      return false
+    }
+    if (file.size > panUtil.getMaxFileSize()) {
+      ElMessage.error('文件大小超过最大上传限制（' + panUtil.translateFileSize(panUtil.getMaxFileSize()) + '）')
+      return false
+    }
+    const marked = file as File & {
+      __uploadParentId?: string
+      __resumeIdentifier?: string
+      __resumeTaskId?: string
+    }
+    // parentId 与 identifier 均来自原任务快照，避免用户当前已切换目录导致落错位置
+    marked.__uploadParentId = task.parentId
+    if (task.uniqueIdentifier) {
+      marked.__resumeIdentifier = task.uniqueIdentifier
+    } else {
+      // 刷新发生在 MD5 计算完成前时没有 identifier，无法定位服务端分片；降级为完整新上传
+      ElMessage.warning('原任务尚未生成上传标识，将重新完整上传')
+    }
+    marked.__resumeTaskId = task.id
+    // 旧中断任务先移除；新任务由 filesAdded 重新建立，失败时用户可重新选择
+    taskStore.remove(task.id)
+    ensureUploader()
+    _uploader?.addFile(file)
+    ready.value = true
+    return true
+  }
+
+  /**
    * 把 FileList / File[] / 单个 File 喂给上传器
    */
   function addFiles(fileList: FileList | File[] | File | null | undefined) {
@@ -380,5 +441,5 @@ export function useUploader() {
     _attachCount = Math.max(0, _attachCount - 1)
   })
 
-  return { addFiles, ready, resumeWaiting, pauseUpload, cancelUpload }
+  return { addFiles, ready, resumeWaiting, pauseUpload, cancelUpload, resumePersistedTask }
 }

@@ -17,9 +17,7 @@ vi.mock('simple-uploader.js', () => {
     cancel() {
       /* noop */
     }
-    addFile() {
-      /* noop */
-    }
+    addFile = vi.fn()
     constructor() {
       uploaderInstances.push(this as never)
     }
@@ -63,13 +61,15 @@ describe('upload-task-panel 重试 / 移除', () => {
     setActivePinia(createPinia())
   })
 
-  it('刷新后从本地存储恢复为已中断任务，不显示假的重试入口', () => {
+  it('刷新后从本地存储恢复为已中断任务，不显示假的重试入口', async () => {
     localStorage.setItem(
       'x-pan-upload-tasks-v1',
       JSON.stringify([
         {
           id: 'restored-1',
           filename: 'big.iso',
+          uniqueIdentifier: 'abc',
+          fileSizeBytes: 4,
           fileSize: '1 GB',
           uploadedSize: '300 MB',
           status: EFileStatus.UPLOADING.code,
@@ -91,6 +91,17 @@ describe('upload-task-panel 重试 / 移除', () => {
     const wrapper = mount(TaskPanel, { global: { stubs: { teleport: true } } })
     expect(wrapper.find('[aria-label="重试 big.iso"]').exists()).toBe(false)
     expect(wrapper.text()).toContain('重新选择文件')
+
+    // 重新选择原文件：把文件交给上传器，旧中断任务被替换
+    const fileInput = wrapper.find('input[type="file"]')
+    Object.defineProperty(fileInput.element, 'files', {
+      value: [new File(['test'], 'big.iso')],
+      configurable: true
+    })
+    await wrapper.find('[aria-label="重新选择文件 big.iso"]').trigger('click')
+    await fileInput.trigger('change')
+    expect(uploaderInstances[0].addFile).toHaveBeenCalledTimes(1)
+    expect(store.getUploadTask('restored-1')).toBeUndefined()
   })
 
   it('失败任务渲染重试按钮，点击后恢复任务并续传', async () => {
@@ -157,36 +168,6 @@ describe('task-list 徽标统计', () => {
     // P2-11 任务元数据持久化后，测试间必须清理 localStorage，否则上一个用例的任务会串场
     localStorage.clear()
     setActivePinia(createPinia())
-  })
-
-  it('刷新后从本地存储恢复为已中断任务，不显示假的重试入口', () => {
-    localStorage.setItem(
-      'x-pan-upload-tasks-v1',
-      JSON.stringify([
-        {
-          id: 'restored-1',
-          filename: 'big.iso',
-          fileSize: '1 GB',
-          uploadedSize: '300 MB',
-          status: EFileStatus.UPLOADING.code,
-          statusText: EFileStatus.UPLOADING.text,
-          timeRemaining: '-',
-          speed: '-',
-          percentage: 30,
-          parentId: 'root'
-        }
-      ])
-    )
-    setActivePinia(createPinia())
-    const store = useTaskStore()
-    const restored = store.getUploadTask('restored-1')
-    expect(restored?.interrupted).toBe(true)
-    expect(restored?.status).toBe(EFileStatus.FAIL.code)
-    expect(restored?.statusText).toContain('已中断')
-
-    const wrapper = mount(TaskPanel, { global: { stubs: { teleport: true } } })
-    expect(wrapper.find('[aria-label="重试 big.iso"]').exists()).toBe(false)
-    expect(wrapper.text()).toContain('重新选择文件')
   })
 
   it('徽标统计所有进行中状态（解析/等待/上传/服务器处理），而不仅是解析中', async () => {

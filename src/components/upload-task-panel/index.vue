@@ -10,11 +10,11 @@ import { X, Check, LoaderCircle, FileWarning } from '@lucide/vue'
 import { useTaskStore } from '@/stores/task'
 import { EFileStatus } from '@/utils/common'
 import { useUploader } from '@/composables/useUploader'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 const taskStore = useTaskStore()
 const { uploadTaskList: taskList, panelVisible } = storeToRefs(taskStore)
-const { resumeWaiting, pauseUpload, cancelUpload } = useUploader()
+const { resumeWaiting, pauseUpload, cancelUpload, resumePersistedTask } = useUploader()
 
 const visible = computed(() => taskList.value.length > 0 && panelVisible.value)
 
@@ -22,6 +22,30 @@ const visible = computed(() => taskList.value.length > 0 && panelVisible.value)
 // 用 filename 匹配会因同名文件/永远匹配不到而失效
 function remove(id: string) {
   cancelUpload(id)
+}
+
+// P2-11：刷新后任务只保留元数据，用户需重新选择同一文件才能续传。
+// 单个隐藏 input 复用，避免每个任务行都挂一个文件选择器。
+const resumeInput = ref<HTMLInputElement | null>(null)
+const resumeTaskId = ref('')
+
+function pickResumeFile(id: string) {
+  resumeTaskId.value = id
+  const input = resumeInput.value
+  if (!input) return
+  input.value = ''
+  input.click()
+}
+
+function onResumeFileChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (file && resumeTaskId.value) {
+    resumePersistedTask(resumeTaskId.value, file)
+  }
+  // 无论成功失败都重置，允许用户再次选择同一个文件
+  resumeTaskId.value = ''
+  input.value = ''
 }
 
 function clearFinished() {
@@ -53,6 +77,13 @@ function closePanel() {
         role="region"
         aria-label="上传任务"
       >
+        <input
+          ref="resumeInput"
+          type="file"
+          class="hidden"
+          aria-label="选择原上传文件"
+          @change="onResumeFileChange"
+        />
         <div
           class="flex items-center justify-between border-b border-(--color-border) px-4 py-2.5"
         >
@@ -109,12 +140,15 @@ function closePanel() {
                 >
                   重试
                 </button>
-                <span
+                <button
                   v-else-if="task.interrupted"
-                  class="text-[11px] text-(--color-text-muted)"
+                  type="button"
+                  class="text-xs text-(--color-primary) hover:opacity-80 transition-opacity"
+                  :aria-label="`重新选择文件 ${task.filename}`"
+                  @click="pickResumeFile(task.id)"
                 >
                   重新选择文件
-                </span>
+                </button>
                 <button
                   v-if="task.status !== 1"
                   type="button"

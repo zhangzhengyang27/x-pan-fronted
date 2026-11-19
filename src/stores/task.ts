@@ -9,6 +9,8 @@ export interface UploadTask {
   target: UploaderFile
   filename: string
   uniqueIdentifier?: string
+  /** P2-11：原始字节数，用于用户重新选择文件时的快速一致性校验 */
+  fileSizeBytes?: number
   fileSize: string
   uploadedSize: string
   status: number
@@ -92,6 +94,18 @@ export const useTaskStore = defineStore('task', () => {
 
   const getUploadTask = (id: string) => uploadTaskList.value.find((i) => keyOf(i) === id)
 
+  /**
+   * P2-11：MD5 计算完成后把 identifier 写回任务并持久化。
+   * 否则刷新后恢复的任务只有文件名/大小，无法让 simple-uploader 定位已上传分片。
+   */
+  const updateIdentifier = (id: string, uniqueIdentifier: string) => {
+    const t = uploadTaskList.value.find((i) => keyOf(i) === id)
+    if (t) {
+      t.uniqueIdentifier = uniqueIdentifier
+      persistTasks(uploadTaskList.value)
+    }
+  }
+
   const updateStatus = (task: { id: string; status: number; statusText: string }) => {
     const t = uploadTaskList.value.find((i) => keyOf(i) === task.id)
     if (t) {
@@ -148,6 +162,7 @@ export const useTaskStore = defineStore('task', () => {
     getUploadTask,
     updateStatus,
     updateProcess,
+    updateIdentifier,
     clear,
     updateViewFlag,
     togglePanel,
