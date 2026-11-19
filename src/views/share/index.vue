@@ -78,6 +78,10 @@ const sharePageLoading = ref(false)
 // 分享统计
 const downloadCount = ref(0)
 const downloadLimit = ref(0)
+// P3-5 举报：必须登录后提交；理由长度与后端 PO 保持一致（500）
+const reportDialogVisible = ref(false)
+const reportReason = ref('')
+const reportLoading = ref(false)
 // P0-4 禁止转载（1=禁止转存，隐藏"保存到我的 X 盘"入口）
 const forbidReshare = ref(0)
 const countdownText = ref('')
@@ -347,6 +351,32 @@ function doDownload(item: Partial<IFileVO>) {
   })
 }
 
+function openReport() {
+  if (!loginFlag.value) {
+    ElMessage.warning('请先登录后再举报')
+    login()
+    return
+  }
+  reportReason.value = ''
+  reportDialogVisible.value = true
+}
+
+function doReport() {
+  const reason = reportReason.value.trim()
+  if (!reason) return ElMessage.warning('请填写举报理由')
+  if (reason.length > 500) return ElMessage.warning('举报理由不能超过500字')
+  reportLoading.value = true
+  shareService.reportShare({ shareId: getShareId(), reason }, (res) => {
+    reportLoading.value = false
+    if (res.code === 0) {
+      reportDialogVisible.value = false
+      ElMessage.success('举报已提交，管理员会尽快处理')
+    } else {
+      ElMessage.error(res.message || '举报提交失败')
+    }
+  })
+}
+
 function doChoseTreeNodeCallBack() {
   if (!treeCheckedNode.value) return ElMessage.error('请选择文件夹')
   loading.value = true
@@ -526,6 +556,18 @@ onUnmounted(() => {
               </span>
             </BaseButton>
           </div>
+
+          <div class="mt-3 flex justify-end">
+            <button
+              type="button"
+              class="text-[11px] inline-flex items-center gap-1 transition-colors"
+              style="color: var(--color-text-muted);"
+              @click="openReport"
+            >
+              <Flag :size="11" :stroke-width="2" />
+              举报该分享
+            </button>
+          </div>
         </div>
 
         <!-- 文件列表 -->
@@ -682,6 +724,26 @@ onUnmounted(() => {
         <BaseButton variant="primary" :loading="loading" @click="doChoseTreeNodeCallBack">
           确定
         </BaseButton>
+      </template>
+    </BaseModal>
+
+    <!-- P3-5 分享举报 -->
+    <BaseModal v-model:open="reportDialogVisible" title="举报该分享" size="md">
+      <BaseField label="举报理由">
+        <textarea
+          v-model="reportReason"
+          rows="4"
+          maxlength="500"
+          placeholder="请描述违规内容，例如侵权、违法信息、恶意链接等"
+          class="w-full rounded-md border border-(--color-border) bg-(--color-surface) p-2.5 text-sm text-(--color-text) resize-none focus:outline-none focus:ring-2 focus:ring-primary-500/30"
+        />
+      </BaseField>
+      <p class="text-[11px] mt-2" style="color: var(--color-text-muted);">
+        举报仅限登录用户；同一分享重复提交会提示等待处理，请勿滥用。
+      </p>
+      <template #footer>
+        <BaseButton variant="secondary" @click="reportDialogVisible = false">取消</BaseButton>
+        <BaseButton variant="primary" :loading="reportLoading" @click="doReport">提交举报</BaseButton>
       </template>
     </BaseModal>
   </div>

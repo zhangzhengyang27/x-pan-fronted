@@ -54,6 +54,11 @@ const shareService = {
 
   getSimpleShareDetail(params: { shareId: string }, resolve: SimpleCallback<IShareVO>) {
     simpleHttp.get<unknown, SA<IShareVO>>('/share/simple', { params }).then(resolve)
+  },
+
+  reportShare(data: { shareId: string; reason: string }, resolve: SimpleCallback<unknown>) {
+    // 举报要求登录：后端会绑定 userId 做限流与追溯；未登录时由页面先弹登录框
+    simpleHttp.post<unknown, SA<unknown>>('/share/report', data).then(resolve)
   }
 }
 
