@@ -7,6 +7,7 @@
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useVideoThumbnails } from '@/composables/useVideoThumbnails'
 import { ElMessage } from '@/composables/useToast'
+import { clearVideoProgress, loadVideoProgress, saveVideoProgress } from '@/utils/video-progress'
 
 const props = defineProps({
   fileId: { type: [String, Number], required: true },
@@ -23,12 +24,53 @@ let ArtplayerCtor: any = null
 // 已被快速切换再次触发（需防双实例），或组件已卸载（需防卸载后绑定全局事件）
 let initPromise: Promise<void> | null = null
 let destroyed = false
+// P3-4 续播：记录当前 video 元素与最近一次落盘时间，timeupdate 每 5 秒最多写一次
+let progressVideo: HTMLVideoElement | null = null
+let lastProgressSave = 0
 
 // P3-1：视频关键帧缩略图
 const { generate: generateThumbnails } = useVideoThumbnails()
 
 // 倍速档位（对标夸克 0.5-5x）
 const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4, 5]
+
+function formatTime(seconds: number) {
+  const s = Math.max(0, Math.floor(seconds))
+  const h = Math.floor(s / 3600)
+  const m = Math.floor((s % 3600) / 60)
+  const sec = s % 60
+  return h > 0
+    ? `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`
+    : `${m}:${String(sec).padStart(2, '0')}`
+}
+
+function saveProgress() {
+  if (!progressVideo || !Number.isFinite(progressVideo.currentTime) || !Number.isFinite(progressVideo.duration)) {
+    return
+  }
+  saveVideoProgress(props.fileId, progressVideo.currentTime, progressVideo.duration)
+}
+
+function onLoadedMetadata() {
+  if (!progressVideo) return
+  const saved = loadVideoProgress(props.fileId)
+  // 只在有意义的旧位置恢复；太靠近结尾的位置 helper 已过滤
+  if (saved != null && progressVideo.duration > saved + 5) {
+    progressVideo.currentTime = saved
+    ElMessage.success(`已从上次播放位置 ${formatTime(saved)} 继续`)
+  }
+}
+
+function onProgressTimeUpdate() {
+  const now = Date.now()
+  if (now - lastProgressSave < 5000) return
+  lastProgressSave = now
+  saveProgress()
+}
+
+function onProgressEnded() {
+  clearVideoProgress(props.fileId)
+}
 
 async function initArtplayer() {
   if (!ArtplayerCtor) {
@@ -39,6 +81,18 @@ async function initArtplayer() {
 
 function bindPlayerEvents() {
   if (!player) return
+
+  // P3-4：续播位置绑定原生 video 事件；Artplayer 的 video:* 事件不保证覆盖
+  // loadedmetadata/timeupdate，这里直接监听元素更稳定。
+  progressVideo = player.video as HTMLVideoElement
+  if (progressVideo) {
+    progressVideo.addEventListener('loadedmetadata', onLoadedMetadata)
+    progressVideo.addEventListener('timeupdate', onProgressTimeUpdate)
+    progressVideo.addEventListener('pause', saveProgress)
+    progressVideo.addEventListener('ended', onProgressEnded)
+  }
+  // 页面被关闭/刷新时兜底保存一次，弥补 timeupdate 的 5 秒间隔
+  window.addEventListener('pagehide', saveProgress)
 
   player.on('video:canplay', () => {
     if (player && player.video) {
@@ -248,6 +302,16 @@ function showSpeedToast(rate: number) {
 onBeforeUnmount(() => {
   // 先置卸载标志：initPlayer 的 await 恢复后不再创建实例/绑定事件
   destroyed = true
+  // 卸载前保存当前位置；视频组件被弹窗关闭/路由切换时也能续播
+  saveProgress()
+  window.removeEventListener('pagehide', saveProgress)
+  if (progressVideo) {
+    progressVideo.removeEventListener('loadedmetadata', onLoadedMetadata)
+    progressVideo.removeEventListener('timeupdate', onProgressTimeUpdate)
+    progressVideo.removeEventListener('pause', saveProgress)
+    progressVideo.removeEventListener('ended', onProgressEnded)
+    progressVideo = null
+  }
   window.removeEventListener('keydown', onKeydown)
   if (speedToastEl) {
     speedToastEl.remove()

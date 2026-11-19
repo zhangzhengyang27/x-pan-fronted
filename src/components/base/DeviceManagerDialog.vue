@@ -1,9 +1,9 @@
 <script setup lang="ts">
 /**
- * DeviceManagerDialog —— 设备管理弹窗（P3-5 UI 骨架 + Mock）
+ * DeviceManagerDialog —— 设备管理弹窗（P3-2）
  *
  * 展示当前账号登录的设备列表，支持远程下线非当前设备。
- * 数据来源：api/device/index.ts（当前 Mock，后端就绪后自动生效）
+ * 数据来源：api/device/index.ts，对接后端 DeviceController（真实接口，非 Mock）。
  */
 import { ref, watch } from 'vue'
 import { Monitor, Smartphone, LogOut, LoaderCircle, X, MapPin, Clock } from '@lucide/vue'

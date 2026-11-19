@@ -310,6 +310,11 @@ function openEditor(row: Record<string, any>) {
   window.open(href, '_blank', 'noopener,noreferrer')
 }
 
+/** 最近访问条目的打开入口：复用列表的行双击逻辑（文件夹进入、文件弹预览） */
+function openRecent(row: Record<string, any>) {
+  clickFilename(row)
+}
+
 function clickFilename(row: Record<string, any>) {
   // 文件夹：进入目录（后端统一用 fileType === 0 判断，type === 'folder' 为冗余字段）
   if (row.fileType === 0) {
@@ -969,6 +974,7 @@ async function batchRename(rows: Record<string, any>[]) {
 
 // 暴露方法给父组件（列表/网格视图切换、筛选、快捷键操作、批量选择）
 defineExpose({
+  openRecent,
   applyFilter,
   setView: (v: string) => { currentView.value = v as 'list' | 'grid' },
   download: downloadSelected,

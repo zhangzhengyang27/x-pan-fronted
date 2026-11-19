@@ -22,7 +22,10 @@ import {
   Check,
   Minus,
   RefreshCw,
-  ClipboardPaste
+  ClipboardPaste,
+  Clock,
+  Folder,
+  FileText
 } from '@lucide/vue'
 import ShareButton from '@/components/buttons/share-button/index.vue'
 import FileButtonGroup from '@/components/file-button-group/index.vue'
@@ -39,6 +42,7 @@ import BasePopover from '@/components/base/BasePopover.vue'
 import { useFileStore } from '@/stores/file'
 import { useBreadcrumbStore } from '@/stores/breadcrumb'
 import { useUploader } from '@/composables/useUploader'
+import { useRecent, type RecentItem } from '@/composables/useRecent'
 import { storeToRefs } from 'pinia'
 import fileService from '@/api/file'
 import { ElMessage } from '@/composables/useToast'
@@ -78,6 +82,28 @@ const dragEnterCount = ref(0)
 const fileTableRef = ref(null)
 const shareButtonRef = ref<InstanceType<typeof ShareButton> | null>(null)
 const { addFiles } = useUploader()
+// P3-1：最近访问只做本地记录，进入根目录时展示最近 20 条，方便“回到现场”
+const { recent: recentItems, clear: clearRecent } = useRecent()
+const showRecent = computed(
+  () =>
+    !searchFlag.value &&
+    fileStore.paramParentId === defaultParentId.value &&
+    fileStore.fileTypes === '-1' &&
+    recentItems.value.length > 0
+)
+
+function recentTime(ts: number) {
+  const diff = Date.now() - ts
+  if (diff < 60_000) return '刚刚'
+  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)} 分钟前`
+  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)} 小时前`
+  return new Date(ts).toLocaleDateString('zh-CN')
+}
+
+function openRecent(item: RecentItem) {
+  const table = fileTableRef.value as any
+  table?.openRecent?.({ ...item })
+}
 
 // ─── 全局快捷键（来自 useShortcuts 派发） ───────────────────────────────────
 function onShortcut(e: Event) {
@@ -531,6 +557,44 @@ onUnmounted(() => {
       <!-- 面包屑 -->
       <BreadCrumb class="pt-2 pb-1" />
     </div>
+
+    <!-- P3-1 最近访问：仅根目录、非搜索态展示；记录在文件列表双击时写入 localStorage -->
+    <section v-if="showRecent" class="mb-3 shrink-0">
+      <div class="flex items-center justify-between px-1 mb-2">
+        <div class="flex items-center gap-1.5 text-xs font-medium text-(--color-text-muted)">
+          <Clock :size="13" />
+          最近访问
+        </div>
+        <button
+          type="button"
+          class="text-xs text-(--color-text-muted) hover:text-(--color-text) transition-colors"
+          @click="clearRecent"
+        >
+          清除
+        </button>
+      </div>
+      <div class="flex gap-2 overflow-x-auto pb-1">
+        <button
+          v-for="item in recentItems"
+          :key="item.fileId"
+          type="button"
+          class="shrink-0 w-44 flex flex-col items-start gap-1 rounded-lg border border-(--color-border) bg-(--color-surface-container-low) p-2.5 text-left transition-colors hover:border-primary-400 hover:bg-(--color-surface-2)"
+          :aria-label="`打开最近访问文件 ${item.filename}`"
+          @click="openRecent(item)"
+        >
+          <div class="flex items-center gap-1.5 w-full min-w-0">
+            <Folder v-if="item.fileType === 0" :size="14" class="text-primary-500 shrink-0" />
+            <FileText v-else :size="14" class="text-(--color-text-muted) shrink-0" />
+            <span class="text-xs font-medium text-(--color-text) truncate">{{ item.filename }}</span>
+          </div>
+          <div class="flex items-center gap-1.5 text-[11px] text-(--color-text-muted)">
+            <span v-if="item.fileSizeDesc">{{ item.fileSizeDesc }}</span>
+            <span v-if="item.fileSizeDesc" class="opacity-40">·</span>
+            <span>{{ recentTime(item.visitTime) }}</span>
+          </div>
+        </button>
+      </div>
+    </section>
 
     <!-- 文件表格 -->
     <FileTable ref="fileTableRef" class="flex-1 min-h-0" @share="onShareRow">

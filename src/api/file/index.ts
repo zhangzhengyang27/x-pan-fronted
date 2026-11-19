@@ -152,10 +152,10 @@ const fileService = {
       .catch(reject)
   },
 
-  /** 热搜榜（P4-5 全站聚合） */
-  hot(limit: number, resolve: Callback<string[]>, reject: Callback<unknown>) {
+  /** 我的最近搜索（P2-16：只查当前账号，不做全站聚合） */
+  recent(limit: number, resolve: Callback<string[]>, reject: Callback<unknown>) {
     http
-      .get<unknown, ApiResponse<string[]>>('/file/search/hot', { params: { limit } })
+      .get<unknown, ApiResponse<string[]>>('/file/search/recent', { params: { limit } })
       .then(resolve)
       .catch(reject)
   },

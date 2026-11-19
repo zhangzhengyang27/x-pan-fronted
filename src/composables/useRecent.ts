@@ -1,8 +1,11 @@
 /**
- * useRecent —— 最近访问（P1.8）
- * localStorage 存储最近访问文件（最多 20 条，按访问时间倒序）
+ * useRecent —— 最近访问（P3-1）
+ *
+ * localStorage 存储最近访问文件（最多 20 条，按访问时间倒序）。
+ * 用模块级 ref 而不是 computed+localStorage：文件列表双击记录后，首页“最近访问”
+ * 区块要能立即刷新；多个组件各自 new 一个 computed 会各自缓存、互相看不到更新。
  */
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 export interface RecentItem {
   fileId: string
@@ -34,21 +37,28 @@ function save(list: RecentItem[]) {
   }
 }
 
+// 模块级单例：所有 useRecent 调用方共享同一份响应式数据
+const recentItems = ref<RecentItem[]>(load())
+
 export function useRecent() {
-  const recent = computed<RecentItem[]>(() => load())
+  // 对外仍给只读 computed，避免调用方直接改数组绕过 persist
+  const recent = computed<RecentItem[]>(() => recentItems.value)
 
   function add(item: Omit<RecentItem, 'visitTime'>) {
     if (!item || !item.fileId) return
-    const list = load().filter((i) => i.fileId !== item.fileId)
+    const list = recentItems.value.filter((i) => i.fileId !== item.fileId)
     list.unshift({ ...item, visitTime: Date.now() } as RecentItem)
-    save(list.slice(0, MAX))
+    recentItems.value = list.slice(0, MAX)
+    save(recentItems.value)
   }
 
   function remove(fileId: string) {
-    save(load().filter((i) => i.fileId !== fileId))
+    recentItems.value = recentItems.value.filter((i) => i.fileId !== fileId)
+    save(recentItems.value)
   }
 
   function clear() {
+    recentItems.value = []
     save([])
   }
 
