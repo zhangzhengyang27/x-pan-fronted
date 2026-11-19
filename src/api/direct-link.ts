@@ -22,6 +22,11 @@ export interface IDirectLinkVO {
   id: string
   fileId: string
   filename: string
+  /**
+   * P2-14：创建操作人的加密 ID（个人空间等于归属人；团队空间用于审计）。
+   * 后端 XPanDirectLinkVO.operatorUserId 使用 IdEncryptSerializer 输出字符串。
+   */
+  operatorUserId?: string
   /** 64 位随机 hex */
   token: string
   enableFlag: number

@@ -4,7 +4,7 @@
  */
 import { ref } from 'vue'
 import type { PropType } from 'vue'
-import { ChevronRight, Folder, FolderOpen, File } from '@lucide/vue'
+import { ChevronRight, Folder, FolderOpen } from '@lucide/vue'
 import { cn } from '@/utils/classnames'
 
 interface TreeNodeData {
@@ -58,7 +58,7 @@ function onToggle(node: TreeNodeData) {
       </button>
       <span v-else class="size-4" />
       <component
-        :is="node.children?.length ? (expanded ? FolderOpen : Folder) : File"
+        :is="expanded ? FolderOpen : Folder"
         :size="16"
         class="shrink-0 text-(--color-text-muted)"
       />

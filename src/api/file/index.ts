@@ -50,7 +50,23 @@ const fileService = {
   },
 
   getFolderTree(resolve: Callback<IFolderTreeNode[]>, reject: Callback<unknown>) {
+    // 兼容旧调用：不传 parentId 仍返回完整树（分享转存等页面依赖）
     http.get<unknown, ApiResponse<IFolderTreeNode[]>>('/file/folder/tree').then(resolve).catch(reject)
+  },
+
+  /**
+   * P2-12：按需加载某个文件夹的直接子目录。
+   * parentId 传加密字符串；后端只回一层，展开树节点时再请求下一层。
+   */
+  getFolderTreeChildren(
+    parentId: string,
+    resolve: Callback<IFolderTreeNode[]>,
+    reject: Callback<unknown>
+  ) {
+    http
+      .get<unknown, ApiResponse<IFolderTreeNode[]>>('/file/folder/tree', { params: { parentId } })
+      .then(resolve)
+      .catch(reject)
   },
 
   transfer(data: { fileIds: string[]; targetParentId: string }) {

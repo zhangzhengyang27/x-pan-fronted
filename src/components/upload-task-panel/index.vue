@@ -101,7 +101,7 @@ function closePanel() {
                   继续
                 </button>
                 <button
-                  v-if="task.status === EFileStatus.FAIL.code"
+                  v-if="task.status === EFileStatus.FAIL.code && !task.interrupted"
                   type="button"
                   class="text-xs text-(--color-primary) hover:opacity-80 transition-opacity"
                   :aria-label="`重试 ${task.filename}`"
@@ -109,6 +109,12 @@ function closePanel() {
                 >
                   重试
                 </button>
+                <span
+                  v-else-if="task.interrupted"
+                  class="text-[11px] text-(--color-text-muted)"
+                >
+                  重新选择文件
+                </span>
                 <button
                   v-if="task.status !== 1"
                   type="button"
