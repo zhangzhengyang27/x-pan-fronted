@@ -26,6 +26,8 @@ const emit = defineEmits<{ (e: 'update:open', v: boolean): void; (e: 'extracted'
 const status = ref<'idle' | 'extracting' | 'done' | 'error' | 'timeout'>('idle')
 const progress = ref(0)
 const files = ref<ExtractedFile[]>([])
+const currentTaskId = ref('')
+const errorMsg = ref('')
 
 // 轮询相关
 const POLL_INTERVAL_MS = 800
@@ -53,6 +55,8 @@ watch(
       status.value = 'idle'
       progress.value = 0
       files.value = []
+      currentTaskId.value = ''
+      errorMsg.value = ''
       pollStartedAt = 0
     }
   }
@@ -65,6 +69,8 @@ function startExtract() {
   status.value = 'extracting'
   progress.value = 0
   files.value = []
+  currentTaskId.value = ''
+  errorMsg.value = ''
   pollStartedAt = Date.now()
 
   // 1. 创建解压任务（HTTP 立即返回 taskId）
@@ -74,17 +80,19 @@ function startExtract() {
       const task = res.data
       if (!task || !task.taskId) {
         status.value = 'error'
+        errorMsg.value = '创建解压任务失败'
         return
       }
+      currentTaskId.value = task.taskId
       // 先展示一个初始进度
       progress.value = task.progress || 0
       pollProgress(task.taskId)
     },
     () => {
       status.value = 'error'
-      ElMessage.error('解压失败，文件可能已损坏或格式不支持')
+      errorMsg.value = '解压失败，文件可能已损坏或格式不支持'
+      ElMessage.error(errorMsg.value)
     }
-    // targetParentId 当前由后端默认解压到当前目录，如需指定可传入
   )
 }
 
@@ -119,7 +127,8 @@ function pollProgress(taskId: string) {
         else if (task.status === 3) {
           stopPolling()
           status.value = 'error'
-          ElMessage.error(task.errorMsg || '解压失败，请稍后重试')
+          errorMsg.value = task.errorMsg || '解压失败，请稍后重试'
+          ElMessage.error(errorMsg.value)
         }
         // 0/1 继续轮询
       },
@@ -133,6 +142,33 @@ function pollProgress(taskId: string) {
 function close() {
   stopPolling()
   emit('update:open', false)
+}
+
+/** 失败后按后端检查点重试：已完成的 entry 不会重复上传 */
+function retryExtract() {
+  if (!currentTaskId.value) return startExtract()
+  if (timer) stopPolling()
+  status.value = 'extracting'
+  progress.value = 0
+  errorMsg.value = ''
+  pollStartedAt = Date.now()
+  extractService.retry(
+    currentTaskId.value,
+    (res) => {
+      const task = res.data
+      if (!task || !task.taskId) {
+        status.value = 'error'
+        errorMsg.value = '重试失败'
+        return
+      }
+      progress.value = task.progress || 0
+      pollProgress(task.taskId)
+    },
+    (err) => {
+      status.value = 'error'
+      errorMsg.value = (err as { message?: string })?.message || '重试失败'
+    }
+  )
 }
 
 // 后端异步解压，完成时 POST /file/extract/progress 已返回 result；
@@ -224,7 +260,15 @@ function fileTypeIcon(f: ExtractedFile) {
 
             <!-- 解压失败 -->
             <div v-else-if="status === 'error'" class="flex flex-col items-center py-8">
-              <p class="text-sm text-red-500">解压失败，请稍后重试</p>
+              <p class="text-sm text-red-500">{{ errorMsg || '解压失败，请稍后重试' }}</p>
+              <button
+                v-if="currentTaskId"
+                class="mt-4 px-4 py-1.5 rounded-sm text-sm text-white"
+                style="background: var(--color-primary-500);"
+                @click="retryExtract"
+              >
+                从断点重试
+              </button>
             </div>
 
             <!-- 轮询超时（后台仍在处理） -->

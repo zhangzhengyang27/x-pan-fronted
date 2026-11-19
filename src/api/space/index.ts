@@ -54,7 +54,7 @@ const spaceService = {
 
   createInvite(
     spaceId: string,
-    data: { expireHours: number; maxUses: number },
+    data: { expireHours: number; maxUses: number; role?: 'MEMBER' | 'VIEWER' },
     resolve: Callback<ISpaceInviteVO>,
     reject: Callback<unknown>
   ) {

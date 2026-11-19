@@ -67,6 +67,14 @@ const extractService = {
       .get<unknown, ApiResponse<ExtractTask>>('/file/extract/progress', { params: { taskId } })
       .then(resolve)
       .catch(reject)
+  },
+
+  /** 重试失败任务；后端按 resume_data 检查点跳过已完成条目 */
+  retry(taskId: string, resolve: Callback<ExtractTask>, reject: Callback<unknown>) {
+    http
+      .post<unknown, ApiResponse<ExtractTask>>('/file/extract/retry', null, { params: { taskId } })
+      .then(resolve)
+      .catch(reject)
   }
 }
 

@@ -37,6 +37,8 @@ const creating = ref(false)
 const inviteVisible = ref(false)
 const inviteExpireHours = ref(72)
 const inviteMaxUses = ref(0)
+// 邀请码只授予 MEMBER/VIEWER；ADMIN 必须由空间所有者单独提升
+const inviteRole = ref<'MEMBER' | 'VIEWER'>('MEMBER')
 const creatingInvite = ref(false)
 
 const quotaVisible = ref(false)
@@ -52,8 +54,16 @@ const activeSpace = computed<ISpaceVO | undefined>(() =>
   spaces.value.find((s) => s.spaceId === activeSpaceId.value)
 )
 const isOwner = computed(() => activeSpace.value?.role === 'OWNER')
+// 能力位以后端为准；旧数据未返回能力位时回退到角色判断，保证兼容
 const canManage = computed(
-  () => activeSpace.value?.role === 'OWNER' || activeSpace.value?.role === 'ADMIN'
+  () =>
+    activeSpace.value?.canManageMembers ??
+    (activeSpace.value?.role === 'OWNER' || activeSpace.value?.role === 'ADMIN')
+)
+const canInvite = computed(
+  () =>
+    activeSpace.value?.canInvite ??
+    (activeSpace.value?.role === 'OWNER' || activeSpace.value?.role === 'ADMIN')
 )
 const isPersonal = computed(() => activeSpace.value?.spaceType === 'PERSONAL')
 
@@ -155,6 +165,7 @@ function doCreateTeam(): void {
 function openInvite(): void {
   inviteExpireHours.value = 72
   inviteMaxUses.value = 0
+  inviteRole.value = 'MEMBER'
   inviteVisible.value = true
 }
 
@@ -163,7 +174,7 @@ function doCreateInvite(): void {
   creatingInvite.value = true
   spaceService.createInvite(
     activeSpace.value.spaceId,
-    { expireHours: inviteExpireHours.value, maxUses: inviteMaxUses.value },
+    { expireHours: inviteExpireHours.value, maxUses: inviteMaxUses.value, role: inviteRole.value },
     () => {
       creatingInvite.value = false
       inviteVisible.value = false
@@ -397,7 +408,7 @@ function usedPercent(space: ISpaceVO): number {
             <div class="ml-auto flex items-center gap-2">
               <template v-if="!isPersonal">
                 <button
-                  v-if="canManage"
+                  v-if="canInvite"
                   type="button"
                   class="flex items-center gap-1 h-8 px-2.5 rounded-sm text-xs border border-(--color-border) text-(--color-text-secondary) hover:bg-(--color-hover)"
                   @click="openInvite"
@@ -456,13 +467,13 @@ function usedPercent(space: ISpaceVO): number {
                     <div class="text-sm truncate text-(--color-text)">{{ member.username }}</div>
                     <div class="text-[11px] text-(--color-text-muted)">{{ roleLabel(member.role) }}</div>
                   </div>
-                  <div v-if="canManage && member.role !== 'OWNER'" class="ml-auto flex items-center gap-1.5">
+                  <div v-if="canManage && member.role !== 'OWNER' && (isOwner || member.role !== 'ADMIN')" class="ml-auto flex items-center gap-1.5">
                     <select
                       class="h-7 px-2 rounded-sm text-xs border border-(--color-border) bg-(--color-surface) text-(--color-text)"
                       :value="member.role"
                       @change="changeRole(member, ($event.target as HTMLSelectElement).value)"
                     >
-                      <option value="ADMIN">管理员</option>
+                      <option v-if="isOwner" value="ADMIN">管理员</option>
                       <option value="MEMBER">成员</option>
                       <option value="VIEWER">只读</option>
                     </select>
@@ -494,7 +505,8 @@ function usedPercent(space: ISpaceVO): number {
                   <div class="min-w-0">
                     <div class="text-xs font-mono text-(--color-text)">{{ invite.inviteCode }}</div>
                     <div class="text-[11px] text-(--color-text-muted)">
-                      {{ invite.expireTime ? '到期 ' + new Date(invite.expireTime).toLocaleString() : '永久有效' }}
+                      {{ invite.role === 'VIEWER' ? '只读' : '成员' }}
+                      · {{ invite.expireTime ? '到期 ' + new Date(invite.expireTime).toLocaleString() : '永久有效' }}
                       · 已用 {{ invite.usedCount }}{{ invite.maxUses ? '/' + invite.maxUses : '' }} 次
                     </div>
                   </div>
@@ -515,7 +527,7 @@ function usedPercent(space: ISpaceVO): number {
                       App 链接
                     </button>
                     <button
-                      v-if="canManage"
+                      v-if="canInvite"
                       type="button"
                       class="size-7 rounded-sm flex items-center justify-center hover:bg-(--color-hover)"
                       style="color: var(--color-danger)"
@@ -564,6 +576,11 @@ function usedPercent(space: ISpaceVO): number {
           <option :value="72">3 天</option>
           <option :value="168">7 天</option>
           <option :value="0">永久有效</option>
+        </select>
+        <label class="block text-xs mb-1.5 text-(--color-text-secondary)">加入后的角色</label>
+        <select v-model="inviteRole" class="w-full h-9 px-2 mb-3 text-sm rounded-sm border border-(--color-border) bg-(--color-surface) text-(--color-text)">
+          <option value="MEMBER">成员（可读写）</option>
+          <option value="VIEWER">只读（仅查看/下载）</option>
         </select>
         <label class="block text-xs mb-1.5 text-(--color-text-secondary)">最大使用次数（0 = 不限）</label>
         <input v-model.number="inviteMaxUses" type="number" min="0" class="w-full h-9 px-3 text-sm rounded-sm border border-(--color-border) bg-(--color-surface) text-(--color-text)" />

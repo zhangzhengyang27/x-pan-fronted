@@ -72,6 +72,11 @@ export interface ISpaceVO {
   spaceType: string
   /** OWNER / ADMIN / MEMBER / VIEWER */
   role: string
+  /** 后端计算的能力位，前端只做 UI 显隐；真正授权仍由后端二次校验 */
+  canWrite?: boolean
+  canInvite?: boolean
+  canManageMembers?: boolean
+  canManageSpace?: boolean
   ownerUserId: string
   ownerUsername: string
   /** 根目录加密 ID */
@@ -93,6 +98,8 @@ export interface ISpaceInviteVO {
   id: string
   inviteCode: string
   inviteUrl: string
+  /** 加入后的角色（MEMBER/VIEWER） */
+  role?: string
   expireTime?: string | null
   maxUses: number
   usedCount: number
