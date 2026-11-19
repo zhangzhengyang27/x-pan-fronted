@@ -44,6 +44,14 @@ const previewService = {
       .catch(reject)
   },
 
+  /** 创建 / 获取视频 HLS 转码任务（手动触发，360p+720p） */
+  async hls(fileId: string): Promise<IPreviewTaskVO> {
+    const res = await http.post<unknown, ApiResponse<IPreviewTaskVO>>(
+      `/preview/hls/${encodeURIComponent(fileId)}`
+    )
+    return res.data
+  },
+
   /** 轮询预览直链（taskId 为加密任务ID） */
   url(taskId: string, resolve: Callback<IPreviewUrlVO>, reject: Callback<unknown>) {
     http

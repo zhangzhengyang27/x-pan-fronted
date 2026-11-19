@@ -14,13 +14,18 @@ const props = defineProps({
   fileId: { type: [String, Number], required: true },
   title: { type: String, default: '' },
   /** 外部已解析好的预览 URL（优先于本地拼接） */
-  url: { type: String, default: '' }
+  url: { type: String, default: '' },
+  /** HLS 播放地址；有值时优先于原视频 URL，由 hls.js 接管 */
+  hlsUrl: { type: String, default: '' }
 })
 
 const containerRef = ref<HTMLDivElement | null>(null)
 let player: any = null
 let currentUrl = ''
 let ArtplayerCtor: any = null
+// hls.js 实例必须显式 destroy：切换清晰度/切回原视频/关闭预览时，
+// 不销毁会继续拉分片并持有 MediaSource。
+let hlsInstance: any = null
 // 竞态保护：initPlayer 中的 await import('artplayer') 是异步的，期间可能
 // 已被快速切换再次触发（需防双实例），或组件已卸载（需防卸载后绑定全局事件）
 let initPromise: Promise<void> | null = null
@@ -86,6 +91,60 @@ async function initArtplayer() {
   }
 }
 
+function destroyHls() {
+  if (hlsInstance) {
+    try {
+      hlsInstance.destroy()
+    } catch {
+      /* noop */
+    }
+    hlsInstance = null
+  }
+}
+
+/**
+ * Artplayer customType：HLS 不是所有浏览器原生支持，Chrome/Firefox 必须经 hls.js。
+ * XHR 需要带登录 Cookie 和团队空间头，否则后端按个人空间校验会 404。
+ */
+function hlsCustomType(video: HTMLVideoElement, url: string, art: any) {
+  destroyHls()
+  import('hls.js')
+    .then(({ default: Hls }) => {
+      if (destroyed) return
+      if (Hls.isSupported()) {
+        const hls = new Hls({
+          xhrSetup: (xhr: XMLHttpRequest) => {
+            xhr.withCredentials = true
+            try {
+              const spaceId = localStorage.getItem('xpan_space_id')
+              if (spaceId) xhr.setRequestHeader('X-Space-Id', spaceId)
+            } catch {
+              // 隐私模式无法读 localStorage：按个人空间请求
+            }
+          }
+        })
+        hls.loadSource(url)
+        hls.attachMedia(video)
+        hls.on(Hls.Events.ERROR, (_event: unknown, data: any) => {
+          if (data?.fatal) {
+            ElMessage.error('高清播放加载失败，可重新生成或下载后播放')
+            destroyHls()
+          }
+        })
+        hlsInstance = hls
+        art.hls = hls
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        // Safari 原生支持 HLS，直接交给浏览器
+        video.src = url
+      } else {
+        ElMessage.error('当前浏览器不支持 HLS 播放')
+      }
+    })
+    .catch(() => {
+      ElMessage.error('高清播放组件加载失败')
+    })
+}
+
 function bindPlayerEvents() {
   if (!player) return
 
@@ -147,8 +206,10 @@ async function doInitPlayer(url: string) {
   // await 之后必须复查：组件可能已卸载（不再创建、不再绑定 window keydown），
   // 或已被其他入口创建出实例（避免双实例）
   if (destroyed || player || !containerRef.value) return
-  // await 期间外部签名 URL 可能已更新（快速切换），创建时以最新 URL 为准
-  const targetUrl = props.url || url
+  // await 期间外部签名 URL 可能已更新（快速切换），创建时以最新 URL 为准；
+  // HLS 就绪时优先用 HLS（同一视频不会同时播原视频和高清版）。
+  const isHls = Boolean(props.hlsUrl)
+  const targetUrl = props.hlsUrl || props.url || url
   currentUrl = targetUrl
 
   // 字幕请求与播放器初始化并行等待：没有字幕时后端 404，耗时很短；
@@ -161,6 +222,10 @@ async function doInitPlayer(url: string) {
     // 以最新签名的 URL 创建，保证与 currentUrl 一致（否则 currentUrl 已是
     // targetUrl 而播放器实际播的是旧 url，后续 switchUrl 判重会误跳过）
     url: targetUrl,
+    // HLS 地址必须显式声明 type，Artplayer 才会走 customType；
+    // 原视频 URL 不设置 type，交给默认 video 播放。
+    type: isHls ? 'm3u8' : undefined,
+    customType: { m3u8: hlsCustomType },
     title: props.title,
     autoplay: true,
     // 高度由容器 CSS（aspect-video + min-h）决定，
@@ -206,7 +271,10 @@ async function doInitPlayer(url: string) {
   window.addEventListener('keydown', onKeydown)
 
   // P3-1：后台异步采样关键帧，生成后动态注入 ArtPlayer（同样以最新 URL 为准）
-  refreshThumbnails(targetUrl)
+  // HLS 的清单地址不是可直接解码的视频文件，缩略图采样会失败，跳过即可。
+  if (!isHls) {
+    refreshThumbnails(targetUrl)
+  }
 }
 
 function refreshThumbnails(videoUrl: string) {
@@ -234,6 +302,9 @@ watch(
   () => props.url,
   (newUrl) => {
     if (!newUrl || newUrl === currentUrl) return
+    // HLS 已生效时忽略原视频 URL 的更新，避免把高清播放器切回源码率；
+    // 如果 HLS 后来清空（重置文件），hlsUrl watch 会负责回退。
+    if (props.hlsUrl) return
 
     if (!player) {
       // 首次拿到签名 URL 时才真正创建播放器（避免用未签名 URL 初始化导致黑屏）
@@ -246,6 +317,40 @@ watch(
     player.switchUrl(newUrl)
     player.play()
     refreshThumbnails(newUrl)
+  }
+)
+
+// 高清版生成完成：保留播放进度，就地切到 HLS
+watch(
+  () => props.hlsUrl,
+  async (newUrl) => {
+    if (!newUrl || newUrl === currentUrl) return
+    if (!player) {
+      initPlayer(newUrl)
+      return
+    }
+    const previousTime = player.currentTime
+    try {
+      // 先改 type，switchUrl 才会调用 customType.m3u8；
+      // 不销毁播放器，避免丢失全屏/音量/播放进度等瞬态状态。
+      player.type = 'm3u8'
+      currentUrl = newUrl
+      await player.switchUrl(newUrl)
+      if (Number.isFinite(previousTime) && previousTime > 0) {
+        player.currentTime = previousTime
+      }
+      player.play().catch(() => {
+        // 自动播放被拦截属正常，用户点播放即可
+      })
+    } catch {
+      ElMessage.error('高清播放切换失败，已回退原视频')
+      destroyHls()
+      player.type = ''
+      if (props.url) {
+        currentUrl = props.url
+        player.switchUrl(props.url).catch(() => {})
+      }
+    }
   }
 )
 
@@ -351,6 +456,7 @@ onBeforeUnmount(() => {
     }
     player = null
   }
+  destroyHls()
   if (subtitleObjectUrl) {
     URL.revokeObjectURL(subtitleObjectUrl)
     subtitleObjectUrl = null
