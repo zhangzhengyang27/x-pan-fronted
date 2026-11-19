@@ -10,20 +10,37 @@ import Uploader from 'simple-uploader.js'
 import type { UploaderFile, UploaderChunk } from 'simple-uploader.js'
 import { MD5 } from '@/utils/md5'
 import { getXsrfToken } from '@/utils/cookie'
+import { deleteUploadFile, loadUploadFile, saveUploadFile } from '@/utils/upload-blob-store'
 import panUtil, { EFileStatus } from '@/utils/common'
 import fileService from '@/api/file'
 import { ElMessage } from '@/composables/useToast'
 import { useFileStore } from '@/stores/file'
 import { useTaskStore } from '@/stores/task'
+import { useUploadHistory } from '@/composables/useUploadHistory'
 import { useUserStore } from '@/stores/user'
 
 let _uploader: Uploader | null = null
 let _attachCount = 0
+// 自动恢复只允许执行一次：多个页面同时调用 useUploader 时不能重复把任务喂给上传器
+let _autoResumeStarted = false
 
 export function useUploader() {
   const fileStore = useFileStore()
   const taskStore = useTaskStore()
+  const { add: addUploadHistory } = useUploadHistory()
   const ready = ref(false)
+
+  /** 记录最近上传（P3-1）：必须在任务被移除前读取文件名/大小/目录快照 */
+  function recordUploadSuccess(fileId: string) {
+    const task = taskStore.getUploadTask(fileId)
+    if (!task) return
+    addUploadHistory({
+      filename: task.filename,
+      fileSizeDesc: task.fileSize,
+      fileSizeBytes: task.fileSizeBytes,
+      parentId: task.parentId
+    })
+  }
 
   function ensureUploader(): Uploader {
     if (_uploader) return _uploader
@@ -126,6 +143,11 @@ export function useUploader() {
           parentId: uploadParentId
         })
 
+        // 把原文件副本写入 IndexedDB（仅元数据仍走 localStorage）：
+        // 刷新后可在配额允许范围内自动恢复；超限/隐私模式失败会被静默忽略，
+        // 用户仍可通过面板“重新选择文件”续传，不影响本次上传主链路。
+        void saveUploadFile(f.id, f.file)
+
         MD5(f.file, (e, md5) => {
           if (e || !md5) {
             // 指纹计算失败属正常降级，静默转入普通上传，无需弹错误提示
@@ -156,7 +178,10 @@ export function useUploader() {
               if (res.code === 0 && res.data) {
                 ElMessage.success('上传成功：' + f.name)
                 f.cancel()
+                recordUploadSuccess(f.id)
                 taskStore.remove(f.id)
+                // 任务成功后原文件副本不再需要，及时释放 IndexedDB 配额
+                void deleteUploadFile(f.id)
                 fileStore.loadFileList()
                 if (_uploader && _uploader.files.length === 0) {
                   taskStore.updateViewFlag(false)
@@ -223,6 +248,8 @@ export function useUploader() {
     const task = taskStore.getUploadTask(id)
     if (task?.target && !isTerminalStatus(task.status)) task.target.cancel()
     taskStore.remove(id)
+    // 用户主动移除任务后不再自动恢复，删除 IndexedDB 副本避免成为孤儿数据
+    void deleteUploadFile(id)
   }
 
   function onFileProgress(rootFile: UploaderFile, file: UploaderFile) {
@@ -316,12 +343,14 @@ export function useUploader() {
           /* noop */
         }
         fileStore.loadFileList()
+        recordUploadSuccess(file.id)
         taskStore.updateStatus({
           id: file.id,
           status: EFileStatus.SUCCESS.code,
           statusText: EFileStatus.SUCCESS.text
         })
         taskStore.remove(file.id)
+        void deleteUploadFile(file.id)
         if (_uploader && _uploader.files.length === 0) taskStore.updateViewFlag(false)
       },
       () => {
@@ -345,12 +374,14 @@ export function useUploader() {
       /* noop */
     }
     fileStore.loadFileList()
+    recordUploadSuccess(file.id)
     taskStore.updateStatus({
       id: file.id,
       status: EFileStatus.SUCCESS.code,
       statusText: EFileStatus.SUCCESS.text
     })
     taskStore.remove(file.id)
+    void deleteUploadFile(file.id)
     if (_uploader && _uploader.files.length === 0) taskStore.updateViewFlag(false)
   }
 
@@ -377,24 +408,27 @@ export function useUploader() {
    * 让用户重新选择同一文件是跨浏览器可行的方案。设置 __resumeIdentifier 后，
    * onFilesAdded 会先用 MD5 校验内容，再复用原 identifier 让 simple-uploader 跳过已传分片。
    *
+   * @param auto 自动恢复时静默处理，不弹“缺少 identifier”之类的提示
    * @returns 是否已把文件交给上传器；名称/大小不符直接拒绝，原任务保留
    */
-  function resumePersistedTask(taskId: string, file: File): boolean {
+  function resumePersistedTask(taskId: string, file: File, auto = false): boolean {
     const task = taskStore.getUploadTask(taskId)
     if (!task) {
-      ElMessage.error('上传任务已不存在')
+      if (!auto) ElMessage.error('上传任务已不存在')
       return false
     }
     if (file.name !== task.filename) {
-      ElMessage.error('请选择原任务对应的文件：' + task.filename)
+      if (!auto) ElMessage.error('请选择原任务对应的文件：' + task.filename)
       return false
     }
     if (task.fileSizeBytes != null && file.size !== task.fileSizeBytes) {
-      ElMessage.error('文件大小与原任务不一致，请选择原文件')
+      if (!auto) ElMessage.error('文件大小与原任务不一致，请选择原文件')
       return false
     }
     if (file.size > panUtil.getMaxFileSize()) {
-      ElMessage.error('文件大小超过最大上传限制（' + panUtil.translateFileSize(panUtil.getMaxFileSize()) + '）')
+      if (!auto) {
+        ElMessage.error('文件大小超过最大上传限制（' + panUtil.translateFileSize(panUtil.getMaxFileSize()) + '）')
+      }
       return false
     }
     const marked = file as File & {
@@ -406,17 +440,45 @@ export function useUploader() {
     marked.__uploadParentId = task.parentId
     if (task.uniqueIdentifier) {
       marked.__resumeIdentifier = task.uniqueIdentifier
-    } else {
+    } else if (!auto) {
       // 刷新发生在 MD5 计算完成前时没有 identifier，无法定位服务端分片；降级为完整新上传
       ElMessage.warning('原任务尚未生成上传标识，将重新完整上传')
     }
     marked.__resumeTaskId = task.id
-    // 旧中断任务先移除；新任务由 filesAdded 重新建立，失败时用户可重新选择
+    // 旧中断任务先移除；新任务由 filesAdded 重新建立，失败时用户可重新选择。
+    // 旧任务对应的 IndexedDB 副本也一并删除，避免同一个文件在库里存两份。
     taskStore.remove(task.id)
+    void deleteUploadFile(task.id)
     ensureUploader()
     _uploader?.addFile(file)
     ready.value = true
     return true
+  }
+
+  /**
+   * P2-11 自动恢复：页面启动时把 IndexedDB 里仍有原文件副本的中断任务重新入队。
+   *
+   * 只在缓存命中的任务上自动执行；缓存缺失（超 256MB、隐私模式、配额不足）
+   * 的任务保持“已中断”，用户仍可点“重新选择文件”手动续传。
+   */
+  async function autoResumePersistedTasks() {
+    const interrupted = taskStore.uploadTaskList.filter((t) => t.interrupted && t.filename)
+    let restored = 0
+    for (const task of interrupted) {
+      try {
+        const cached = await loadUploadFile(task.id)
+        if (!cached) continue
+        // 缓存记录与任务元数据必须一致；大小不符说明缓存已损坏，宁可降级手动选择
+        if (cached.name !== task.filename) continue
+        if (task.fileSizeBytes != null && cached.size !== task.fileSizeBytes) continue
+        if (resumePersistedTask(task.id, cached, true)) restored++
+      } catch {
+        // 单个任务恢复失败不能影响其它任务；保留原任务供用户手动选择
+      }
+    }
+    if (restored > 0) {
+      ElMessage.success(`已自动恢复 ${restored} 个上传任务`)
+    }
   }
 
   /**
@@ -436,6 +498,11 @@ export function useUploader() {
 
   _attachCount++
   if (!_uploader) ensureUploader()
+  // 每次应用加载只跑一次自动恢复；IndexedDB 不可用时会立即返回，不影响页面启动
+  if (!_autoResumeStarted) {
+    _autoResumeStarted = true
+    void autoResumePersistedTasks()
+  }
 
   onUnmounted(() => {
     _attachCount = Math.max(0, _attachCount - 1)

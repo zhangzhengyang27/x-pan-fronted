@@ -48,7 +48,11 @@ function saveProgress() {
   if (!progressVideo || !Number.isFinite(progressVideo.currentTime) || !Number.isFinite(progressVideo.duration)) {
     return
   }
-  saveVideoProgress(props.fileId, progressVideo.currentTime, progressVideo.duration)
+  // 标题用于根目录“继续观看”展示；文件类型固定为 9（视频），打开时复用视频预览
+  saveVideoProgress(props.fileId, progressVideo.currentTime, progressVideo.duration, {
+    title: props.title || undefined,
+    fileType: 9
+  })
 }
 
 function onLoadedMetadata() {

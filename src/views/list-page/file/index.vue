@@ -25,7 +25,9 @@ import {
   ClipboardPaste,
   Clock,
   Folder,
-  FileText
+  FileText,
+  Play,
+  Upload
 } from '@lucide/vue'
 import ShareButton from '@/components/buttons/share-button/index.vue'
 import FileButtonGroup from '@/components/file-button-group/index.vue'
@@ -43,6 +45,8 @@ import { useFileStore } from '@/stores/file'
 import { useBreadcrumbStore } from '@/stores/breadcrumb'
 import { useUploader } from '@/composables/useUploader'
 import { useRecent, type RecentItem } from '@/composables/useRecent'
+import { useUploadHistory, type UploadHistoryItem } from '@/composables/useUploadHistory'
+import { listVideoProgress, videoProgressRevision, type VideoProgressItem } from '@/utils/video-progress'
 import { storeToRefs } from 'pinia'
 import fileService from '@/api/file'
 import { ElMessage } from '@/composables/useToast'
@@ -84,13 +88,49 @@ const shareButtonRef = ref<InstanceType<typeof ShareButton> | null>(null)
 const { addFiles } = useUploader()
 // P3-1：最近访问只做本地记录，进入根目录时展示最近 20 条，方便“回到现场”
 const { recent: recentItems, clear: clearRecent } = useRecent()
-const showRecent = computed(
+const isRootHome = computed(
   () =>
     !searchFlag.value &&
     fileStore.paramParentId === defaultParentId.value &&
-    fileStore.fileTypes === '-1' &&
-    recentItems.value.length > 0
+    fileStore.fileTypes === '-1'
 )
+const showRecent = computed(() => isRootHome.value && recentItems.value.length > 0)
+
+// P3-1 最近上传：上传成功时由 useUploader 记录；合并接口不返回 fileId，
+// 所以点击只进入文件所在目录，不直接打开文件（避免展示一个无法定位的假入口）。
+const { recentUploads, clear: clearUploadHistory } = useUploadHistory()
+const showRecentUploads = computed(() => isRootHome.value && recentUploads.value.length > 0)
+
+function openUploadFolder(item: UploadHistoryItem) {
+  fileStore.setSearchFlag(false)
+  fileStore.setFileTypes('-1')
+  fileStore.setParentId(item.parentId || defaultParentId.value)
+  fileStore.loadFileList()
+}
+
+// P3-1 继续观看：读取视频续播记录（videoProgressRevision 让本页在播放/清理后立即刷新）
+const continueWatching = computed<VideoProgressItem[]>(() => {
+  // 显式读取 revision，建立响应式依赖；否则 localStorage 变化不会触发 computed 重新计算
+  void videoProgressRevision.value
+  return isRootHome.value ? listVideoProgress(8) : []
+})
+const showContinueWatching = computed(() => continueWatching.value.length > 0)
+
+function formatProgress(item: VideoProgressItem) {
+  const percent = Math.min(99, Math.max(1, Math.round((item.currentTime / item.duration) * 100)))
+  return `已看 ${percent}%`
+}
+
+function openContinueWatching(item: VideoProgressItem) {
+  // fileType=9 复用文件表的视频预览分支；标题缺失时用 fileId 兜底，避免空标签
+  openRecent({
+    fileId: item.fileId,
+    filename: item.title || `视频 ${item.fileId}`,
+    extension: '',
+    fileType: 9,
+    visitTime: item.updatedAt
+  })
+}
 
 function recentTime(ts: number) {
   const diff = Date.now() - ts
@@ -596,7 +636,74 @@ onUnmounted(() => {
       </div>
     </section>
 
-    <!-- 文件表格 -->
+    <!-- P3-1 最近上传：仅根目录展示；点击进入文件所在目录（合并接口不返回 fileId） -->
+    <section v-if="showRecentUploads" class="mb-3 shrink-0">
+      <div class="flex items-center justify-between px-1 mb-2">
+        <div class="flex items-center gap-1.5 text-xs font-medium text-(--color-text-muted)">
+          <Upload :size="13" />
+          最近上传
+        </div>
+        <button
+          type="button"
+          class="text-xs text-(--color-text-muted) hover:text-(--color-text) transition-colors"
+          @click="clearUploadHistory"
+        >
+          清除
+        </button>
+      </div>
+      <div class="flex gap-2 overflow-x-auto pb-1">
+        <button
+          v-for="item in recentUploads"
+          :key="`${item.filename}-${item.parentId}-${item.uploadTime}`"
+          type="button"
+          class="shrink-0 w-44 flex flex-col items-start gap-1 rounded-lg border border-(--color-border) bg-(--color-surface-container-low) p-2.5 text-left transition-colors hover:border-primary-400 hover:bg-(--color-surface-2)"
+          :aria-label="`打开 ${item.filename} 所在目录`"
+          @click="openUploadFolder(item)"
+        >
+          <div class="flex items-center gap-1.5 w-full min-w-0">
+            <Upload :size="14" class="text-primary-500 shrink-0" />
+            <span class="text-xs font-medium text-(--color-text) truncate">{{ item.filename }}</span>
+          </div>
+          <div class="flex items-center gap-1.5 text-[11px] text-(--color-text-muted)">
+            <span v-if="item.fileSizeDesc">{{ item.fileSizeDesc }}</span>
+            <span v-if="item.fileSizeDesc" class="opacity-40">·</span>
+            <span>{{ recentTime(item.uploadTime) }}</span>
+          </div>
+        </button>
+      </div>
+    </section>
+
+    <!-- P3-1 继续观看：仅根目录展示；数据来自本地视频续播记录，点击直接回到视频预览 -->
+    <section v-if="showContinueWatching" class="mb-3 shrink-0">
+      <div class="flex items-center justify-between px-1 mb-2">
+        <div class="flex items-center gap-1.5 text-xs font-medium text-(--color-text-muted)">
+          <Play :size="13" />
+          继续观看
+        </div>
+      </div>
+      <div class="flex gap-2 overflow-x-auto pb-1">
+        <button
+          v-for="item in continueWatching"
+          :key="item.fileId"
+          type="button"
+          class="shrink-0 w-44 flex flex-col items-start gap-1 rounded-lg border border-(--color-border) bg-(--color-surface-container-low) p-2.5 text-left transition-colors hover:border-primary-400 hover:bg-(--color-surface-2)"
+          :aria-label="`继续观看 ${item.title || item.fileId}`"
+          @click="openContinueWatching(item)"
+        >
+          <div class="flex items-center gap-1.5 w-full min-w-0">
+            <Play :size="14" class="text-primary-500 shrink-0" />
+            <span class="text-xs font-medium text-(--color-text) truncate">
+              {{ item.title || `视频 ${item.fileId}` }}
+            </span>
+          </div>
+          <div class="flex items-center gap-1.5 text-[11px] text-(--color-text-muted)">
+            <span>{{ formatProgress(item) }}</span>
+            <span class="opacity-40">·</span>
+            <span>{{ recentTime(item.updatedAt) }}</span>
+          </div>
+        </button>
+      </div>
+    </section>
     <FileTable ref="fileTableRef" class="flex-1 min-h-0" @share="onShareRow">
       <template #after-list>
         <!-- 空白处上传提示（跟随文件列表之后） -->

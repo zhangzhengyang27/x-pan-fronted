@@ -28,7 +28,8 @@ export interface UploadTask {
 
 type TaskKey = Pick<UploadTask, 'id' | 'filename'>
 
-// 只持久化元数据（不存 File/Blob：大文件会复制一份到浏览器配额，且句柄刷新后不可用）。
+// 只持久化元数据（File/Blob 走 IndexedDB 单独缓存：localStorage 无法存二进制，
+// 且把大文件转 base64 会复制数倍内存；刷新后由 utils/upload-blob-store 自动恢复）。
 const UPLOAD_TASK_STORAGE_KEY = 'x-pan-upload-tasks-v1'
 
 type PersistedUploadTask = Omit<UploadTask, 'target'>

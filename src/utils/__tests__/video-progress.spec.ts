@@ -1,5 +1,10 @@
-import { beforeEach, describe, expect, it } from 'vitest'
-import { clearVideoProgress, loadVideoProgress, saveVideoProgress } from '@/utils/video-progress'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  clearVideoProgress,
+  listVideoProgress,
+  loadVideoProgress,
+  saveVideoProgress
+} from '@/utils/video-progress'
 
 describe('video-progress', () => {
   beforeEach(() => localStorage.clear())
@@ -28,5 +33,21 @@ describe('video-progress', () => {
     saveVideoProgress('f1', 30, 100)
     clearVideoProgress('f1')
     expect(loadVideoProgress('f1')).toBeNull()
+  })
+
+  it('继续观看列表带标题且按最近播放倒序，过滤无效进度', () => {
+    const now = vi.spyOn(Date, 'now')
+    const base = Date.now()
+    now.mockReturnValueOnce(base)
+    now.mockReturnValueOnce(base + 1_000)
+    saveVideoProgress('f1', 30, 100, { title: '旧视频.mp4', fileType: 9 })
+    saveVideoProgress('f2', 40, 100, { title: '新视频.mp4', fileType: 9 })
+    // 这条已接近片尾，不应出现在继续观看列表
+    saveVideoProgress('f3', 99, 100)
+    now.mockRestore()
+    const items = listVideoProgress(8)
+    expect(items.map((i) => i.fileId)).toEqual(['f2', 'f1'])
+    expect(items[0].title).toBe('新视频.mp4')
+    expect(items[0].fileType).toBe(9)
   })
 })
