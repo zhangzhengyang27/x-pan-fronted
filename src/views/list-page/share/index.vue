@@ -7,7 +7,7 @@
  * - BaseTable（分享类型/提取码/过期时间/浏览次数/操作）
  */
 import { computed, onMounted, ref } from 'vue'
-import { Share2, Link as LinkIcon, X, Globe, Lock, Eye, Inbox, ShieldAlert } from '@lucide/vue'
+import { Share2, Link as LinkIcon, X, Globe, Lock, Eye, Inbox, ShieldAlert, ShieldCheck } from '@lucide/vue'
 import shareService from '@/api/share'
 import { ElMessage, ElMessageBox } from '@/composables/useToast'
 import BaseTable from '@/components/base/BaseTable.vue'
@@ -290,6 +290,12 @@ function formatExpireTime(row: Partial<IShareVO>) {
         <div class="flex items-center gap-3">
           <Share2 :size="18" :stroke-width="2" class="shrink-0" style="color: var(--color-primary-500);" />
           <span class="truncate text-(--color-text)">{{ row.shareName || '未命名' }}</span>
+          <BaseBadge v-if="row.e2ee === 1" variant="success" size="sm">
+            <span class="inline-flex items-center gap-1">
+              <ShieldCheck :size="11" :stroke-width="2" />
+              E2EE
+            </span>
+          </BaseBadge>
           <BaseBadge v-if="row.reportHidden === 1" variant="danger" size="sm">待复核</BaseBadge>
         </div>
       </template>

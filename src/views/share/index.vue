@@ -15,6 +15,11 @@ import {
 } from '@/utils/cookie'
 import shareService from '@/api/share'
 import type { IFileVO, IFolderTreeNode, IShareVO } from '@/types'
+import {
+  decryptE2eeBlob,
+  parseE2eeFragment,
+  triggerBlobDownload
+} from '@/utils/e2ee-share'
 import { onMounted, onUnmounted, reactive, ref, computed } from 'vue'
 import { useBreakpoint } from '@/composables/useMediaQuery'
 import { ElMessage, ElMessageBox } from '@/composables/useToast'
@@ -40,7 +45,8 @@ import {
   Eye,
   Hash,
   TrendingUp,
-  Lock
+  Lock,
+  ShieldCheck
 } from '@lucide/vue'
 
 const route = useRoute()
@@ -86,6 +92,9 @@ const reportLoading = ref(false)
 const forbidReshare = ref(0)
 // P3-5 文件收集：分享创建者开启后，访问者可上传到被分享文件夹
 const collectEnabled = ref(0)
+// E2EE（1=加密分享）：下载必须走浏览器解密，页面不提供“保存到我的网盘”
+const e2ee = ref(0)
+const decrypting = ref(false)
 const collectInput = ref<HTMLInputElement | null>(null)
 const collecting = ref(false)
 const countdownText = ref('')
@@ -144,7 +153,9 @@ function refreshShareInfo(data: IShareVO) {
   shareCodeHeader.value = u + '的分享：' + data.shareName
   shareDate.value = data.createTime
   shareExpireDate.value = data.shareDay === 0 ? '永久有效' : (data.shareEndTime || '')
-  tableData.value = data.xPanUserFileVOList || []
+  // 后端 getXPanUserFileVOList 的 Jackson 序列化名是 xpanUserFileVOList（首字母小写），
+  // 前端历史字段是 xPanUserFileVOList；两者都兼容，避免单文件分享页显示为空列表。
+  tableData.value = data.xPanUserFileVOList || data.xpanUserFileVOList || []
   shareHasMore.value = false
   sharePageNum.value = 1
   shareCurrentParentId.value = ''
@@ -153,6 +164,7 @@ function refreshShareInfo(data: IShareVO) {
   downloadLimit.value = data.downloadLimit || 0
   forbidReshare.value = data.forbidReshare || 0
   collectEnabled.value = data.collectEnabled || 0
+  e2ee.value = data.e2ee || 0
   startCountdown(data.shareDay === 0 ? null : (data.shareEndTime ?? null))
 }
 
@@ -331,9 +343,41 @@ function doDownLoads(items: IFileVO[], i = 0) {
   }, 500)
 }
 
+async function downloadE2ee(item: Partial<IFileVO>) {
+  const fragment = parseE2eeFragment(window.location.hash)
+  if (!fragment) {
+    return ElMessage.error('链接缺少解密密钥，请向分享者索取完整链接（# 后部分不能丢）')
+  }
+  decrypting.value = true
+  try {
+    const fileId = String(item.fileId || '').replace(/\+/g, '%2B')
+    const url = `${panUtil.getUrlPrefix()}/share/file/download?fileId=${fileId}&shareToken=${getShareToken() ?? ''}`
+    // 不能用 <a download>：这里必须拿到密文字节流，用 WebCrypto 解密后再触发保存。
+    // 匿名分享下载只认 URL 上的 shareToken，不需要登录 Cookie；用 omit 可避免
+    // 后端下载响应重置 CORS 头后与 credentials 模式冲突（生产同源时同样成立）。
+    const response = await fetch(url, { credentials: 'omit' })
+    if (!response.ok) throw new Error(`下载失败（HTTP ${response.status}）`)
+    // 后端业务错误通常是 HTTP 200 + JSON（如分享过期/次数用尽），先识别再当密文解密
+    const contentType = response.headers.get('content-type') || ''
+    if (contentType.includes('application/json')) {
+      const body = (await response.json()) as { message?: string }
+      throw new Error(body.message || '下载失败')
+    }
+    const cipher = await response.blob()
+    const plain = await decryptE2eeBlob(cipher, fragment.key, fragment.iv)
+    triggerBlobDownload(plain.blob, plain.name)
+    ElMessage.success('解密完成，已开始下载')
+  } catch (e) {
+    ElMessage.error(e instanceof Error ? e.message : '解密下载失败')
+  } finally {
+    decrypting.value = false
+  }
+}
+
 function doDownload(item: Partial<IFileVO>) {
   if (!item || !item.fileId) return ElMessage.warning('文件信息缺失，无法下载')
   if (item.folderFlag === 1) return ElMessage.error('文件夹暂不支持下载')
+  if (e2ee.value === 1) return void downloadE2ee(item)
   userService.infoWithoutPageJump((res) => {
     if (res.code === 0) {
       shareService.getSimpleShareDetail({ shareId: getShareId() }, (res) => {
@@ -577,11 +621,20 @@ onUnmounted(() => {
                 下载不限次
               </span>
             </BaseBadge>
+            <BaseBadge v-if="e2ee === 1" variant="success" size="sm">
+              <span class="inline-flex items-center gap-1">
+                <ShieldCheck :size="11" :stroke-width="2" />
+                端到端加密
+              </span>
+            </BaseBadge>
           </div>
 
           <!-- 操作按钮 -->
           <div class="flex items-center gap-2">
-            <BaseBadge v-if="forbidReshare === 1" variant="neutral" size="sm">
+            <BaseBadge v-if="e2ee === 1" variant="success" size="sm">
+              <span class="inline-flex items-center gap-1">加密分享不支持转存，请在浏览器中解密下载</span>
+            </BaseBadge>
+            <BaseBadge v-else-if="forbidReshare === 1" variant="neutral" size="sm">
               <span class="inline-flex items-center gap-1">该分享禁止转载，仅支持下载</span>
             </BaseBadge>
             <BaseButton
@@ -677,7 +730,7 @@ onUnmounted(() => {
                   :class="isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'"
                 >
                   <BaseButton
-                    v-if="forbidReshare !== 1"
+                    v-if="forbidReshare !== 1 && e2ee !== 1"
                     variant="primary"
                     size="sm"
                     @click="saveFiles(row)"
@@ -685,7 +738,13 @@ onUnmounted(() => {
                   >
                     <Copy :size="14" :stroke-width="2" />
                   </BaseButton>
-                  <BaseButton variant="secondary" size="sm" @click="doDownload(row)" title="下载">
+                  <BaseButton
+                    variant="secondary"
+                    size="sm"
+                    :loading="decrypting"
+                    @click="doDownload(row)"
+                    title="下载"
+                  >
                     <Download :size="14" :stroke-width="2" />
                   </BaseButton>
                 </div>

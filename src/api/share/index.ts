@@ -13,7 +13,16 @@ type SimpleCallback<T> = (res: SA<T>) => void
 
 const shareService = {
   getShareDetail(resolve: SimpleCallback<IShareVO>) {
-    simpleHttp.get<unknown, SA<IShareVO>>('/share').then(resolve)
+    // simpleHttp 会把 code!=0 的业务响应 reject 成响应体；分享页需要读取 code=4
+    // （需要提取码）来弹输入框，不能当网络错误吞掉。这里只把带 code 的业务体
+    // 交给回调，真正的网络错误仍继续抛给全局提示。
+    simpleHttp
+      .get<unknown, SA<IShareVO>>('/share')
+      .then(resolve)
+      .catch((err: { code?: number } & SA<IShareVO>) => {
+        if (typeof err?.code === 'number') resolve(err)
+        else throw err
+      })
   },
 
   createShare(data: IShareCreateReq, resolve: Callback<IShareVO>, reject: Callback<unknown>) {

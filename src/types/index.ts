@@ -255,6 +255,8 @@ export interface IShareCreateReq {
   forbidReshare?: boolean
   /** 文件收集（P3-5：仅单个文件夹分享可开启） */
   collectEnabled?: boolean
+  /** 端到端加密分享：true 时 shareFileIds 必须是 upload-cipher 返回的密文副本 */
+  e2ee?: boolean
 }
 
 // IShareVO 对齐后端分享相关 VO（XPanShareUrlVO / XPanShareUrlListVO / ShareDetailVO）。
@@ -278,6 +280,8 @@ export interface IShareVO {
   forbidReshare?: number
   /** 文件收集开关（P3-5：1=允许访问者上传到被分享文件夹） */
   collectEnabled?: number
+  /** 端到端加密分享（1=需要浏览器用 URL fragment 里的密钥解密下载） */
+  e2ee?: number
   /** 举报待复核隐藏（1=对外不可访问，管理员可恢复） */
   reportHidden?: number
   reportHiddenTime?: string
@@ -285,6 +289,8 @@ export interface IShareVO {
   fileList?: IFileVO[]
   /** 分享详情报文：分享文件列表（对齐后端 ShareDetailVO） */
   xPanUserFileVOList?: IFileVO[]
+  /** 后端 Jackson 对 getXPanUserFileVOList 的实际序列化名（首字母 x 小写），兼容旧字段名 */
+  xpanUserFileVOList?: IFileVO[]
   /** 分享详情报文：过期类型（0=永久） */
   shareDay?: number
   fileId?: string

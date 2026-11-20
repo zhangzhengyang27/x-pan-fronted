@@ -10,12 +10,18 @@
  * - 第二步显示 QR 码 + 下载统计信息
  */
 import { computed, reactive, ref, nextTick } from 'vue'
-import { Share2, Copy, Check, QrCode, Lock } from '@lucide/vue'
+import { Share2, Copy, Check, QrCode, Lock, ShieldCheck } from '@lucide/vue'
 import { toDataURL } from 'qrcode'
 import { ElMessage } from '@/composables/useToast'
 import { useFileStore } from '@/stores/file'
 import { storeToRefs } from 'pinia'
 import shareService from '@/api/share'
+import fileService from '@/api/file'
+import {
+  buildE2eeShareUrl,
+  encryptFileForShare,
+  E2EE_MAX_PLAINTEXT_BYTES
+} from '@/utils/e2ee-share'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseModal from '@/components/base/BaseModal.vue'
 import BaseInput from '@/components/base/BaseInput.vue'
@@ -46,6 +52,14 @@ const currentItems = ref<any[]>([])
 const canCollect = computed(
   () => currentItems.value.length === 1 && currentItems.value[0]?.folderFlag === 1
 )
+// E2EE 只支持单文件；文件夹需要先打包，超出 MVP 边界
+const canE2ee = computed(
+  () =>
+    currentItems.value.length === 1 &&
+    currentItems.value[0]?.folderFlag !== 1 &&
+    Number(currentItems.value[0]?.fileSize || 0) <= E2EE_MAX_PLAINTEXT_BYTES
+)
+const e2eeFile = ref<File | null>(null)
 
 const form = reactive({
   shareName: '',
@@ -54,7 +68,8 @@ const form = reactive({
   shareCode: '',
   downloadLimit: '',
   forbidReshare: false,
-  collectEnabled: false
+  collectEnabled: false,
+  e2ee: false
 })
 
 const errors = reactive({
@@ -71,7 +86,8 @@ const dayTypeOptions = [
 
 const result = reactive({
   shareUrl: '',
-  shareCode: ''
+  shareCode: '',
+  e2ee: false
 })
 
 const qrDataUrl = ref('')
@@ -142,11 +158,14 @@ async function openModal(item?: any) {
   form.downloadLimit = ''
   form.forbidReshare = false
   form.collectEnabled = false
+  form.e2ee = false
+  e2eeFile.value = null
   errors.shareName = ''
   errors.shareCode = ''
   errors.downloadLimit = ''
   result.shareUrl = ''
   result.shareCode = ''
+  result.e2ee = false
   copied.value = false
   showQR.value = false
   open.value = true
@@ -174,6 +193,49 @@ function validate() {
   return ok
 }
 
+function pickE2eeFile() {
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.onchange = () => {
+    const file = input.files?.[0]
+    if (!file) return
+    if (file.size > E2EE_MAX_PLAINTEXT_BYTES) {
+      ElMessage.error('加密分享暂支持 200MB 以内文件')
+      e2eeFile.value = null
+      return
+    }
+    e2eeFile.value = file
+  }
+  input.click()
+}
+
+function submitShare(payload: Record<string, unknown>, key = '', iv = '', cipherFileId = '') {
+  shareService.createShare(
+    payload as never,
+    (res) => {
+      loading.value = false
+      // 用浏览器当前地址动态拼接分享链接，避免后端 shareUrl 指向后端端口（如 127.0.0.1:8081）打不开前端分享页面
+      const baseUrl = `${window.location.origin}/share/${res.data.shareId}`
+      result.shareUrl = key && iv ? buildE2eeShareUrl(baseUrl, key, iv) : baseUrl
+      result.shareCode = res.data.shareCode
+      result.e2ee = payload.e2ee === true
+      title.value = result.e2ee ? '加密分享创建成功！' : '分享成功！'
+      step.value = 2
+      generateQR(result.shareUrl)
+    },
+    (err) => {
+      loading.value = false
+      // 业务错误说明分享没创建成功，可以安全清掉刚上传的密文；
+      // 网络错误不清理：请求可能已到达服务端，贸然删除会让已创建的分享 404
+      const businessError = err && typeof err === 'object' && 'code' in err
+      if (cipherFileId && businessError) {
+        fileService.deleteCipher(cipherFileId, () => {}, () => {})
+      }
+      ElMessage.error((err as { message?: string })?.message || '分享创建失败')
+    }
+  )
+}
+
 async function doConfirm() {
   if (!validate()) return
   const list = currentItems.value.length
@@ -181,12 +243,11 @@ async function doConfirm() {
     : currentItem.value
       ? [currentItem.value]
       : multipleSelection.value || []
-  const ids = list.map((i) => i && i.fileId).filter(Boolean)
+  let ids = list.map((i) => i && i.fileId).filter(Boolean)
   if (!ids.length) {
     ElMessage.error('请选择要分享的文件')
     return
   }
-  loading.value = true
   const payload: {
     shareName: string
     shareType: number
@@ -196,6 +257,7 @@ async function doConfirm() {
     downloadLimit?: number
     forbidReshare?: boolean
     collectEnabled?: boolean
+    e2ee?: boolean
   } = {
     shareName: form.shareName,
     shareType: parseInt(form.shareType, 10),
@@ -205,29 +267,52 @@ async function doConfirm() {
   if (form.shareCode) payload.shareCode = form.shareCode
   if (form.downloadLimit !== '' && Number(form.downloadLimit) >= 0)
     payload.downloadLimit = parseInt(form.downloadLimit, 10)
+
+  if (form.e2ee) {
+    if (!canE2ee.value) {
+      ElMessage.error('加密分享仅支持 200MB 以内的单个文件')
+      return
+    }
+    if (!e2eeFile.value) {
+      ElMessage.error('请选择要加密的原文件')
+      return
+    }
+    loading.value = true
+    try {
+      const cipher = await encryptFileForShare(e2eeFile.value)
+      fileService.uploadCipher(
+        new File([cipher.blob], cipher.filename, { type: 'application/octet-stream' }),
+        cipher.filename,
+        (uploadRes) => {
+          ids = [uploadRes.data]
+          payload.shareFileIds = ids
+          payload.e2ee = true
+          // 加密分享不参与文件收集；前端隐藏开关，后端也会拒绝
+          submitShare(payload, cipher.key, cipher.iv, uploadRes.data)
+        },
+        (err) => {
+          loading.value = false
+          ElMessage.error(err.message || '密文上传失败')
+        }
+      )
+    } catch (e) {
+      loading.value = false
+      ElMessage.error(e instanceof Error ? e.message : '加密失败')
+    }
+    return
+  }
+
   if (form.forbidReshare) payload.forbidReshare = true
   if (form.collectEnabled && canCollect.value) payload.collectEnabled = true
-  shareService.createShare(
-    payload,
-    (res) => {
-      loading.value = false
-      // 用浏览器当前地址动态拼接分享链接，避免后端 shareUrl 指向后端端口（如 127.0.0.1:8081）打不开前端分享页面
-      result.shareUrl = `${window.location.origin}/share/${res.data.shareId}`
-      result.shareCode = res.data.shareCode
-      title.value = '分享成功！'
-      step.value = 2
-      generateQR(result.shareUrl)
-    },
-    (err) => {
-      loading.value = false
-      ElMessage.error(err.message)
-    }
-  )
+  loading.value = true
+  submitShare(payload)
 }
 
 async function copyAll() {
   try {
-    const text = `链接：${result.shareUrl}\n提取码：${result.shareCode}\n赶快分享给小伙伴吧！`
+    const text = result.e2ee
+      ? `链接：${result.shareUrl}\n提取码：${result.shareCode}\n此链接包含解密密钥，请通过可信渠道发送。`
+      : `链接：${result.shareUrl}\n提取码：${result.shareCode}\n赶快分享给小伙伴吧！`
     await navigator.clipboard.writeText(text)
     copied.value = true
     ElMessage.success('已复制到剪贴板')
@@ -351,11 +436,39 @@ defineExpose({ openModal })
             <BaseCheckbox
               v-model="form.collectEnabled"
               label="开启文件收集（仅单个文件夹分享，访问者可上传到该文件夹）"
-              :disabled="!canCollect"
+              :disabled="!canCollect || form.e2ee"
             />
             <p v-if="!canCollect" class="text-[11px] text-(--color-text-muted)">
-              文件收集仅支持单个文件夹分享
+              {{ form.e2ee ? '加密分享不支持文件收集' : '文件收集仅支持单个文件夹分享' }}
             </p>
+          </div>
+
+          <!-- E2EE：密钥只在浏览器生成，服务端拿到的是密文副本 -->
+          <div class="border-t border-(--color-border) pt-3 space-y-2">
+            <BaseCheckbox
+              v-model="form.e2ee"
+              label="端到端加密分享（浏览器加密，服务端无法解密）"
+              :disabled="!canE2ee"
+            />
+            <p v-if="!canE2ee" class="text-[11px] text-(--color-text-muted)">
+              加密分享仅支持 200MB 以内的单个文件
+            </p>
+            <div v-if="form.e2ee" class="rounded-sm bg-(--color-surface-2) p-3 space-y-2">
+              <div class="flex items-center gap-2">
+                <BaseButton variant="secondary" size="sm" @click="pickE2eeFile">
+                  <span class="inline-flex items-center gap-1.5">
+                    <ShieldCheck :size="14" />
+                    选择原文件
+                  </span>
+                </BaseButton>
+                <span class="text-xs text-(--color-text-muted) truncate">
+                  {{ e2eeFile ? e2eeFile.name : '尚未选择' }}
+                </span>
+              </div>
+              <p class="text-[11px] text-(--color-text-muted)">
+                浏览器会生成随机密钥并加密上传；分享链接 # 后携带密钥，请通过可信渠道发送。
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -389,6 +502,13 @@ defineExpose({ openModal })
           >
             {{ result.shareCode }}
           </div>
+        </div>
+
+        <div
+          v-if="result.e2ee"
+          class="rounded-sm border border-warning/30 bg-warning/10 px-3 py-2 text-[11px] leading-5 text-warning"
+        >
+          这是端到端加密分享：链接 # 后包含解密密钥，服务端和日志都看不到。请通过可信渠道发送，任何拿到完整链接的人都能解密。
         </div>
 
         <div class="border-t border-(--color-border) pt-4">

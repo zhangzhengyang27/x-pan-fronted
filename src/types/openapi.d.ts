@@ -1475,6 +1475,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/file/upload-cipher": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 上传 E2EE 密文副本
+         * @description 服务端不解析内容，强制落到保留目录；返回加密后的文件 ID。仅接受 .xpan 且 <=200MB
+         */
+        post: operations["uploadCipher"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/file/transfer": {
         parameters: {
             query?: never;
@@ -3646,6 +3666,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/file/cipher": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * 删除 E2EE 密文副本
+         * @description 仅允许删除本人隐藏目录下的密文文件
+         */
+        delete: operations["deleteCipher"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/chat/groups/{id}/members/{userId}": {
         parameters: {
             query?: never;
@@ -4262,6 +4302,8 @@ export interface components {
             forbidReshare?: boolean;
             /** @description 是否开启文件收集（仅单个文件夹分享有效） */
             collectEnabled?: boolean;
+            /** @description 是否端到端加密分享：仅单文件，服务端只保存密文副本，密钥不传给服务端 */
+            e2ee?: boolean;
         };
         "R\u521B\u5EFA\u5206\u4EAB\u94FE\u63A5\u7684\u8FD4\u56DE\u5B9E\u4F53\u5BF9\u8C61": {
             /** Format: int32 */
@@ -4291,6 +4333,11 @@ export interface components {
              * @description 文件收集开关（P3-5：1=允许访问者上传到被分享文件夹）
              */
             collectEnabled?: number;
+            /**
+             * Format: int32
+             * @description 是否端到端加密分享（1=服务端仅存密文，密钥在链接 fragment 中）
+             */
+            e2ee?: number;
         };
         "\u4FDD\u5B58\u81F3\u6211\u7684\u7F51\u76D8\u53C2\u6570\u5B9E\u4F53\u5BF9\u8C61": {
             /** @description 要转存的文件ID列表 */
@@ -4466,6 +4513,22 @@ export interface components {
             /**
              * Format: binary
              * @description 文件实体
+             */
+            file: string;
+        };
+        "E2EE \u5BC6\u6587\u4E0A\u4F20\u53C2\u6570": {
+            /** @description 密文文件名（必须以 .xpan 结尾） */
+            filename: string;
+            /** @description 文件唯一标识（密文场景只用于防重，不承诺秒传） */
+            identifier: string;
+            /**
+             * Format: int64
+             * @description 密文总大小
+             */
+            totalSize: number;
+            /**
+             * Format: binary
+             * @description 密文文件实体
              */
             file: string;
         };
@@ -5366,6 +5429,11 @@ export interface components {
              * @description 文件收集开关（P3-5：1=允许访问者上传到被分享文件夹）
              */
             collectEnabled?: number;
+            /**
+             * Format: int32
+             * @description 是否端到端加密分享（1=服务端仅存密文，密钥在链接 fragment 中）
+             */
+            e2ee?: number;
         };
         "R\u5206\u4EAB\u8BE6\u60C5\u7684\u8FD4\u56DE\u5B9E\u4F53\u5BF9\u8C61": {
             /** Format: int32 */
@@ -5437,6 +5505,11 @@ export interface components {
              * @description 文件收集开关（P3-5：1=允许访问者上传到被分享文件夹）
              */
             collectEnabled?: number;
+            /**
+             * Format: int32
+             * @description 是否端到端加密分享（1=服务端仅存密文，密钥在链接 fragment 中）
+             */
+            e2ee?: number;
             xpanUserFileVOList?: components["schemas"]["\u6587\u4EF6\u5217\u8868\u76F8\u5E94\u5B9E\u4F53"][];
         };
         "R\u67E5\u8BE2\u5206\u4EAB\u7B80\u5355\u8BE6\u60C5\u8FD4\u56DE\u5B9E\u4F53\u5BF9\u8C61": {
@@ -5487,6 +5560,11 @@ export interface components {
              * @description 文件收集开关（P3-5：1=允许访问者上传到被分享文件夹）
              */
             collectEnabled?: number;
+            /**
+             * Format: int32
+             * @description 是否端到端加密分享（1=服务端仅存密文，密钥在链接 fragment 中）
+             */
+            e2ee?: number;
         };
         "PageVO\u6587\u4EF6\u5217\u8868\u76F8\u5E94\u5B9E\u4F53": {
             records?: components["schemas"]["\u6587\u4EF6\u5217\u8868\u76F8\u5E94\u5B9E\u4F53"][];
@@ -8444,6 +8522,28 @@ export interface operations {
             };
         };
     };
+    uploadCipher: {
+        parameters: {
+            query: {
+                cipherUploadPO: components["schemas"]["E2EE \u5BC6\u6587\u4E0A\u4F20\u53C2\u6570"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RString"];
+                };
+            };
+        };
+    };
     transfer: {
         parameters: {
             query?: never;
@@ -11192,6 +11292,28 @@ export interface operations {
             path: {
                 tagId: string;
             };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RVoid"];
+                };
+            };
+        };
+    };
+    deleteCipher: {
+        parameters: {
+            query: {
+                fileId: string;
+            };
+            header?: never;
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;

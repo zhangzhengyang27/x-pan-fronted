@@ -113,7 +113,7 @@ function hlsCustomType(video: HTMLVideoElement, url: string, art: any) {
       if (destroyed) return
       if (Hls.isSupported()) {
         const hls = new Hls({
-          xhrSetup: (xhr: XMLHttpRequest) => {
+          xhrSetup: (xhr: globalThis.XMLHttpRequest) => {
             xhr.withCredentials = true
             try {
               const spaceId = localStorage.getItem('xpan_space_id')

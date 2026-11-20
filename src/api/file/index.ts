@@ -10,6 +10,40 @@ import type { IArchiveTaskVO, IFileVO, IFileVersionVO, IFolderTreeNode, IMediaMe
 type Callback<T> = (res: ApiResponse<T>) => void
 
 const fileService = {
+  /**
+   * E2EE 加密分享：上传浏览器生成的密文副本（.xpan）。
+   * 服务端强制落到隐藏目录 parent_id=-3，返回加密 fileId；不进入普通文件列表。
+   */
+  uploadCipher(
+    file: File,
+    filename: string,
+    resolve: Callback<string>,
+    reject: Callback<unknown>
+  ) {
+    const form = new FormData()
+    form.append('file', file)
+    form.append('filename', filename)
+    // identifier 对密文没有秒传意义，用随机 32 位 hex 避免大小/MD5 去重探测
+    const randomHex = Array.from(crypto.getRandomValues(new Uint8Array(16)))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('')
+    form.append('identifier', randomHex)
+    form.append('totalSize', String(file.size))
+    // 密文落点由服务端固定为 -3，前端不传 parentId
+    http
+      .post<unknown, ApiResponse<string>>('/file/upload-cipher', form, { timeout: 0 })
+      .then(resolve)
+      .catch(reject)
+  },
+
+  /** 创建分享失败时清理已上传的密文副本，避免隐藏目录长期占用配额 */
+  deleteCipher(fileId: string, resolve: Callback<unknown>, reject: Callback<unknown>) {
+    http
+      .delete<unknown, ApiResponse<unknown>>('/file/cipher', { params: { fileId } })
+      .then(resolve)
+      .catch(reject)
+  },
+
   list(
     params: {
       parentId: string
