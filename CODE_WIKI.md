@@ -602,7 +602,7 @@ mvn -pl server spring-boot:run     # 默认 8081
 
 ### 9.4 Docker
 
-前端镜像（[`Dockerfile`](Dockerfile)）：`node:20-alpine` 构建 → `nginx:1.27-alpine` 提供静态服务，[`nginx.conf`](nginx.conf) 配置 SPA fallback、`/api/` 反代（`http://x-pan-backend:8081/`，10G body / 600s 读超时）、静态资源 1 年 immutable 缓存、gzip、安全头、`/health` 健康检查。
+前端镜像（[`Dockerfile`](Dockerfile)）：`node:20-alpine` 构建 → `nginx:1.27-alpine` 提供静态服务，[`nginx.conf`](nginx.conf) 配置 SPA fallback、`/api/` 反代（`http://xpan-backend:8081/`，10G body / 600s 读超时）、静态资源 1 年 immutable 缓存、gzip、安全头、`/health` 健康检查。
 
 后端镜像：见 `r_pan_parent/server/Dockerfile`。
 
