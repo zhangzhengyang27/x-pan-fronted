@@ -95,6 +95,22 @@ const shareService = {
   ) {
     // 举报要求登录：后端会绑定 userId 做限流与追溯；未登录时由页面先弹登录框
     simpleHttp.post<unknown, SA<unknown>>('/share/report', data).then(resolve).catch(reject)
+  },
+
+  /** 属主申诉被举报隐藏的分享；不自动恢复，管理员复核后生效 */
+  appealShare(
+    data: { shareId: string; reason: string },
+    resolve: Callback<unknown>,
+    reject: Callback<unknown>
+  ) {
+    http.post<unknown, ApiResponse<unknown>>('/share/appeal', data).then(resolve).catch(reject)
+  },
+
+  getAppeal(shareId: string, resolve: Callback<unknown>, reject: Callback<unknown>) {
+    http
+      .get<unknown, ApiResponse<unknown>>('/share/appeal', { params: { shareId } })
+      .then(resolve)
+      .catch(reject)
   }
 }
 

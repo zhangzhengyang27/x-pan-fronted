@@ -7,7 +7,7 @@
  * - BaseTable（分享类型/提取码/过期时间/浏览次数/操作）
  */
 import { computed, onMounted, ref } from 'vue'
-import { Share2, Link as LinkIcon, X, Globe, Lock, Eye, Inbox } from '@lucide/vue'
+import { Share2, Link as LinkIcon, X, Globe, Lock, Eye, Inbox, ShieldAlert } from '@lucide/vue'
 import shareService from '@/api/share'
 import { ElMessage, ElMessageBox } from '@/composables/useToast'
 import BaseTable from '@/components/base/BaseTable.vue'
@@ -120,6 +120,38 @@ function cancelShares() {
 function cancelShare(row: Partial<IShareVO>) {
   if (!row.shareId) return
   doCancelShares([row.shareId])
+}
+
+async function appealShare(row: Partial<IShareVO>) {
+  if (!row.shareId) return
+  try {
+    const { value } = await ElMessageBox.prompt(
+      '请说明申诉理由（例如：分享内容为原创、无违规）。管理员复核后会恢复或驳回。',
+      '申诉被隐藏的分享',
+      {
+        confirmButtonText: '提交申诉',
+        cancelButtonText: '取消',
+        inputValidator: (v: string) => {
+          const text = String(v || '').trim()
+          if (!text) return '申诉理由不能为空'
+          if (text.length > 500) return '申诉理由不能超过 500 字'
+          return true
+        }
+      }
+    )
+    shareService.appealShare(
+      { shareId: row.shareId, reason: String(value || '').trim() },
+      (res) => {
+        if (res.code === 0) {
+          ElMessage.success('申诉已提交，请等待管理员复核')
+          loadTableData()
+        } else ElMessage.error(res.message || '申诉提交失败')
+      },
+      () => ElMessage.error('申诉提交失败')
+    )
+  } catch {
+    // 用户取消输入
+  }
 }
 
 onMounted(loadTableData)
@@ -313,6 +345,11 @@ function formatExpireTime(row: Partial<IShareVO>) {
           <BaseTooltip text="复制链接" position="top">
             <BaseButton variant="secondary" size="sm" @click="copyShare(row)">
               <LinkIcon :size="14" :stroke-width="2" />
+            </BaseButton>
+          </BaseTooltip>
+          <BaseTooltip v-if="row.reportHidden === 1" text="申诉复核" position="top">
+            <BaseButton variant="primary" size="sm" @click="appealShare(row)">
+              <ShieldAlert :size="14" :stroke-width="2" />
             </BaseButton>
           </BaseTooltip>
           <BaseTooltip :text="row.collectEnabled === 1 ? '关闭文件收集' : '开启文件收集'" position="top">
