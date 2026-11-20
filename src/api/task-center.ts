@@ -29,5 +29,12 @@ export default {
       .post<unknown, ApiResponse<unknown>>(`/tasks/center/offline/${encodeURIComponent(taskId)}/cancel`)
       .then(resolve)
       .catch(reject)
+  },
+
+  retryArchive(taskId: string, resolve: Callback<unknown>, reject: Callback<unknown>) {
+    http
+      .post<unknown, ApiResponse<unknown>>(`/tasks/center/archive/${encodeURIComponent(taskId)}/retry`)
+      .then(resolve)
+      .catch(reject)
   }
 }

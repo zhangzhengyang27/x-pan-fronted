@@ -45,6 +45,7 @@ const tabs: Array<{ key: 'all' | TaskCenterType; label: string }> = [
   { key: 'all', label: '全部' },
   { key: 'offline', label: '离线下载' },
   { key: 'extract', label: '解压' },
+  { key: 'archive', label: '在线压缩' },
   { key: 'preview', label: '预览转换' }
 ]
 
@@ -56,6 +57,7 @@ const hasActive = computed(() =>
 const typeMeta: Record<TaskCenterType, { label: string; icon: typeof Download }> = {
   offline: { label: '离线', icon: Download },
   extract: { label: '解压', icon: Archive },
+  archive: { label: '压缩', icon: Archive },
   preview: { label: '预览', icon: FileText }
 }
 
@@ -115,10 +117,10 @@ function statusMeta(t: ITaskCenterItem): {
     return { label: '已取消', variant: 'warning', icon: X, color: 'var(--color-warning)' }
   }
   if (t.status === 1) {
-    const label = t.taskType === 'extract' ? '解压中' : t.taskType === 'preview' ? '转换中' : '下载中'
+    const label = t.taskType === 'extract' ? '解压中' : t.taskType === 'archive' ? '压缩中' : t.taskType === 'preview' ? '转换中' : '下载中'
     return { label, variant: 'primary', icon: LoaderCircle, color: 'var(--color-primary-500)' }
   }
-  const label = t.taskType === 'extract' ? '待开始' : t.taskType === 'preview' ? '待处理' : '排队中'
+  const label = t.taskType === 'extract' || t.taskType === 'archive' ? '待开始' : t.taskType === 'preview' ? '待处理' : '排队中'
   return { label, variant: 'neutral', icon: Clock, color: 'var(--color-text-muted)' }
 }
 
@@ -165,6 +167,19 @@ function doRetryOffline(t: ITaskCenterItem): void {
     (res) => {
       if (res.code === 0) {
         ElMessage.success('已重新排队，将从已下载部分继续')
+        load()
+      } else ElMessage.error(res.message || '重试失败')
+    },
+    () => ElMessage.error('重试失败')
+  )
+}
+
+function doRetryArchive(t: ITaskCenterItem): void {
+  taskCenterService.retryArchive(
+    taskId(t),
+    (res) => {
+      if (res.code === 0) {
+        ElMessage.success('已重新排队压缩')
         load()
       } else ElMessage.error(res.message || '重试失败')
     },
@@ -265,7 +280,7 @@ onUnmounted(() => {
       </div>
       <p class="text-sm" style="color: var(--color-text-muted);">暂无任务</p>
       <p class="text-xs mt-1" style="color: var(--color-text-muted);">
-        离线下载、解压和预览转换任务会汇总到这里
+        离线下载、解压、在线压缩和预览转换任务会汇总到这里
       </p>
     </div>
     <div v-else class="space-y-2">
@@ -320,6 +335,15 @@ onUnmounted(() => {
             size="sm"
             title="从检查点重试"
             @click="doRetryExtract(task)"
+          >
+            <RefreshCw :size="14" :stroke-width="2" />
+          </BaseButton>
+          <BaseButton
+            v-if="task.taskType === 'archive' && task.status === 3"
+            variant="ghost"
+            size="sm"
+            title="重新压缩"
+            @click="doRetryArchive(task)"
           >
             <RefreshCw :size="14" :stroke-width="2" />
           </BaseButton>

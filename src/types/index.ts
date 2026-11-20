@@ -185,6 +185,12 @@ export interface IFileVO {
   matchField?: string
 }
 
+export interface IArchiveTaskVO {
+  taskId: string
+  status: 0 | 1 | 2 | 3
+  zipName: string
+}
+
 export interface IMediaMetadataVO {
   kind: 'IMAGE' | 'AUDIO' | 'VIDEO'
   width?: number | null
@@ -325,7 +331,7 @@ export interface IOfflineCreateReq {
 }
 
 // ─── 统一任务中心 ────────────────────────────────────────────────
-export type TaskCenterType = 'offline' | 'extract' | 'preview'
+export type TaskCenterType = 'offline' | 'extract' | 'preview' | 'archive'
 
 /**
  * 任务中心是三类任务的读模型，状态已统一为 0/1/2/3/4；
@@ -341,6 +347,8 @@ export interface ITaskCenterItem {
   createTime: string
   updateTime?: string
   finishTime?: string
+  /** 在线压缩完成后生成的 zip 文件 ID（加密） */
+  resultFileId?: string | null
 }
 
 // ─── 文件版本 ───────────────────────────────────────────────────

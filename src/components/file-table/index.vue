@@ -388,14 +388,14 @@ async function archiveToDrive(rows: Record<string, any>[]) {
     if (action !== 'confirm') return
     const zipName = (value || '').trim()
     if (!zipName) return ElMessage.error('请输入压缩包名称')
-    ElMessage.info(`正在压缩 ${rows.length} 个项目...`)
+    ElMessage.info(`正在提交压缩任务（${rows.length} 个项目）...`)
     const fileIds = rows.map((r) => String(r.fileId))
     const parentId = fileStore.parentId && fileStore.parentId !== '-1' ? fileStore.parentId : undefined
     fileService.archiveToDrive(
       { fileIds, zipName, targetParentId: parentId },
-      () => {
-        ElMessage.success('压缩包已保存到当前目录')
-        fileStore.loadFileList()
+      (res) => {
+        if (res.code !== 0) return ElMessage.error(res.message || '在线压缩失败')
+        ElMessage.success('压缩任务已提交，可在任务中心查看进度')
       },
       (err) => ElMessage.error(err.message || '在线压缩失败')
     )

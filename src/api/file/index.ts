@@ -5,7 +5,7 @@
 'use strict'
 
 import http, { type ApiResponse } from '@/utils/http'
-import type { IFileVO, IFileVersionVO, IFolderTreeNode, IMediaMetadataVO, PageVO } from '@/types'
+import type { IArchiveTaskVO, IFileVO, IFileVersionVO, IFolderTreeNode, IMediaMetadataVO, PageVO } from '@/types'
 
 type Callback<T> = (res: ApiResponse<T>) => void
 
@@ -187,14 +187,14 @@ const fileService = {
     http.post<unknown, ApiResponse<unknown>>('/file/merge', data).then(resolve).catch(reject)
   },
 
-  /** 在线 ZIP：把选中文件/文件夹打包为 zip 写回网盘，返回新文件加密 ID */
+  /** 在线 ZIP：异步任务，返回加密 taskId，结果在任务中心查看 */
   archiveToDrive(
     data: { fileIds: string[]; targetParentId?: string; zipName?: string },
-    resolve: Callback<string>,
+    resolve: Callback<IArchiveTaskVO>,
     reject: Callback<unknown>
   ) {
     http
-      .post<unknown, ApiResponse<string>>('/file/archive', data)
+      .post<unknown, ApiResponse<IArchiveTaskVO>>('/file/archive', data)
       .then(resolve)
       .catch(reject)
   },
