@@ -2,7 +2,7 @@
  * TaskCenterPage —— 统一任务中心（P1-2）
  *
  * 设计：后端把三类任务归一成同一状态/进度口径，页面只做筛选与展示；
- * 离线任务保留取消/重试入口，解压失败保留断点重试入口，预览只读。
+ * 离线任务与在线压缩保留取消/重试入口，解压失败保留断点重试入口，预览只读。
  */
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
@@ -174,8 +174,29 @@ function doRetryOffline(t: ITaskCenterItem): void {
   )
 }
 
-function doRetryArchive(t: ITaskCenterItem): void {
-  taskCenterService.retryArchive(
+function doCancelArchive(t: ITaskCenterItem): void {
+  ElMessageBox.confirm('确定取消该在线压缩任务？已生成的临时包会丢弃，不会写入网盘。', '取消压缩', {
+    confirmButtonText: '确认取消',
+    cancelButtonText: '取消',
+    type: 'warning'
+  })
+    .then((ok) => {
+      if (!ok) return
+      taskCenterService.cancelArchive(
+        taskId(t),
+        (res) => {
+          if (res.code === 0) {
+            ElMessage.success('已取消')
+            load()
+          } else ElMessage.error(res.message || '取消失败')
+        },
+        () => ElMessage.error('取消失败')
+      )
+    })
+    .catch(() => {})
+}
+
+function doRetryArchive(t: ITaskCenterItem): void {  taskCenterService.retryArchive(
     taskId(t),
     (res) => {
       if (res.code === 0) {
@@ -337,6 +358,15 @@ onUnmounted(() => {
             @click="doRetryExtract(task)"
           >
             <RefreshCw :size="14" :stroke-width="2" />
+          </BaseButton>
+          <BaseButton
+            v-if="task.taskType === 'archive' && (task.status === 0 || task.status === 1)"
+            variant="ghost"
+            size="sm"
+            title="取消压缩"
+            @click="doCancelArchive(task)"
+          >
+            <X :size="14" :stroke-width="2" />
           </BaseButton>
           <BaseButton
             v-if="task.taskType === 'archive' && task.status === 3"
