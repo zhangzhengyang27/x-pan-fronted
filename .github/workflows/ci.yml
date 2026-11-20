@@ -85,6 +85,8 @@ jobs:
     permissions:
       contents: read
       packages: write
+      # keyless 签名需要 OIDC token 换取短期证书
+      id-token: write
     steps:
       - uses: actions/checkout@v6
 
@@ -99,6 +101,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build & push frontend image
+        id: build
         uses: docker/build-push-action@v7
         with:
           context: .
@@ -120,3 +123,10 @@ jobs:
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'HIGH,CRITICAL'
+
+      # 供应链：只对通过 Trivy 门禁的镜像做 keyless 签名
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign frontend image
+        run: cosign sign --yes ${{ env.REGISTRY }}/${{ env.IMAGE }}@${{ steps.build.outputs.digest }}
