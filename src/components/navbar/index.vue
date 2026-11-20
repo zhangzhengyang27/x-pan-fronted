@@ -94,7 +94,7 @@ const groups = computed<{ title: string; items: NavItem[] }[]>(() => [
       { key: 'Shares', label: '我的分享', icon: Share2, path: '/shares', query: {} },
       { key: 'DirectLinks', label: '直链管理', icon: LinkIcon, path: '/direct-links', query: {} },
       { key: 'Spaces', label: '团队空间', icon: Users, path: '/spaces', query: {} },
-      { key: 'Offline', label: '离线下载', icon: DownloadIcon, path: '/offline', query: {} },
+      { key: 'Offline', label: '任务中心', icon: DownloadIcon, path: '/tasks', query: {} },
       { key: 'Vault', label: '隐私保险箱', icon: Shield, path: '/vault', query: {} },
       { key: 'Stats', label: '存储统计', icon: BarChart3, path: '/stats', query: {} },
       { key: 'Dedup', label: '文件去重', icon: CopyIcon, path: '/dedup', query: {} },
@@ -113,7 +113,7 @@ const goMap: Record<string, { path: string }> = {
   Shares: { path: '/shares' },
   DirectLinks: { path: '/direct-links' },
   Recycles: { path: '/recycles' },
-  Offline: { path: '/offline' },
+  Offline: { path: '/tasks' },
   Vault: { path: '/vault' },
   Stats: { path: '/stats' },
   Favorites: { path: '/favorites' },
@@ -135,6 +135,8 @@ function syncActive() {
     else if (t === 'videos') change('Videos')
     else if (t === 'musics') change('Musics')
     else change('Files')
+  } else if (route.name === 'Tasks') {
+    change('Offline')
   } else if (route.name === 'Stats') {
     change('Stats')
   } else if (typeof route.name === 'string') {

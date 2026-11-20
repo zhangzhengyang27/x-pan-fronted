@@ -75,6 +75,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/list-page/offline/index.vue')
       },
       {
+        path: '/tasks',
+        name: 'Tasks',
+        component: () => import('@/views/list-page/task-center/index.vue')
+      },
+      {
         path: '/vault',
         name: 'Vault',
         component: () => import('@/views/list-page/vault/index.vue')

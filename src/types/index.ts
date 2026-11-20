@@ -282,6 +282,25 @@ export interface IOfflineCreateReq {
   targetFolderId?: string
 }
 
+// ─── 统一任务中心 ────────────────────────────────────────────────
+export type TaskCenterType = 'offline' | 'extract' | 'preview'
+
+/**
+ * 任务中心是三类任务的读模型，状态已统一为 0/1/2/3/4；
+ * progress 为 null 时表示该类型没有百分比（主要是预览转换）。
+ */
+export interface ITaskCenterItem {
+  taskId: string
+  taskType: TaskCenterType
+  taskName: string
+  status: OfflineTaskStatusCode
+  progress: number | null
+  errorMsg?: string
+  createTime: string
+  updateTime?: string
+  finishTime?: string
+}
+
 // ─── 文件版本 ───────────────────────────────────────────────────
 export type VersionOperation = 'UPLOAD' | 'MODIFY' | 'RENAME' | 'ROLLBACK' | 'DELETE'
 

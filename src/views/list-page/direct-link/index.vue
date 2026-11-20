@@ -250,7 +250,7 @@ function formatCreateTime(row: Partial<IDirectLinkVO>) {
             </BaseButton>
           </BaseTooltip>
           <BaseTooltip :text="row.enableFlag === 1 ? '停用' : '启用'" position="top">
-            <BaseButton variant="secondary" size="sm" @click="toggleLink(row)">
+            <BaseButton variant="secondary" size="sm" @click="toggleLink(row as IDirectLinkVO)">
               <Power :size="14" :stroke-width="2" />
             </BaseButton>
           </BaseTooltip>
