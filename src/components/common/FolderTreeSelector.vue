@@ -31,26 +31,26 @@ const props = defineProps({
 const emit = defineEmits(['update:open', 'update:modelValue', 'confirm'])
 
 const fileStore = useFileStore()
-const treeData = ref([])
-const rawTreeData = ref([]) // 接口原始数据，供 excludeIds 变化时重新 normalize
+const treeData = ref<TreeNodeData[]>([])
+const rawTreeData = ref<TreeNodeData[]>([]) // 接口原始数据，供 excludeIds 变化时重新 normalize
 const loading = ref(false)
 const initialLoading = ref(true)
 const error = ref('')
-const selectedId = ref(null)
+const selectedId = ref<string | null>(null)
 const selectedLabel = ref('根目录')
 
 // 后端 FolderTreeNodeVO 字段契约固定为 { id, label, parentId, children }（id 为加密字符串）。
 // 直接使用契约字段，去掉多字段名猜测（id??fileId / name??label??filename）式的防御性兜底。
-function normalizeTree(nodes: any[], lazy = true): any[] {
+function normalizeTree(nodes: TreeNodeData[], lazy = true): TreeNodeData[] {
   return (nodes || []).map((n) => ({
-    id: n.id,
+    id: String(n.id ?? ''),
     label: n.label ?? '未命名',
     // 懒加载接口只返回一层：先假定节点可展开，真正展开请求返回空后再置 false。
     // 完整树回退时按 children 是否为空决定，避免所有叶子都显示展开箭头。
     children: normalizeTree(n.children || [], lazy),
     expandable: lazy ? true : Boolean(n.children?.length),
     __loaded: !lazy || Boolean(n.children?.length),
-    disabled: props.excludeIds.includes(n.id)
+    disabled: props.excludeIds.includes(String(n.id ?? ''))
   }))
 }
 
@@ -134,8 +134,9 @@ function onTreeSelect(node: TreeNodeData) {
     ElMessage.warning('不能选择该文件夹')
     return
   }
-  selectedId.value = node.id
-  selectedLabel.value = node.label
+  if (node.id === undefined || node.id === null) return
+  selectedId.value = String(node.id)
+  selectedLabel.value = node.label || '未命名'
 }
 
 function updateSelectedLabel() {
@@ -144,7 +145,7 @@ function updateSelectedLabel() {
   } else {
     const find = (nodes: TreeNodeData[]): string | null => {
       for (const n of nodes) {
-        if (n.id === selectedId.value) return n.label
+        if (String(n.id ?? '') === selectedId.value) return n.label || ''
         if (n.children?.length) {
           const r = find(n.children)
           if (r) return r

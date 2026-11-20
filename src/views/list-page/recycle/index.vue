@@ -26,6 +26,7 @@ import {
   RotateCcw
 } from '@lucide/vue'
 import recycleService, { type IRecycleStatVO } from '@/api/recycle'
+import type { IFileVO } from '@/types'
 import { ElMessage, ElMessageBox } from '@/composables/useToast'
 import BaseTable from '@/components/base/BaseTable.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
@@ -35,8 +36,8 @@ import { useBreakpoint } from '@/composables/useMediaQuery'
 const { isMobile } = useBreakpoint()
 const RECYCLE_EXPIRE_DAYS = 30
 
-const tableData = ref([])
-const selected = ref([])
+const tableData = ref<IFileVO[]>([])
+const selected = ref<(string | number)[]>([])
 const tableLoading = ref(true)
 const recycleStat = ref<IRecycleStatVO | null>(null)
 

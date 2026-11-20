@@ -25,14 +25,14 @@ const { defaultParentId, defaultParentFilename, fileList } = storeToRefs(fileSto
 
 const searchKey = ref('')
 const showSuggest = ref(false)
-const suggestions = ref([])
+const suggestions = ref<IFileVO[]>([])
 /** 是否同时搜索文件正文（全文检索） */
 const searchContent = ref(false)
 /** 后端联想词（字符串关键词，点击后直接搜索） */
 const suggestWords = ref<string[]>([])
 /** 我的最近搜索词 */
 const recentWords = ref<string[]>([])
-const inputRef = ref(null)
+const inputRef = ref<{ focus: () => void } | null>(null)
 
 let suggestTimer: ReturnType<typeof setTimeout> | null = null
 

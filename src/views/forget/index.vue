@@ -49,8 +49,9 @@ function startCountdown() {
   countdown.value = 60
   countdownTimer = setInterval(() => {
     countdown.value--
-    if (countdown.value <= 0) {
+    if (countdown.value <= 0 && countdownTimer) {
       clearInterval(countdownTimer)
+      countdownTimer = null
     }
   }, 1000)
 }

@@ -1033,9 +1033,9 @@ function onStorageChanged(e: StorageEvent) {
         :has-more="hasMore"
         :is-loading-more="isLoadingMore"
         :total="total"
-        @row-click="(row: any, e: MouseEvent) => onRowClick(row, e)"
+        @row-click="(row: any, e?: MouseEvent) => onRowClick(row, e)"
         @open="clickFilename"
-        @contextmenu="(e: MouseEvent, row: any) => onContextMenu(e, row)"
+        @contextmenu="(e?: MouseEvent, row?: any) => { if (e) onContextMenu(e, row) }"
         @load-more="onLoadMore"
       >
         <template #after-list>
@@ -1055,7 +1055,7 @@ function onStorageChanged(e: StorageEvent) {
         :selected="selected"
         empty-text="该文件夹为空，试试上传文件"
         :sort-field="sortProp"
-        :sort-order="sortOrder"
+        :sort-order="sortOrder || ''"
         @update:selected="(v: any) => handleSelectionChange(v)"
         @rowClick="(row: any, idx: number, e: MouseEvent) => onRowClick(row, e)"
         @rowDblclick="onRowDblclick"

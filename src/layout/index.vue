@@ -28,7 +28,7 @@ function onUploadChange(e: Event) {
 }
 
 /** P1.15：移动端汉堡 → 打开 Navbar 抽屉 */
-const navbarRef = ref(null)
+const navbarRef = ref<{ openMobile?: () => void } | null>(null)
 function onOpenMobileNav() {
   navbarRef.value?.openMobile?.()
 }

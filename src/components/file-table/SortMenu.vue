@@ -29,7 +29,7 @@ const fields: FieldOption[] = [
   { key: 'fileSize', label: '按文件大小' }
 ]
 
-const directions: { value: SortOrder; label: string }[] = [
+const directions: { value: Exclude<SortOrder, null>; label: string }[] = [
   { value: 'ascending', label: '正序' },
   { value: 'descending', label: '倒序' }
 ]
@@ -48,7 +48,7 @@ function selectField(key: string) {
   // 不关闭弹窗，方便连续选择方向
 }
 
-function selectDirection(order: SortOrder) {
+function selectDirection(order: Exclude<SortOrder, null>) {
   fileStore.sortOrder = order
   if (!sortProp.value) fileStore.sortProp = 'filename'
   // 不关闭弹窗，方便连续确认/修改字段

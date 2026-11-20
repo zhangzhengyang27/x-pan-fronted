@@ -18,8 +18,8 @@ import { useBreakpoint } from '@/composables/useMediaQuery'
 import type { IShareVO } from '@/types'
 
 const { isMobile } = useBreakpoint()
-const tableData = ref([])
-const selected = ref([])
+const tableData = ref<IShareVO[]>([])
+const selected = ref<(string | number)[]>([])
 const tableLoading = ref(true)
 
 // 列字段与后端 XPanShareUrlListVO 契约对齐：
@@ -118,6 +118,7 @@ function cancelShares() {
 }
 
 function cancelShare(row: Partial<IShareVO>) {
+  if (!row.shareId) return
   doCancelShares([row.shareId])
 }
 
@@ -131,7 +132,7 @@ const summary = computed(() => {
     // 举报待复核隐藏不算有效分享：访问者已经无法打开，统计应与实际状态一致
     if (r.reportHidden === 1) return false
     if (r.shareDayType === 0) return true
-    return new Date(r.shareEndTime).getTime() > now
+    return !!r.shareEndTime && new Date(r.shareEndTime).getTime() > now
   })
   const totalDownloads = rows.reduce((s, r) => s + (r.downloadCount || 0), 0)
   const remaining = rows.reduce((s, r) => {

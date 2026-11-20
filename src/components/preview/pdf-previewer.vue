@@ -22,7 +22,7 @@ import {
   FileOutput,
   LoaderCircle
 } from '@lucide/vue'
-import { usePdfSearch } from '@/composables/usePdfSearch'
+import { usePdfSearch, type PdfSearchResult } from '@/composables/usePdfSearch'
 
 const props = defineProps({
   fileId: { type: [String, Number], required: true },
@@ -183,7 +183,7 @@ async function confirmExtract() {
 // ─── PDF 搜索 ───────────────────────────────────────────────────────────────
 const searchOpen = ref(false)
 const searchKeyword = ref('')
-const searchResults = ref([])
+const searchResults = ref<PdfSearchResult[]>([])
 const searchIdx = ref(0)
 // pdfDoc 必须来自 usePdfSearch（此前误在本地重复定义 ref(null) 导致
 // doSearch 每次都误判“未加载”而重复拉取/重建文档）

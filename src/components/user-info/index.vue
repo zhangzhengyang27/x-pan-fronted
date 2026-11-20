@@ -199,7 +199,7 @@ function resetChangePasswordForm() {
 
 // ─── 空间容量（配额）调整 ─────────────────────────────────
 const quotaVisible = ref(false)
-const quotaInputGB = ref<number | null>(null)
+const quotaInputGB = ref<number | string>('')
 const quotaSaving = ref(false)
 
 /** 字节 → 可读大小 */

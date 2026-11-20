@@ -100,8 +100,9 @@ function loadDocApi(serverUrl: string): Promise<void> {
       const existing = document.querySelector(`script[data-xpan-onlyoffice="1"]`) as HTMLScriptElement | null
       if (!existing) {
         loadedScriptUrl = ''
-        // 竞态兜底：脚本节点已移除则重走加载（executor 返回值无意义，此处不 return）
-        loadDocApi(serverUrl)
+        // 竞态兜底：脚本节点已移除则重走加载，本次 Promise 交给新加载流程
+        void loadDocApi(serverUrl)
+        return
       }
       existing.addEventListener('load', () => resolve(), { once: true })
       existing.addEventListener('error', () => reject(new Error('OnlyOffice api.js 加载失败')), { once: true })

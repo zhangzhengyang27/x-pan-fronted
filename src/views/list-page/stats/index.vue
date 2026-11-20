@@ -48,7 +48,7 @@ loadStats()
 
     <div v-if="loading" class="py-12 text-center text-sm text-(--color-text-muted)">加载中…</div>
 
-    <DashboardCards v-else-if="hasStats" :stats="stats" />
+    <DashboardCards v-else-if="hasStats" :stats="stats ?? undefined" />
 
     <div
       v-else
@@ -58,6 +58,6 @@ loadStats()
       <p class="text-xs">上传文件后即可查看统计信息</p>
     </div>
 
-    <DashboardCharts v-if="hasStats" :stats="stats" />
+    <DashboardCharts v-if="hasStats" :stats="stats ?? undefined" />
   </div>
 </template>

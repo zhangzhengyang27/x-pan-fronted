@@ -19,7 +19,7 @@ import { useBreakpoint } from '@/composables/useMediaQuery'
 
 const { isMobile } = useBreakpoint()
 const tableData = ref<IDirectLinkVO[]>([])
-const selected = ref([])
+const selected = ref<(string | number)[]>([])
 const tableLoading = ref(true)
 
 // 列字段与后端 XPanDirectLinkVO 契约对齐
@@ -119,6 +119,7 @@ function doDeleteLink(id: string) {
 }
 
 function deleteLink(row: Partial<IDirectLinkVO>) {
+  if (!row.id) return
   doDeleteLink(row.id)
 }
 

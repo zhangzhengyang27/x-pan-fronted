@@ -14,7 +14,7 @@ import {
   setShareToken
 } from '@/utils/cookie'
 import shareService from '@/api/share'
-import type { IFileVO, IShareVO } from '@/types'
+import type { IFileVO, IFolderTreeNode, IShareVO } from '@/types'
 import { onMounted, onUnmounted, reactive, ref, computed } from 'vue'
 import { useBreakpoint } from '@/composables/useMediaQuery'
 import { ElMessage, ElMessageBox } from '@/composables/useToast'
@@ -25,7 +25,7 @@ import BaseField from '@/components/base/BaseField.vue'
 import BaseInput from '@/components/base/BaseInput.vue'
 import BaseModal from '@/components/base/BaseModal.vue'
 import BaseTable from '@/components/base/BaseTable.vue'
-import BaseTree from '@/components/base/BaseTree.vue'
+import BaseTree, { type TreeNodeData } from '@/components/base/BaseTree.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
 import BaseResult from '@/components/base/BaseResult.vue'
 import {
@@ -56,18 +56,18 @@ const loginFlag = ref(false)
 const shareCodeDialogVisible = ref(false)
 const shareCodeHeader = ref('')
 const shareCancelFlag = ref(false)
-const tableData = ref([])
-const multipleSelection = ref([])
+const tableData = ref<IFileVO[]>([])
+const multipleSelection = ref<IFileVO[]>([])
 const pageLoading = ref(true)
 const shareDate = ref('')
 const shareExpireDate = ref('')
-const breadCrumbs = ref([{ id: '-1', name: '全部文件' }])
-const treeData = ref([])
+const breadCrumbs = ref<Array<{ id: string; name: string }>>([{ id: '-1', name: '全部文件' }])
+const treeData = ref<IFolderTreeNode[]>([])
 const treeDialogVisible = ref(false)
-const item = ref(undefined)
-const treeCheckedNode = ref(null)
+const item = ref<Partial<IFileVO> | undefined>(undefined)
+const treeCheckedNode = ref<TreeNodeData | null>(null)
 
-const selected = ref([])
+const selected = ref<(string | number)[]>([])
 
 // 分享目录分页：进入文件夹后按 100 条/页加载，支持“加载更多”
 const sharePageNum = ref(1)
@@ -104,7 +104,10 @@ function startCountdown(expireAt: string | null) {
     if (diff <= 0) {
       countdownText.value = '已过期'
       shareCancelFlag.value = true
-      clearInterval(countdownTimer)
+      if (countdownTimer) {
+        clearInterval(countdownTimer)
+        countdownTimer = null
+      }
       return
     }
     const d = Math.floor(diff / 86400000)
@@ -137,11 +140,11 @@ const displayColumns = computed(() =>
 )
 
 function refreshShareInfo(data: IShareVO) {
-  const u = data.shareUserInfoVO.username
+  const u = data.shareUserInfoVO?.username || '分享者'
   shareCodeHeader.value = u + '的分享：' + data.shareName
   shareDate.value = data.createTime
-  shareExpireDate.value = data.shareDay === 0 ? '永久有效' : data.shareEndTime
-  tableData.value = data.xPanUserFileVOList
+  shareExpireDate.value = data.shareDay === 0 ? '永久有效' : (data.shareEndTime || '')
+  tableData.value = data.xPanUserFileVOList || []
   shareHasMore.value = false
   sharePageNum.value = 1
   shareCurrentParentId.value = ''
@@ -150,7 +153,7 @@ function refreshShareInfo(data: IShareVO) {
   downloadLimit.value = data.downloadLimit || 0
   forbidReshare.value = data.forbidReshare || 0
   collectEnabled.value = data.collectEnabled || 0
-  startCountdown(data.shareDay === 0 ? null : data.shareEndTime)
+  startCountdown(data.shareDay === 0 ? null : (data.shareEndTime ?? null))
 }
 
 // 死代码清理记录：分享二维码弹窗（qrDialogVisible）无任何入口置 true、永远不可见，
@@ -171,7 +174,7 @@ function openShareCodePage() {
   shareService.getSimpleShareDetail({ shareId: getShareId() }, (res) => {
     if (res.code === 0) {
       shareCodeDialogVisible.value = true
-      shareCodeHeader.value = res.data.shareUserInfoVO.username + '的分享：' + res.data.shareName
+      shareCodeHeader.value = (res.data.shareUserInfoVO?.username || '分享者') + '的分享：' + (res.data.shareName || '')
     } else {
       shareCodeDialogVisible.value = false
       openShareExpirePage()
@@ -273,7 +276,8 @@ function clickFilename(row: Partial<IFileVO>) {
 }
 
 function goInFolder(row: Partial<IFileVO>) {
-  breadCrumbs.value.push({ id: row.fileId, name: row.filename })
+  if (!row.fileId) return
+  breadCrumbs.value.push({ id: row.fileId, name: row.filename || '' })
   reloadTableData(row.fileId)
 }
 
@@ -339,11 +343,11 @@ function doDownload(item: Partial<IFileVO>) {
           // 自动携带 Cookie，后端从 Cookie 读取登录态（与 panUtil.getPreviewUrl 同一
           // 模式），避免 token 泄露到日志/Referer。shareToken 需保留在 URL 上，
           // 后端靠它识别分享上下文（提取码校验通过后下发的分享凭证）。
-          const url = `${panUtil.getUrlPrefix()}/share/file/download?fileId=${fileId}&shareToken=${getShareToken()}`
+          const url = `${panUtil.getUrlPrefix()}/share/file/download?fileId=${fileId}&shareToken=${getShareToken() ?? ''}`
           const link = document.createElement('a')
           link.style.display = 'none'
           link.href = url
-          link.setAttribute('download', item.filename)
+          link.setAttribute('download', item.filename || 'download')
           document.body.appendChild(link)
           link.click()
           document.body.removeChild(link)
@@ -413,8 +417,10 @@ function doReport() {
 
 function doChoseTreeNodeCallBack() {
   if (!treeCheckedNode.value) return ElMessage.error('请选择文件夹')
+  const targetId = treeCheckedNode.value.id
+  if (targetId === undefined || targetId === null) return ElMessage.error('请选择文件夹')
   loading.value = true
-  doSaveFiles(treeCheckedNode.value.id)
+  doSaveFiles(String(targetId))
 }
 
 function saveFiles(newItem?: Partial<IFileVO>) {
@@ -439,8 +445,9 @@ function saveFiles(newItem?: Partial<IFileVO>) {
 
 function doSaveFiles(targetParentId: string) {
   let fileIds: string[] = []
-  if (item.value) fileIds = [item.value.fileId]
+  if (item.value?.fileId) fileIds = [item.value.fileId]
   else fileIds = multipleSelection.value.map((it) => it.fileId)
+  if (fileIds.length === 0) return ElMessage.error('请选择要保存的文件')
   shareService.saveShareFiles({ fileIds, targetParentId }, (res) => {
     if (res.code === 0) {
       ElMessage.success('保存成功')

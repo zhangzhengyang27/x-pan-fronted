@@ -21,7 +21,7 @@ const props = defineProps({
 const resolvedUrl = () => props.url || getPreviewUrl(props.fileId)
 
 const { isDark } = useTheme()
-const containerRef = ref(null)
+const containerRef = ref<HTMLDivElement | null>(null)
 const loading = ref(true)
 const error = ref('')
 let vditor: InstanceType<typeof Vditor> | null = null

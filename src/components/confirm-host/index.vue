@@ -15,11 +15,13 @@ import {
   getConfirmQueue,
   answerConfirm,
   getPromptQueue,
-  answerPrompt
+  answerPrompt,
+  type ConfirmItem,
+  type PromptItem
 } from '@/composables/useToast'
 
-const current = ref(null)
-const promptCurrent = ref(null)
+const current = ref<ConfirmItem | null>(null)
+const promptCurrent = ref<PromptItem | null>(null)
 const inputValue = ref('')
 const inputError = ref('')
 

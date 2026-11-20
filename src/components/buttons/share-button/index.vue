@@ -38,7 +38,7 @@ const open = ref(false)
 const step = ref(1)
 const loading = ref(false)
 const copied = ref(false)
-const shareNameInputRef = ref(null)
+const shareNameInputRef = ref<{ focus?: () => void } | null>(null)
 // 外部通过 ref.openModal(file | file[]) 传入的目标文件；为空时回退到 props.item / 多选
 const currentItem = ref<any>(null)
 const currentItems = ref<any[]>([])

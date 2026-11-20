@@ -83,7 +83,12 @@ const showDashboard = ref(true)
 const view = ref('list')
 const isDragOver = ref(false)
 const dragEnterCount = ref(0)
-const fileTableRef = ref(null)
+const fileTableRef = ref<{
+  applyFilter: (filter: unknown) => void
+  setView: (v: string) => void
+  refresh: () => void
+  triggerUpload: () => void
+} | null>(null)
 const shareButtonRef = ref<InstanceType<typeof ShareButton> | null>(null)
 const { addFiles } = useUploader()
 // P3-1：最近访问只做本地记录，进入根目录时展示最近 20 条，方便“回到现场”

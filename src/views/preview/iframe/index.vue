@@ -15,7 +15,7 @@ import BaseButton from '@/components/base/BaseButton.vue'
 const route = useRoute()
 const fileId = computed(() => String(route.params.fileId || ''))
 const filename = computed(() => String(route.query.filename || route.params.filename || 'preview'))
-const kind = computed(() => resolvePreviewKind({ filename: filename.value, fileType: null }))
+const kind = computed(() => resolvePreviewKind({ filename: filename.value }))
 const downloadUrl = computed(() => getDownloadUrl(fileId.value))
 
 // 插件化：iframe 路由仅承载「可独立路由渲染」的插件（pdf/markdown/code/text/csv）

@@ -21,7 +21,7 @@ const musicList = ref<MusicItem[]>([])
 const musicName = ref('')
 const musicSrc = ref('')
 const playing = ref(false)
-const audioRef = ref(null)
+const audioRef = ref<HTMLAudioElement | null>(null)
 const activeIndex = ref<string | number>('')
 const currentTime = ref(0)
 const duration = ref(0)
@@ -52,14 +52,16 @@ async function playMusic(item: MusicItem, idx: number) {
 
 function next() {
   const idx = musicList.value.findIndex((m) => activeIndex.value === m.fileId)
-  if (idx === -1 || idx === musicList.value.length - 1) return
-  playMusic(musicList.value[idx + 1], idx + 1)
+  const nextItem = musicList.value[idx + 1]
+  if (idx === -1 || !nextItem) return
+  playMusic(nextItem, idx + 1)
 }
 
 function prev() {
   const idx = musicList.value.findIndex((m) => activeIndex.value === m.fileId)
-  if (idx <= 0) return
-  playMusic(musicList.value[idx - 1], idx - 1)
+  const prevItem = musicList.value[idx - 1]
+  if (idx <= 0 || !prevItem) return
+  playMusic(prevItem, idx - 1)
 }
 
 function togglePlay() {
@@ -86,9 +88,10 @@ onMounted(() => {
     (res) => {
       const list = res.data?.records || []
       renderList(list)
-      const idx = list.findIndex((x) => x.fileId === route.params.fileId)
+      const idx = list.findIndex((x) => x.fileId === String(route.params.fileId || ''))
       if (idx !== -1) {
-        playMusic(list[idx], idx)
+        const first = list[idx]
+        if (first) playMusic(first, idx)
       }
     },
     (res) => ElMessage.error(res.message)
