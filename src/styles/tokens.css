@@ -394,3 +394,20 @@ button:focus-visible,
   background: var(--color-danger-bg);
   color: vardanger;
 }
+
+/* 键盘用户跳过导航直达主内容；鼠标用户不显示，避免挤占首屏。 */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 3000;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.25rem;
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow);
+}
+.skip-link:focus {
+  left: 1rem;
+  top: 1rem;
+}

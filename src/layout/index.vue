@@ -85,6 +85,8 @@ onUnmounted(() => {
     class="h-full w-full flex flex-col bg-(--color-bg) text-(--color-text)"
     :class="isMobile ? 'pt-(--safe-top)' : ''"
   >
+    <a href="#main-content" class="skip-link">跳到主内容</a>
+
     <AppHeader />
 
     <!-- 移动端浮动上传按钮（拖拽上传在触屏不可用，提供点击选文件兜底） -->
@@ -111,7 +113,7 @@ onUnmounted(() => {
     />
     <div class="flex-1 flex min-h-0">
       <AppNavbar ref="navbarRef" />
-      <main class="flex-1 min-w-0 flex flex-col">
+      <main id="main-content" class="flex-1 min-w-0 flex flex-col" tabindex="-1">
         <div class="flex-1 min-h-0 overflow-y-auto" style="touch-action: pan-y; -webkit-overflow-scrolling: touch;">
           <div class="px-3 sm:px-4 md:px-6 pb-6 pt-2 mx-auto w-full max-w-[1600px] h-full">
             <RouterView v-slot="{ Component, route }">

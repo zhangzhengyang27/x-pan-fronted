@@ -214,7 +214,7 @@ onUnmounted(() => {
         </span>
       </div>
       <div class="flex items-center gap-2">
-        <BaseButton variant="ghost" @click="load()">
+        <BaseButton variant="ghost" aria-label="刷新任务列表" title="刷新任务列表" @click="load()">
           <RefreshCw :size="14" :stroke-width="2" />
         </BaseButton>
         <BaseButton variant="primary" @click="router.push('/offline')">
@@ -239,6 +239,7 @@ onUnmounted(() => {
       <div class="flex-1" />
       <label class="text-xs" style="color: var(--color-text-muted);">状态</label>
       <select
+        aria-label="按任务状态筛选"
         class="h-8 px-2 rounded-sm border border-(--color-border) bg-(--color-surface) text-xs"
         :value="statusFilter ?? 'all'"
         @change="switchStatus(($event.target as HTMLSelectElement).value)"
