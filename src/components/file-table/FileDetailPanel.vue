@@ -42,7 +42,7 @@ import vaultService from '@/api/vault'
 import panUtil, { isArchive } from '@/utils/common'
 import { getDownloadUrl } from '@/utils/preview'
 import { ElMessage, ElMessageBox } from '@/composables/useToast'
-import type { IFileVO } from '@/types'
+import type { IFileVO, IMediaMetadataVO } from '@/types'
 
 const props = defineProps<{
   file: IFileVO | null
@@ -259,6 +259,36 @@ const fileTags = computed(() => {
 // ─── 在线解压 ───────────────────────────────────────────────────────────────
 const extractDialog = ref({ open: false, fileId: '', filename: '' })
 
+// ─── 媒体元数据（图片/音频/视频） ─────────────────────────────────────────
+const mediaMeta = ref<IMediaMetadataVO | null>(null)
+const mediaRows = computed(() => {
+  const m = mediaMeta.value
+  if (!m) return []
+  const rows: Array<{ label: string; value: string }> = []
+  if (m.width && m.height) rows.push({ label: '尺寸', value: `${m.width} × ${m.height}` })
+  if (m.durationMs) {
+    const total = Math.round(m.durationMs / 1000)
+    rows.push({ label: '时长', value: `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}` })
+  }
+  if (m.title) rows.push({ label: '标题', value: m.title })
+  if (m.artist) rows.push({ label: '艺术家', value: m.artist })
+  if (m.album) rows.push({ label: '专辑', value: m.album })
+  if (m.camera) rows.push({ label: '拍摄设备', value: m.camera })
+  if (m.capturedAt) rows.push({ label: '拍摄时间', value: m.capturedAt.replace('T', ' ').slice(0, 19) })
+  if (m.location) rows.push({ label: '位置', value: m.location })
+  return rows
+})
+
+async function loadMediaMeta(fileId: string): Promise<void> {
+  mediaMeta.value = null
+  try {
+    const res = await fileService.mediaMetadata(fileId)
+    mediaMeta.value = res.data
+  } catch {
+    // 非媒体文件或尚未抽取完成：详情面板不展示该区块
+  }
+}
+
 function openExtract() {
   if (!props.file) return
   extractDialog.value = {
@@ -323,6 +353,11 @@ watch(
   (f) => {
     if (f && f.fileType !== 0) {
       loadTags(f.fileId)
+    }
+    if (f && [7, 8, 9].includes(f.fileType)) {
+      void loadMediaMeta(f.fileId)
+    } else {
+      mediaMeta.value = null
     }
   },
   { immediate: true }
@@ -539,6 +574,12 @@ watch(
             <span class="text-(--color-text) text-right tabular-nums">{{ fileMeta?.created }}</span>
             <span class="text-(--color-text-muted)">修改时间</span>
             <span class="text-(--color-text) text-right tabular-nums">{{ fileMeta?.modified }}</span>
+          </div>
+          <div v-if="mediaRows.length" class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-xs mt-2 pt-2 border-t border-(--color-border)">
+            <template v-for="row in mediaRows" :key="row.label">
+              <span class="text-(--color-text-muted)">{{ row.label }}</span>
+              <span class="text-(--color-text) text-right truncate max-w-[160px]">{{ row.value }}</span>
+            </template>
           </div>
         </div>
 

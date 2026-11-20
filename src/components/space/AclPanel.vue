@@ -8,7 +8,7 @@
  * - 管理入口只对 OWNER/ADMIN 展示；后端接口仍会二次校验，前端显隐不作为授权依据。
  */
 import { computed, ref, watch } from 'vue'
-import { FolderLock, Plus, Trash2, UserPlus, X, Users } from '@lucide/vue'
+import { ChevronLeft, ChevronRight, FolderLock, Plus, Trash2, UserPlus, X, Users } from '@lucide/vue'
 import BaseModal from '@/components/base/BaseModal.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseInput from '@/components/base/BaseInput.vue'
@@ -31,6 +31,9 @@ const emit = defineEmits<{ (e: 'update:open', v: boolean): void }>()
 
 const groups = ref<ISpaceGroupVO[]>([])
 const acls = ref<ISpaceAclVO[]>([])
+const aclTotal = ref(0)
+const aclPage = ref(1)
+const aclPageSize = 20
 const folderOptions = ref<Array<{ label: string; value: string }>>([])
 const loading = ref(false)
 
@@ -40,6 +43,8 @@ const creatingGroup = ref(false)
 const activeGroupId = ref('')
 const addMemberId = ref('')
 const selectedFolderId = ref('')
+/** 列表过滤目录，与“新增授权”选择互不影响 */
+const aclFolderFilter = ref('')
 const subjectType = ref<'USER' | 'GROUP'>('USER')
 const subjectId = ref('')
 const permission = ref<'READ' | 'WRITE'>('READ')
@@ -70,10 +75,18 @@ function resetState(): void {
   activeGroupId.value = ''
   addMemberId.value = ''
   selectedFolderId.value = ''
+  aclFolderFilter.value = ''
   subjectType.value = 'USER'
   subjectId.value = ''
   permission.value = 'READ'
+  aclPage.value = 1
+  aclTotal.value = 0
 }
+
+watch(aclFolderFilter, () => {
+  aclPage.value = 1
+  loadAcls(1)
+})
 
 async function loadAll(): Promise<void> {
   if (!props.spaceId) return
@@ -104,13 +117,24 @@ function loadGroups(): Promise<void> {
   })
 }
 
-function loadAcls(): Promise<void> {
+function loadAcls(targetPage = aclPage.value): Promise<void> {
   return new Promise((resolve, reject) => {
     spaceAclService.listAcls(
       props.spaceId,
-      undefined,
+      {
+        folderId: aclFolderFilter.value || undefined,
+        page: targetPage,
+        pageSize: aclPageSize
+      },
       (res) => {
-        acls.value = res.data || []
+        const page = res.data
+        acls.value = page?.records || []
+        aclTotal.value = page?.total || 0
+        aclPage.value = page?.pageNum || targetPage
+        // 删除最后一条后当前页会空，自动回退上一页而不是停在空列表
+        if (acls.value.length === 0 && aclPage.value > 1 && aclTotal.value > 0) {
+          void loadAcls(aclPage.value - 1)
+        }
         resolve()
       },
       (err) => {
@@ -268,6 +292,12 @@ async function deleteAcl(acl: ISpaceAclVO): Promise<void> {
   )
 }
 
+function goAclPage(target: number): void {
+  const totalPages = Math.max(1, Math.ceil(aclTotal.value / aclPageSize))
+  if (target < 1 || target > totalPages || target === aclPage.value) return
+  loadAcls(target)
+}
+
 function close(): void {
   emit('update:open', false)
 }
@@ -395,7 +425,19 @@ function permissionLabel(value: string): string {
           </p>
         </div>
 
-        <div class="mt-4 max-h-[260px] overflow-y-auto rounded-sm border border-(--color-border)">
+        <div class="mt-4 flex items-center justify-between gap-2">
+          <p class="text-xs text-(--color-text-muted)">目录授权列表</p>
+          <div class="w-56">
+            <BaseSelect
+              v-model="aclFolderFilter"
+              :options="[{ label: '全部目录', value: '' }, ...folderOptions]"
+              placeholder="按目录筛选"
+              size="sm"
+            />
+          </div>
+        </div>
+
+        <div class="mt-2 max-h-[260px] overflow-y-auto rounded-sm border border-(--color-border)">
           <div
             v-for="acl in acls"
             :key="acl.id"
@@ -424,6 +466,22 @@ function permissionLabel(value: string): string {
           <div v-if="acls.length === 0" class="px-3 py-6 text-center text-xs text-(--color-text-muted)">
             暂无目录授权
           </div>
+        </div>
+        <div v-if="aclTotal > aclPageSize" class="mt-2 flex items-center justify-end gap-2">
+          <BaseButton variant="ghost" size="sm" :disabled="aclPage <= 1" @click="goAclPage(aclPage - 1)">
+            <ChevronLeft :size="14" :stroke-width="2" />
+          </BaseButton>
+          <span class="text-xs tabular-nums" style="color: var(--color-text-muted);">
+            {{ aclPage }} / {{ Math.max(1, Math.ceil(aclTotal / aclPageSize)) }}
+          </span>
+          <BaseButton
+            variant="ghost"
+            size="sm"
+            :disabled="aclPage >= Math.max(1, Math.ceil(aclTotal / aclPageSize))"
+            @click="goAclPage(aclPage + 1)"
+          >
+            <ChevronRight :size="14" :stroke-width="2" />
+          </BaseButton>
         </div>
       </section>
     </div>

@@ -11,7 +11,8 @@ import type {
   ISpaceInvitePreviewVO,
   ISpaceInviteVO,
   ISpaceMemberVO,
-  ISpaceVO
+  ISpaceVO,
+  PageVO
 } from '@/types'
 
 type Callback<T> = (res: ApiResponse<T>) => void
@@ -210,13 +211,13 @@ export const spaceAclService = {
 
   listAcls(
     spaceId: string,
-    folderId: string | undefined,
-    resolve: Callback<ISpaceAclVO[]>,
+    params: { folderId?: string; page?: number; pageSize?: number },
+    resolve: Callback<PageVO<ISpaceAclVO>>,
     reject: Callback<unknown>
   ) {
     http
-      .get<unknown, ApiResponse<ISpaceAclVO[]>>(`/space/team/${spaceId}/acls`, {
-        params: folderId ? { folderId } : {}
+      .get<unknown, ApiResponse<PageVO<ISpaceAclVO>>>(`/space/team/${spaceId}/acls`, {
+        params
       })
       .then(resolve)
       .catch(reject)

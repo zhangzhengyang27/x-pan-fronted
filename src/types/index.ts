@@ -185,6 +185,22 @@ export interface IFileVO {
   matchField?: string
 }
 
+export interface IMediaMetadataVO {
+  kind: 'IMAGE' | 'AUDIO' | 'VIDEO'
+  width?: number | null
+  height?: number | null
+  durationMs?: number | null
+  title?: string | null
+  artist?: string | null
+  album?: string | null
+  genre?: string | null
+  capturedAt?: string | null
+  camera?: string | null
+  location?: string | null
+  extra?: Record<string, string>
+  searchText?: string
+}
+
 export interface IUploadChunkReq {
   identifier: string
   chunkNumber: number

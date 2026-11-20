@@ -5,7 +5,7 @@
 'use strict'
 
 import http, { type ApiResponse } from '@/utils/http'
-import type { IFileVO, IFileVersionVO, IFolderTreeNode, PageVO } from '@/types'
+import type { IFileVO, IFileVersionVO, IFolderTreeNode, IMediaMetadataVO, PageVO } from '@/types'
 
 type Callback<T> = (res: ApiResponse<T>) => void
 
@@ -333,7 +333,15 @@ const fileService = {
     return http.post<unknown, ApiResponse<unknown>>('/file/office/close', null, {
       params: { sessionId }
     })
-  }
+  },
+
+  /** 图片/音频/视频的媒体元数据；非媒体或后端解析失败时 reject，调用方按无数据处理 */
+  mediaMetadata(fileId: string) {
+    return http.get<unknown, ApiResponse<IMediaMetadataVO>>('/file/media-metadata', {
+      params: { fileId }
+    })
+  },
+
 }
 
 export interface IFileDetailVO {
