@@ -32,6 +32,10 @@ jobs:
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
 
+      # 生产依赖高危漏洞门禁；镜像源可能不支持 audit 接口，显式使用官方 registry。
+      - name: Audit production dependencies
+        run: npm audit --registry=https://registry.npmjs.org --omit=dev --audit-level=high
+
       - name: Type check (vue-tsc)
         run: npx vue-tsc -p tsconfig.app.json --noEmit
 
