@@ -43,6 +43,8 @@ const title = ref('')
 const open = ref(false)
 const step = ref(1)
 const loading = ref(false)
+const encrypting = ref(false)
+const e2eeProgress = ref(0)
 const copied = ref(false)
 const shareNameInputRef = ref<{ focus?: () => void } | null>(null)
 // 外部通过 ref.openModal(file | file[]) 传入的目标文件；为空时回退到 props.item / 多选
@@ -200,7 +202,7 @@ function pickE2eeFile() {
     const file = input.files?.[0]
     if (!file) return
     if (file.size > E2EE_MAX_PLAINTEXT_BYTES) {
-      ElMessage.error('加密分享暂支持 200MB 以内文件')
+      ElMessage.error('加密分享暂支持 20GB 以内文件')
       e2eeFile.value = null
       return
     }
@@ -270,7 +272,7 @@ async function doConfirm() {
 
   if (form.e2ee) {
     if (!canE2ee.value) {
-      ElMessage.error('加密分享仅支持 200MB 以内的单个文件')
+      ElMessage.error('加密分享仅支持 20GB 以内的单个文件')
       return
     }
     if (!e2eeFile.value) {
@@ -279,11 +281,23 @@ async function doConfirm() {
     }
     loading.value = true
     try {
-      const cipher = await encryptFileForShare(e2eeFile.value)
+      encrypting.value = true
+      e2eeProgress.value = 0
+      const cipher = await encryptFileForShare(e2eeFile.value, {
+        onProgress: (ratio) => {
+          e2eeProgress.value = ratio
+        }
+      })
+      encrypting.value = false
+      // OPFS 临时密文只用于本次上传；无论上传成功与否都要清理，服务端已有独立副本。
+      const cleanup = () => {
+        cipher.cleanup?.().catch(() => undefined)
+      }
       fileService.uploadCipher(
-        new File([cipher.blob], cipher.filename, { type: 'application/octet-stream' }),
+        cipher.blob,
         cipher.filename,
         (uploadRes) => {
+          cleanup()
           ids = [uploadRes.data]
           payload.shareFileIds = ids
           payload.e2ee = true
@@ -291,11 +305,13 @@ async function doConfirm() {
           submitShare(payload, cipher.key, cipher.iv, uploadRes.data)
         },
         (err) => {
+          cleanup()
           loading.value = false
           ElMessage.error(err.message || '密文上传失败')
         }
       )
     } catch (e) {
+      encrypting.value = false
       loading.value = false
       ElMessage.error(e instanceof Error ? e.message : '加密失败')
     }
@@ -451,7 +467,7 @@ defineExpose({ openModal })
               :disabled="!canE2ee"
             />
             <p v-if="!canE2ee" class="text-[11px] text-(--color-text-muted)">
-              加密分享仅支持 200MB 以内的单个文件
+              加密分享仅支持 20GB 以内的单个文件
             </p>
             <div v-if="form.e2ee" class="rounded-sm bg-(--color-surface-2) p-3 space-y-2">
               <div class="flex items-center gap-2">
@@ -461,7 +477,10 @@ defineExpose({ openModal })
                     选择原文件
                   </span>
                 </BaseButton>
-                <span class="text-xs text-(--color-text-muted) truncate">
+                <span v-if="encrypting" class="text-xs text-(--color-text-muted)">
+                  加密中 {{ Math.round(e2eeProgress * 100) }}%
+                </span>
+                <span v-else class="text-xs text-(--color-text-muted) truncate">
                   {{ e2eeFile ? e2eeFile.name : '尚未选择' }}
                 </span>
               </div>

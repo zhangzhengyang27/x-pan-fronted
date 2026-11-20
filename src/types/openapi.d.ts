@@ -1486,7 +1486,7 @@ export interface paths {
         put?: never;
         /**
          * 上传 E2EE 密文副本
-         * @description 服务端不解析内容，强制落到保留目录；返回加密后的文件 ID。仅接受 .xpan 且 <=200MB
+         * @description 服务端不解析内容，强制落到保留目录；返回加密后的文件 ID。仅接受 .xpan 且密文不超过 20GB（明文上限 20GB 减 1MB）
          */
         post: operations["uploadCipher"];
         delete?: never;

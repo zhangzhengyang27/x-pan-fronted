@@ -16,8 +16,11 @@ import {
 import shareService from '@/api/share'
 import type { IFileVO, IFolderTreeNode, IShareVO } from '@/types'
 import {
+  E2EE_MEMORY_LIMIT_BYTES,
   decryptE2eeBlob,
+  decryptE2eeToWritable,
   parseE2eeFragment,
+  pickE2eeSaveHandle,
   triggerBlobDownload
 } from '@/utils/e2ee-share'
 import { onMounted, onUnmounted, reactive, ref, computed } from 'vue'
@@ -349,9 +352,22 @@ async function downloadE2ee(item: Partial<IFileVO>) {
     return ElMessage.error('链接缺少解密密钥，请向分享者索取完整链接（# 后部分不能丢）')
   }
   decrypting.value = true
+  let saveHandle: Awaited<ReturnType<typeof pickE2eeSaveHandle>> = null
   try {
     const fileId = String(item.fileId || '').replace(/\+/g, '%2B')
     const url = `${panUtil.getUrlPrefix()}/share/file/download?fileId=${fileId}&shareToken=${getShareToken() ?? ''}`
+    // 超过内存阈值时必须先让用户选目标文件，再用 File System Access API 流式写入。
+    // showSaveFilePicker 依赖用户激活；等 fetch 完成后再弹可能已被浏览器判定为失效。
+    const cipherSize = Number(item.fileSize || 0)
+    if (cipherSize > E2EE_MEMORY_LIMIT_BYTES) {
+      saveHandle = await pickE2eeSaveHandle(
+        String(item.filename || 'download').replace(/\.xpan$/i, '')
+      )
+      if (!saveHandle) {
+        throw new Error('当前浏览器不支持大文件流式保存，请使用 Chrome/Edge')
+      }
+    }
+
     // 不能用 <a download>：这里必须拿到密文字节流，用 WebCrypto 解密后再触发保存。
     // 匿名分享下载只认 URL 上的 shareToken，不需要登录 Cookie；用 omit 可避免
     // 后端下载响应重置 CORS 头后与 credentials 模式冲突（生产同源时同样成立）。
@@ -363,11 +379,18 @@ async function downloadE2ee(item: Partial<IFileVO>) {
       const body = (await response.json()) as { message?: string }
       throw new Error(body.message || '下载失败')
     }
-    const cipher = await response.blob()
-    const plain = await decryptE2eeBlob(cipher, fragment.key, fragment.iv)
-    triggerBlobDownload(plain.blob, plain.name)
+    if (saveHandle) {
+      if (!response.body) throw new Error('浏览器未提供流式响应体')
+      await decryptE2eeToWritable(response.body, fragment.key, fragment.iv, saveHandle)
+      await saveHandle.close()
+    } else {
+      const cipher = await response.blob()
+      const plain = await decryptE2eeBlob(cipher, fragment.key, fragment.iv)
+      triggerBlobDownload(plain.blob, plain.name)
+    }
     ElMessage.success('解密完成，已开始下载')
   } catch (e) {
+    if (saveHandle) await saveHandle.abort().catch(() => undefined)
     ElMessage.error(e instanceof Error ? e.message : '解密下载失败')
   } finally {
     decrypting.value = false

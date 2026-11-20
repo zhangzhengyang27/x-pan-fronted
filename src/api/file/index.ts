@@ -15,13 +15,14 @@ const fileService = {
    * 服务端强制落到隐藏目录 parent_id=-3，返回加密 fileId；不进入普通文件列表。
    */
   uploadCipher(
-    file: File,
+    file: Blob,
     filename: string,
     resolve: Callback<string>,
     reject: Callback<unknown>
   ) {
     const form = new FormData()
-    form.append('file', file)
+    // 显式传 filename：OPFS 返回的 File/Blob 名称不一定是清洗后的 .xpan
+    form.append('file', file, filename)
     form.append('filename', filename)
     // identifier 对密文没有秒传意义，用随机 32 位 hex 避免大小/MD5 去重探测
     const randomHex = Array.from(crypto.getRandomValues(new Uint8Array(16)))
