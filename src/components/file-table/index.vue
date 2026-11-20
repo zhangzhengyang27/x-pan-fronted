@@ -373,6 +373,37 @@ function onRowDblclick(row: Record<string, any>) {
 }
 
 // ─── 批量下载 ────────────────────────────────────────────────────────────────
+/** 在线 ZIP：服务端把选中项打包后写回当前目录，复用上传/配额链路。 */
+async function archiveToDrive(rows: Record<string, any>[]) {
+  if (!rows?.length) return
+  try {
+    const defaultName = `xpan-archive-${new Date().toISOString().slice(0, 10)}.zip`
+    const { value, action } = await ElMessageBox.prompt('压缩包名称（将保存到当前目录）', '压缩为 ZIP', {
+      inputValue: defaultName,
+      inputPattern: /^[^\\/]+$/,
+      inputErrorMessage: '名称不能包含路径分隔符',
+      confirmButtonText: '开始压缩',
+      cancelButtonText: '取消'
+    })
+    if (action !== 'confirm') return
+    const zipName = (value || '').trim()
+    if (!zipName) return ElMessage.error('请输入压缩包名称')
+    ElMessage.info(`正在压缩 ${rows.length} 个项目...`)
+    const fileIds = rows.map((r) => String(r.fileId))
+    const parentId = fileStore.parentId && fileStore.parentId !== '-1' ? fileStore.parentId : undefined
+    fileService.archiveToDrive(
+      { fileIds, zipName, targetParentId: parentId },
+      () => {
+        ElMessage.success('压缩包已保存到当前目录')
+        fileStore.loadFileList()
+      },
+      (err) => ElMessage.error(err.message || '在线压缩失败')
+    )
+  } catch {
+    // 用户取消
+  }
+}
+
 async function batchDownload(rows: Record<string, any>[]) {
   if (!rows?.length) return
   if (rows.length === 1) {
@@ -831,6 +862,12 @@ const ctxItems = computed(() => {
       action: () => batchDownload(multiRows)
     },
     {
+      key: 'archive',
+      label: '压缩为 ZIP',
+      icon: FileArchive,
+      action: () => archiveToDrive(multiRows)
+    },
+    {
       key: 'rename',
       label: isMulti ? `批量重命名 ${selectedRows.value.length} 项` : '重命名',
       icon: Edit2,
@@ -985,6 +1022,7 @@ defineExpose({
   selectedRows,
   selectedCount,
   batchDownload,
+  archiveToDrive,
   batchDelete,
   batchRename,
   toggleFavorite,

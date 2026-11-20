@@ -94,6 +94,32 @@ export interface ISpaceMemberVO {
   joinTime?: string
 }
 
+export interface ISpaceGroupMemberVO {
+  userId: string
+  username: string
+}
+
+export interface ISpaceGroupVO {
+  groupId: string
+  groupName: string
+  memberCount: number
+  members: ISpaceGroupMemberVO[]
+}
+
+export interface ISpaceAclVO {
+  id: string
+  /** 目录加密 ID */
+  folderId: string
+  folderName?: string
+  folderPath?: string
+  /** USER / GROUP */
+  subjectType: 'USER' | 'GROUP'
+  subjectId: string
+  subjectName?: string
+  permission: 'READ' | 'WRITE'
+  createTime?: string
+}
+
 export interface ISpaceInviteVO {
   id: string
   inviteCode: string

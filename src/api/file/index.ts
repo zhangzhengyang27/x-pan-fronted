@@ -187,6 +187,18 @@ const fileService = {
     http.post<unknown, ApiResponse<unknown>>('/file/merge', data).then(resolve).catch(reject)
   },
 
+  /** 在线 ZIP：把选中文件/文件夹打包为 zip 写回网盘，返回新文件加密 ID */
+  archiveToDrive(
+    data: { fileIds: string[]; targetParentId?: string; zipName?: string },
+    resolve: Callback<string>,
+    reject: Callback<unknown>
+  ) {
+    http
+      .post<unknown, ApiResponse<string>>('/file/archive', data)
+      .then(resolve)
+      .catch(reject)
+  },
+
   archiveDownload(
     data: { fileIds: string[]; zipName?: string },
     resolve: Callback<Blob>,

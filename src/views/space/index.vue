@@ -14,10 +14,12 @@ import {
   Shield,
   User as UserIcon,
   Eye,
+  FolderLock,
   Loader2,
   X
 } from '@lucide/vue'
 import spaceService from '@/api/space'
+import AclPanel from '@/components/space/AclPanel.vue'
 import { useSpaceStore } from '@/stores/space'
 import { ElMessage, ElMessageBox } from '@/composables/useToast'
 import type { ISpaceInviteVO, ISpaceMemberVO, ISpaceVO } from '@/types'
@@ -35,6 +37,7 @@ const createName = ref('')
 const creating = ref(false)
 
 const inviteVisible = ref(false)
+const aclVisible = ref(false)
 const inviteExpireHours = ref(72)
 const inviteMaxUses = ref(0)
 // 邀请码只授予 MEMBER/VIEWER；ADMIN 必须由空间所有者单独提升
@@ -408,6 +411,15 @@ function usedPercent(space: ISpaceVO): number {
             <div class="ml-auto flex items-center gap-2">
               <template v-if="!isPersonal">
                 <button
+                  v-if="canManage"
+                  type="button"
+                  class="flex items-center gap-1 h-8 px-2.5 rounded-sm text-xs border border-(--color-border) text-(--color-text-secondary) hover:bg-(--color-hover)"
+                  @click="aclVisible = true"
+                >
+                  <FolderLock :size="13" :stroke-width="1.75" />
+                  目录权限
+                </button>
+                <button
                   v-if="canInvite"
                   type="button"
                   class="flex items-center gap-1 h-8 px-2.5 rounded-sm text-xs border border-(--color-border) text-(--color-text-secondary) hover:bg-(--color-hover)"
@@ -544,6 +556,12 @@ function usedPercent(space: ISpaceVO): number {
         </div>
       </div>
     </div>
+
+    <AclPanel
+      v-model:open="aclVisible"
+      :space-id="activeSpace?.spaceType === 'TEAM' ? activeSpace.spaceId : ''"
+      :members="members"
+    />
 
     <!-- 创建团队 -->
     <div v-if="createVisible" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" @click.self="createVisible = false">
