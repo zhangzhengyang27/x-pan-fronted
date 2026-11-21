@@ -64,7 +64,7 @@ const columns: { key: string; title: string; width: string | number; align?: 'le
   { key: 'fileSizeDesc', title: '大小', width: 90, align: 'right' },
   { key: 'deleteTime', title: '删除时间', width: 150, align: 'center' },
   { key: 'clearDate', title: '清除日期', width: 120, align: 'center' },
-  { key: 'actions', title: '操作', width: 80, align: 'right' }
+  { key: 'actions', title: '操作', width: 110, align: 'right' }
 ]
 
 function fileIcon(type: number) {
@@ -319,7 +319,7 @@ onMounted(() => {
         @update:selected="(v) => (selected = v)"
       >
         <template #cell-filename="{ row }">
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 min-w-0">
             <component
               :is="fileIcon(row.fileType)"
               :size="18"
@@ -331,7 +331,7 @@ onMounted(() => {
         </template>
 
         <template #cell-originPath="{ row }">
-          <span class="truncate text-xs text-(--color-text-secondary)" :title="row.parentFilename || row.realPath || '-'">
+          <span class="block truncate text-xs text-(--color-text-secondary)" :title="row.parentFilename || row.realPath || '-'">
             {{ row.parentFilename || row.realPath || '-' }}
           </span>
         </template>

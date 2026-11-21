@@ -723,7 +723,7 @@ onUnmounted(() => {
               <template #cell-filename="{ row }">
                 <button
                   type="button"
-                  class="flex items-center gap-3 text-left w-full"
+                  class="flex items-center gap-3 text-left w-full min-w-0"
                   :style="row.folderFlag === 1 ? 'cursor: pointer;' : 'cursor: default;'"
                   @click="clickFilename(row)"
                 >

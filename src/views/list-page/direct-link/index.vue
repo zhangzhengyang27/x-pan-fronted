@@ -207,7 +207,7 @@ function formatCreateTime(row: Partial<IDirectLinkVO>) {
       @update:selected="(v) => (selected = v)"
     >
       <template #cell-filename="{ row }">
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-3 min-w-0">
           <LinkIcon :size="18" :stroke-width="2" class="shrink-0" style="color: var(--color-primary-500)" />
           <span class="truncate text-(--color-text)">{{ row.filename || '未命名' }}</span>
         </div>

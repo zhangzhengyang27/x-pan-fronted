@@ -24,12 +24,13 @@ const tableLoading = ref(true)
 // shareName（分享名称）/ shareEndTime（过期时间）/ visitCount（浏览次数）
 const columns: { key: string; title: string; width: string | number; align?: 'left' | 'right' | 'center' }[] = [
   { key: 'shareName', title: '分享名称', width: 'auto' },
-  { key: 'shareType', title: '分享类型', width: 120, align: 'center' },
-  { key: 'shareCode', title: '提取码', width: 100, align: 'center' },
+  { key: 'shareType', title: '分享类型', width: 110, align: 'center' },
+  { key: 'shareCode', title: '提取码', width: 90, align: 'center' },
   { key: 'expireTime', title: '过期时间', width: 160, align: 'center' },
-  { key: 'visitCount', title: '浏览次数', width: 100, align: 'center' },
-  { key: 'collect', title: '文件收集', width: 110, align: 'center' },
-  { key: 'actions', title: '操作', width: 200, align: 'right' }
+  { key: 'visitCount', title: '浏览次数', width: 90, align: 'center' },
+  { key: 'collect', title: '文件收集', width: 100, align: 'center' },
+  // 报告隐藏行会多一个“申诉复核”按钮；230px 可容纳 5 个图标按钮、间距和单元格内边距
+  { key: 'actions', title: '操作', width: 230, align: 'right' }
 ]
 
 function loadTableData() {
@@ -278,7 +279,7 @@ function formatExpireTime(row: Partial<IShareVO>) {
       @update:selected="(v) => (selected = v)"
     >
       <template #cell-shareName="{ row }">
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-3 min-w-0">
           <Share2 :size="18" :stroke-width="2" class="shrink-0" style="color: var(--color-primary-500);" />
           <span class="truncate text-(--color-text)">{{ row.shareName || '未命名' }}</span>
           <BaseBadge v-if="row.e2ee === 1" variant="success" size="sm">

@@ -1068,7 +1068,7 @@ function onStorageChanged(e: StorageEvent) {
         @rowContextmenu="(e: MouseEvent, row: any) => onContextMenu(e, row)"
       >
         <template #cell-filename="{ row }">
-          <BaseTooltip :text="row.filename" position="top">
+          <BaseTooltip :text="row.filename" position="top" class="w-full min-w-0">
             <button
               type="button"
               class="group flex items-center gap-3.5 text-left w-full min-w-0"
@@ -1101,7 +1101,8 @@ function onStorageChanged(e: StorageEvent) {
         <template #cell-parentFilename="{ row }">
           <button
             type="button"
-            class="text-xs text-primary-500 hover:underline"
+            class="block max-w-full truncate text-xs text-primary-500 hover:underline"
+            :title="row.parentFilename"
             @click="goInFolder(row.parentId)"
           >
             {{ row.parentFilename }}
@@ -1213,7 +1214,7 @@ function onStorageChanged(e: StorageEvent) {
 
           <FileThumbnail :file="row" :size="56" rounded="rounded-sm" class="mb-2" />
 
-          <BaseTooltip :text="row.filename" position="top">
+          <BaseTooltip :text="row.filename" position="top" class="max-w-full">
             <p class="text-xs font-medium text-(--color-text) line-clamp-2 leading-snug w-full break-all">
               {{ row.filename }}
             </p>

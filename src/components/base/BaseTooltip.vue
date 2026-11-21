@@ -20,6 +20,8 @@ defineProps({
 .rp-tooltip {
   position: relative;
   display: inline-flex;
+  /* 触发器不能撑破表格/卡片单元格；长文件名由内部 truncate 负责省略 */
+  max-width: 100%;
 }
 .rp-tooltip__bubble {
   position: absolute;

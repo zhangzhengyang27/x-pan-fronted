@@ -142,7 +142,7 @@ onMounted(loadTableData)
         @update:selected="(v) => (selected = v as string[])"
       >
         <template #cell-filename="{ row }">
-          <button type="button" class="flex items-center gap-2 group" @click="openFile(row)">
+          <button type="button" class="flex items-center gap-2 group w-full min-w-0" @click="openFile(row)">
             <component
               :is="fileIcon(row.fileType)"
               :size="18"
