@@ -19,8 +19,6 @@ import FolderPickerDialog from '@/components/base/FolderPickerDialog.vue'
 import FileThumbnail from './FileThumbnail.vue'
 import { useFavorites } from '@/composables/useFavorites'
 import { useRecent } from '@/composables/useRecent'
-import { useBreakpoint } from '@/composables/useMediaQuery'
-import FileCardList from './FileCardList.vue'
 import { useFileTags } from '@/composables/useFileTags'
 import { getDownloadUrl, invalidatePreviewUrl } from '@/utils/preview'
 import { removeThumbnailFromCache } from '@/utils/thumbnail-cache'
@@ -75,7 +73,6 @@ const {
 } = storeToRefs(fileStore)
 
 const selected = ref<string[]>([]) // 多选 fileId
-const { isMobile } = useBreakpoint()
 const currentView = ref(props.view)
 
 // 外部传入 view 变化时同步
@@ -628,13 +625,6 @@ function teardownIntersectionObserver() {
   }
 }
 
-// 移动端卡片列表滚动到底部时触发（等效桌面 loadMoreSentinel）
-function onLoadMore() {
-  if (hasMore.value && !isLoadingMore.value && !filterActive.value) {
-    fileStore.loadMore()
-  }
-}
-
 watch([() => filteredList.value.length, hasMore], () => {
   if (!intersectionObserver) return
   nextTick(() => {
@@ -1058,31 +1048,9 @@ function onStorageChanged(e: StorageEvent) {
 <template>
   <div class="h-full flex flex-col">
 
-    <!-- 列表视图（移动端：卡片列表；桌面：表格） -->
+    <!-- 列表视图：桌面表格 -->
     <div v-if="currentView === 'list'" class="flex-1 min-h-0 flex flex-col overflow-hidden">
-      <!-- 移动端卡片列表：单击选中+打开，长按上下文菜单，无横向溢出 -->
-      <FileCardList
-        v-if="isMobile"
-        :data="filteredList"
-        :selected="selected"
-        :loading="tableLoading"
-        :skeleton="tableLoading && filteredList.length === 0"
-        :filter-active="filterActive"
-        :has-more="hasMore"
-        :is-loading-more="isLoadingMore"
-        :total="total"
-        @row-click="(row: any, e?: MouseEvent) => onRowClick(row, e)"
-        @open="clickFilename"
-        @contextmenu="(e?: MouseEvent, row?: any) => { if (e) onContextMenu(e, row) }"
-        @load-more="onLoadMore"
-      >
-        <template #after-list>
-          <slot name="after-list" />
-        </template>
-      </FileCardList>
-
       <BaseTable
-        v-else
         :columns="columns"
         :data="filteredList"
         :loading="tableLoading"

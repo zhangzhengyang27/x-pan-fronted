@@ -9,7 +9,6 @@
  * - 标签(来自 useFileTags)
  */
 import { computed, ref, watch } from 'vue'
-import { useBreakpoint } from '@/composables/useMediaQuery'
 import {
   X,
   Download,
@@ -57,7 +56,6 @@ const emit = defineEmits<{
 }>()
 
 const router = useRouter()
-const { isMobile } = useBreakpoint()
 const { isFavorite, toggle: toggleFavorite } = useFavorites()
 const { loading: tagLoading, autoTag, getTags, addTag, removeTag, loadTags } = useFileTags()
 
@@ -368,11 +366,8 @@ watch(
   <Transition name="detail-slide">
     <aside
       v-if="open && file"
-      class="fixed z-40 flex flex-col border-(--color-border) bg-(--color-surface) overflow-hidden"
-      :class="isMobile
-        ? 'left-0 right-0 bottom-0 max-h-[85vh] rounded-t-2xl border-t pb-(--safe-bottom)'
-        : 'top-0 right-0 bottom-0 border-l'"
-      :style="isMobile ? '' : 'width: 320px; max-width: 90vw;'"
+      class="fixed z-40 flex flex-col border-(--color-border) bg-(--color-surface) overflow-hidden top-0 right-0 bottom-0 border-l"
+      style="width: 320px; max-width: 90vw;"
     >
       <!-- Header -->
       <div class="flex items-center justify-between px-4 py-3 border-b border-(--color-border)">

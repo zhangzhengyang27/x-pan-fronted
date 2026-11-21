@@ -3,7 +3,7 @@
  * FavoriteListPage —— 我的收藏（对接后端 P4 /favorite/list）
  * 表格展示收藏文件，支持取消收藏、打开（文件夹进入 / 文件预览）
  */
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, ref } from 'vue'
 import {
   Star,
   Folder,
@@ -27,11 +27,9 @@ import { useRouter } from 'vue-router'
 import { getDownloadUrl } from '@/utils/preview'
 import { useDrivePreview } from '@/composables/useDrivePreview'
 import DrivePreviewModal from '@/components/preview/drive-preview-modal.vue'
-import { useBreakpoint } from '@/composables/useMediaQuery'
 
 const router = useRouter()
 const { favorites, toggle, refresh } = useFavorites()
-const { isMobile } = useBreakpoint()
 
 // ─── 文件预览（统一走 DrivePreviewModal 弹窗，与 /files 页一致） ────────────
 const preview = useDrivePreview(() => favorites.value as any[])
@@ -51,13 +49,6 @@ const columns: { key: string; title: string; width: string | number; align?: 'le
   { key: 'addedAt', title: '收藏时间', width: 172, align: 'center' },
   { key: 'actions', title: '操作', width: 120, align: 'right' }
 ]
-
-// 移动端隐藏「类型/收藏时间」次要列，避免横向溢出
-const displayColumns = computed(() =>
-  isMobile.value
-    ? columns.filter((c) => !['fileType', 'addedAt'].includes(c.key))
-    : columns
-)
 
 function fileIcon(type: number) {
   return (
@@ -141,7 +132,7 @@ onMounted(loadTableData)
     <!-- 表格 -->
     <div class="flex-1 min-h-0 overflow-y-auto -mx-4 px-4">
       <BaseTable
-        :columns="displayColumns"
+        :columns="columns"
         :data="favorites"
         :loading="tableLoading"
         :selected="selected"
@@ -184,10 +175,7 @@ onMounted(loadTableData)
         </template>
 
         <template #cell-actions="{ row }">
-          <div
-            class="flex items-center gap-1 justify-end transition-opacity"
-            :class="isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'"
-          >
+          <div class="flex items-center gap-1 justify-end transition-opacity opacity-0 group-hover:opacity-100">
             <BaseTooltip text="取消收藏">
               <BaseButton variant="ghost" size="sm" @click="onToggleFavorite(row)">
                 <Star :size="14" :stroke-width="2" class="text-amber-400" />

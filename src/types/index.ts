@@ -391,8 +391,6 @@ export interface IPageParam {
 
 // ─── 自定义事件总线（替代 mitt） ───────────────────────────────
 export interface AppEvents {
-  'xpan:open-mobile-nav': void
-  'xpan:close-mobile-nav': void
   'xpan:reload-files': void
   'xpan:open-share': { fileIds: string[] }
   'xpan:open-folder-picker': { mode: 'move' | 'copy'; fileIds: string[] }

@@ -15,9 +15,7 @@ import BaseTable from '@/components/base/BaseTable.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
 import BaseTooltip from '@/components/base/BaseTooltip.vue'
-import { useBreakpoint } from '@/composables/useMediaQuery'
 
-const { isMobile } = useBreakpoint()
 const tableData = ref<IDirectLinkVO[]>([])
 const selected = ref<(string | number)[]>([])
 const tableLoading = ref(true)
@@ -30,13 +28,6 @@ const columns: { key: string; title: string; width: string | number; align?: 'le
   { key: 'createTime', title: '创建时间', width: 160, align: 'center' },
   { key: 'actions', title: '操作', width: 160, align: 'right' }
 ]
-
-// 移动端隐藏「Token/创建时间」次要列，避免横向溢出
-const displayColumns = computed(() =>
-  isMobile.value
-    ? columns.filter((c) => !['token', 'createTime'].includes(c.key))
-    : columns
-)
 
 function loadTableData() {
   tableLoading.value = true
@@ -206,7 +197,7 @@ function formatCreateTime(row: Partial<IDirectLinkVO>) {
 
     <!-- 表格 -->
     <BaseTable
-      :columns="displayColumns"
+      :columns="columns"
       :data="tableData"
       :loading="tableLoading"
       :selected="selected"
@@ -241,10 +232,7 @@ function formatCreateTime(row: Partial<IDirectLinkVO>) {
       </template>
 
       <template #cell-actions="{ row }">
-        <div
-          class="flex items-center gap-1 justify-end transition-opacity"
-          :class="isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'"
-        >
+        <div class="flex items-center gap-1 justify-end transition-opacity opacity-0 group-hover:opacity-100">
           <BaseTooltip text="复制直链" position="top">
             <BaseButton variant="secondary" size="sm" @click="copyLink(row)">
               <Copy :size="14" :stroke-width="2" />

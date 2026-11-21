@@ -24,7 +24,6 @@ import {
   triggerBlobDownload
 } from '@/utils/e2ee-share'
 import { onMounted, onUnmounted, reactive, ref, computed } from 'vue'
-import { useBreakpoint } from '@/composables/useMediaQuery'
 import { ElMessage, ElMessageBox } from '@/composables/useToast'
 import { useRoute } from 'vue-router'
 
@@ -53,7 +52,6 @@ import {
 } from '@lucide/vue'
 
 const route = useRoute()
-const { isMobile } = useBreakpoint()
 
 const loginForm = reactive({ username: '', password: '' })
 const shareCodeForm = reactive({ shareCode: '' })
@@ -143,13 +141,6 @@ const columns = [
   { key: 'updateTime', title: '修改日期', width: 200, align: 'center' as const },
   { key: 'actions', title: '操作', width: 180, align: 'right' as const }
 ]
-
-// 移动端隐藏「修改日期」次要列，避免横向溢出
-const displayColumns = computed(() =>
-  isMobile.value
-    ? columns.filter((c) => !['updateTime'].includes(c.key))
-    : columns
-)
 
 function refreshShareInfo(data: IShareVO) {
   const u = data.shareUserInfoVO?.username || '分享者'
@@ -544,8 +535,7 @@ onUnmounted(() => {
   <div class="min-h-screen flex flex-col bg-(--color-bg)">
     <!-- Simple Header -->
     <header
-      class="sticky top-0 z-40 h-16 border-b flex items-center justify-between bg-(--color-surface) border-(--color-border)"
-      :class="isMobile ? 'px-4 pt-(--safe-top)' : 'px-6'"
+      class="sticky top-0 z-40 h-16 border-b flex items-center justify-between bg-(--color-surface) border-(--color-border) px-6"
     >
       <div class="flex items-center gap-2.5">
         <div
@@ -722,7 +712,7 @@ onUnmounted(() => {
           <!-- 表格 -->
           <div class="p-4">
             <BaseTable
-              :columns="displayColumns"
+              :columns="columns"
               :data="tableData"
               :selected="selected"
               selectable
@@ -749,8 +739,7 @@ onUnmounted(() => {
               </template>
               <template #cell-actions="{ row }">
                 <div
-                  class="flex items-center gap-1 justify-end transition-opacity"
-                  :class="isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'"
+                  class="flex items-center gap-1 justify-end transition-opacity opacity-0 group-hover:opacity-100"
                 >
                   <BaseButton
                     v-if="forbidReshare !== 1 && e2ee !== 1"

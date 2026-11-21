@@ -31,9 +31,7 @@ import { ElMessage, ElMessageBox } from '@/composables/useToast'
 import BaseTable from '@/components/base/BaseTable.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseTooltip from '@/components/base/BaseTooltip.vue'
-import { useBreakpoint } from '@/composables/useMediaQuery'
 
-const { isMobile } = useBreakpoint()
 const RECYCLE_EXPIRE_DAYS = 30
 
 const tableData = ref<IFileVO[]>([])
@@ -68,13 +66,6 @@ const columns: { key: string; title: string; width: string | number; align?: 'le
   { key: 'clearDate', title: '清除日期', width: 120, align: 'center' },
   { key: 'actions', title: '操作', width: 80, align: 'right' }
 ]
-
-// 移动端隐藏次要列，避免横向溢出
-const displayColumns = computed(() =>
-  isMobile.value
-    ? columns.filter((c) => !['originPath', 'clearDate'].includes(c.key))
-    : columns
-)
 
 function fileIcon(type: number) {
   return (
@@ -318,7 +309,7 @@ onMounted(() => {
     <!-- 表格 -->
     <div class="flex-1 min-h-0 overflow-y-auto -mx-4 px-4">
       <BaseTable
-        :columns="displayColumns"
+        :columns="columns"
         :data="filteredTableData"
         :loading="tableLoading"
         :selected="selected"
@@ -365,10 +356,7 @@ onMounted(() => {
         </template>
 
         <template #cell-actions="{ row }">
-          <div
-            class="flex items-center gap-1 justify-end transition-opacity"
-            :class="isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'"
-          >
+          <div class="flex items-center gap-1 justify-end transition-opacity opacity-0 group-hover:opacity-100">
             <BaseTooltip text="还原">
               <BaseButton variant="primary" size="sm" @click="doRestore([row.fileId])">
                 <RefreshCw :size="14" :stroke-width="2" />

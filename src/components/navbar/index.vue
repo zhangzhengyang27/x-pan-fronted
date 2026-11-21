@@ -4,7 +4,7 @@
  * - 两层语义：文件分类 → 工具
  * - 固定展开，不再支持收起/快速访问
  */
-import { computed, ref, watch } from 'vue'
+import { computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useNavbarStore } from '@/stores/navbar'
 import { storeToRefs } from 'pinia'
@@ -16,7 +16,6 @@ import {
   Music,
   Share2,
   Trash2,
-  PanelLeftClose,
   GripVertical,
   Download as DownloadIcon,
   Shield,
@@ -29,7 +28,6 @@ import {
 } from '@lucide/vue'
 import { useResizable } from '@/composables/useResizable'
 import { useChatStore } from '@/stores/chat'
-import { useBreakpoint } from '@/composables/useMediaQuery'
 
 const store = useNavbarStore()
 const route = useRoute()
@@ -37,21 +35,12 @@ const router = useRouter()
 
 const { active } = storeToRefs(store)
 const { change } = store
-const { isMobile, isTablet, isDesktop } = useBreakpoint()
-const mobileOpen = ref(false)
-
-watch(
-  () => route.path,
-  () => { mobileOpen.value = false }
-)
 
 watch(
   () => [route.name, route.query.type],
   () => { syncActive() },
   { immediate: true }
 )
-
-defineExpose({ openMobile: () => (mobileOpen.value = true), isMobile })
 
 const { width, startDrag } = useResizable('x-pan.navbar.width', {
   min: 160,
@@ -143,75 +132,11 @@ function syncActive() {
     change(route.name)
   }
 }
-
-function navigate(item: any) {
-  active.value = item.key
-  router.push({ path: item.path, query: item.query || {} })
-  mobileOpen.value = false
-}
 </script>
 
 <template>
-  <!-- 移动端 / 平板抽屉 -->
-  <Teleport v-if="isMobile || isTablet" to="body">
-    <Transition name="drawer">
-      <div v-if="mobileOpen" class="fixed inset-0 z-1600 flex" @click.self="mobileOpen = false">
-        <div class="absolute inset-0 bg-black/40" @click="mobileOpen = false" />
-        <aside
-          class="relative w-[260px] h-full flex flex-col bg-(--color-surface) border-r border-(--color-border)"
-          @click.stop
-        >
-          <div class="h-full flex flex-col py-3 overflow-y-auto">
-            <!-- 关闭按钮 -->
-            <div class="px-3 flex justify-end mb-1">
-              <button
-                type="button"
-                class="size-8 rounded-sm flex items-center justify-center text-(--color-text-secondary) hover:text-(--color-text) hover:bg-(--color-hover) transition-colors"
-                aria-label="关闭导航"
-                @click="mobileOpen = false"
-              >
-                <PanelLeftClose :size="16" :stroke-width="2" />
-              </button>
-            </div>
-
-            <!-- 导航分组 -->
-            <template v-for="(group, gi) in groups" :key="gi">
-              <div class="flex flex-col gap-0.5 px-2">
-                <p
-                  v-if="group.items.length > 0"
-                  class="px-3 pt-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-(--color-text-muted)"
-                >
-                  {{ group.title }}
-                </p>
-                <button
-                  v-for="item in group.items"
-                  :key="item.key"
-                  type="button"
-                  class="flex items-center gap-3 h-9 px-3 rounded-sm text-sm transition-all"
-                  :class="active === item.key
-                    ? 'text-primary-500 bg-(--color-selected) font-medium'
-                    : 'text-(--color-text-secondary) hover:text-(--color-text) hover:bg-(--color-hover)'"
-                  @click="navigate(item)"
-                >
-                  <component :is="item.icon" :size="16" :stroke-width="2" class="shrink-0" />
-                  <span class="truncate">{{ item.label }}</span>
-                  <span
-                    v-if="item.badge"
-                    class="ml-auto min-w-4 h-4 px-1 rounded-full bg-red-500 text-white text-[10px] leading-4 text-center"
-                  >{{ item.badge > 99 ? '99+' : item.badge }}</span>
-                </button>
-              </div>
-            </template>
-
-          </div>
-        </aside>
-      </div>
-    </Transition>
-  </Teleport>
-
-  <!-- 桌面端固定侧栏（平板及以上横屏显示为可拖拽固定侧栏） -->
+  <!-- 桌面固定侧栏 -->
   <aside
-    v-if="isDesktop"
     class="relative shrink-0 border-r border-(--color-border) bg-(--color-surface) overflow-hidden"
     :style="{ width: `${width}px` }"
   >
