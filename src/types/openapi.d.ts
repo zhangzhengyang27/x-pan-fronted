@@ -5015,6 +5015,8 @@ export interface components {
             filename?: string;
             /** @description 文件大小描述 */
             fileSizeDesc?: string;
+            /** @description 文件实际字节数（字符串，避免前端丢失精度；分片下载按此判断是否走大文件路径） */
+            fileSize?: string;
             /**
              * Format: int32
              * @description 文件夹标识 0 否 1 是
