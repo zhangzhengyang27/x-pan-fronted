@@ -32,7 +32,12 @@ const fileService = {
     form.append('totalSize', String(file.size))
     // 密文落点由服务端固定为 -3，前端不传 parentId
     http
-      .post<unknown, ApiResponse<string>>('/file/upload-cipher', form, { timeout: 0 })
+      .post<unknown, ApiResponse<string>>('/file/upload-cipher', form, {
+        timeout: 0,
+        // 实例默认 Content-Type 是 application/json；不显式声明 multipart 时
+        // axios 会把 FormData 当 JSON 发送，后端只能看到空字段。
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
       .then(resolve)
       .catch(reject)
   },

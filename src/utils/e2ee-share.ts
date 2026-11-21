@@ -197,12 +197,20 @@ async function createCipherSink(fileSize: number): Promise<CipherSink> {
     write: async (bytes) => {
       await writable.write(bytes)
     },
-    finish: async () => ({
-      blob: await handle.getFile(),
-      cleanup: async () => {
-        await dir.removeEntry(name).catch(() => undefined)
+    finish: async () => {
+      // 必须先 close，否则 FileSystemWritableFileStream 还有未 flush 的缓冲：
+      // getFile() 可能返回 0 字节或大小不完整的 File，上传端会静默传空文件。
+      if (!closed) {
+        closed = true
+        await writable.close()
       }
-    }),
+      return {
+        blob: await handle.getFile(),
+        cleanup: async () => {
+          await dir.removeEntry(name).catch(() => undefined)
+        }
+      }
+    },
     abort: async () => {
       if (closed) return
       closed = true

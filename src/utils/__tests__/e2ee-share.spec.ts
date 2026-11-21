@@ -104,4 +104,54 @@ describe('e2ee-share', () => {
     expect(parseE2eeFragment('')).toBeNull()
     expect(parseE2eeFragment('#k=only-key')).toBeNull()
   })
+
+  it('超过 256MB 走 OPFS 时必须 close 写入流后才返回完整密文', async () => {
+    // FileSystemWritableFileStream 的 close 负责 flush；不 close 时 getFile()
+    // 可能返回 0 字节。这里用「未 close 就返回空文件」的假 OPFS 钉住该边界。
+    const writes: BlobPart[] = []
+    let closed = false
+    let removed = false
+    const handle = {
+      createWritable: async () => ({
+        write: async (bytes: Uint8Array) => {
+          if (closed) throw new Error('writable already closed')
+          writes.push(bytes)
+        },
+        close: async () => {
+          closed = true
+        },
+        abort: async () => {
+          closed = true
+        }
+      }),
+      getFile: async () => new File(closed ? writes : [], 'cipher.xpan')
+    }
+    const dir = {
+      getFileHandle: async () => handle,
+      removeEntry: async () => {
+        removed = true
+      }
+    }
+    const original = Object.getOwnPropertyDescriptor(navigator, 'storage')
+    Object.defineProperty(navigator, 'storage', {
+      configurable: true,
+      value: { getDirectory: async () => dir }
+    })
+    try {
+      const fakeFile = {
+        size: 257 * 1024 * 1024,
+        name: 'big.bin',
+        type: 'application/octet-stream',
+        slice: () => new Blob([])
+      } as unknown as File
+      const cipher = await encryptFileForShare(fakeFile)
+      expect(closed).toBe(true)
+      expect(cipher.blob.size).toBeGreaterThan(0)
+      await cipher.cleanup?.()
+      expect(removed).toBe(true)
+    } finally {
+      if (original) Object.defineProperty(navigator, 'storage', original)
+      else delete (navigator as unknown as { storage?: unknown }).storage
+    }
+  })
 })
