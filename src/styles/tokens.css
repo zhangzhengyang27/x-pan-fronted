@@ -9,6 +9,16 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
+  /* Web 端只保留桌面布局：把 Tailwind 响应式断点统一归零，
+   * 让 sm/md/lg/xl 等桌面规则的最终值在窄窗口也生效。
+   * 这不会影响 @media 手写样式；小屏由下方 1280px 最小宽度横向滚动兜底。
+   * 移动端适配由 x-pan-mobile 独立承载。 */
+  --breakpoint-sm: 0px;
+  --breakpoint-md: 0px;
+  --breakpoint-lg: 0px;
+  --breakpoint-xl: 0px;
+  --breakpoint-2xl: 0px;
+
   /* ============= 品牌主色:夸克蓝(#00A3FF) ============= */
   --color-primary-50:  #e6f5ff;
   --color-primary-100: #b3e5ff;
@@ -189,8 +199,15 @@
   color-scheme: dark;
 }
 
+/*
+ * Web 端桌面最小画布：1280px。
+ * 窄于该宽度时保留桌面布局并允许横向滚动，而不是把侧边栏、表格、
+ * 操作栏挤成移动端形态。fixed 弹层仍以视口为参照，这是刻意保留的
+ * 浏览器行为：弹层至少完整可见，不会被 1280px 画布裁掉。
+ */
 html, body, #app {
   height: 100%;
+  min-width: 1280px;
   margin: 0;
 }
 

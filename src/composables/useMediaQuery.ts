@@ -29,22 +29,18 @@ export function useMediaQuery(query: string) {
   return { matches }
 }
 
-/* ============= 统一断点体系 =============
- * 手机  : <= 768px   (isMobile)  —— 与既有 useMediaQuery('(max-width: 768px)') 对齐
- * 平板  : 769~1024px (isTablet)
- * 桌面  : >= 1025px  (isDesktop)
+/* ============= Web 端桌面断点 =============
+ * x-pan-fronted 只服务桌面场景，移动端由 x-pan-mobile 承载。
+ * 这里固定返回桌面断点，而不是读取视口宽度：小屏浏览器不再触发
+ * Header 手机版、导航抽屉、移动端上传 FAB、卡片列表等降级分支，
+ * 避免同一套桌面布局在窄视口下被拆成互相冲突的移动样式。
+ * 窗口窄于 1280px 时由全局 min-width 提供横向滚动，而不是压缩布局。
  */
-export const MOBILE_MAX = 768
-export const TABLET_MAX = 1024
-
 export function useBreakpoint() {
-  const mobileQuery = useMediaQuery(`(max-width: ${MOBILE_MAX}px)`)
-  const tabletQuery = useMediaQuery(`(min-width: ${MOBILE_MAX + 1}px) and (max-width: ${TABLET_MAX}px)`)
-  const desktopQuery = useMediaQuery(`(min-width: ${TABLET_MAX + 1}px)`)
-  // 返回直接 ref，避免调用方写 `isMobile.matches`；模板里直接 `v-if="isMobile"`
+  // 返回 ref 保持既有调用方 `isMobile.value` / 模板 `v-if="isMobile"` 的契约
   return {
-    isMobile: mobileQuery.matches,
-    isTablet: tabletQuery.matches,
-    isDesktop: desktopQuery.matches,
+    isMobile: ref(false),
+    isTablet: ref(false),
+    isDesktop: ref(true)
   }
 }
