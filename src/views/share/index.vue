@@ -569,7 +569,7 @@ onUnmounted(() => {
     </header>
 
     <!-- Main Content -->
-    <main class="flex-1 px-6 py-8 mx-auto w-full max-w-2xl">
+    <main class="flex-1 px-6 py-8 mx-auto w-full max-w-4xl">
       <!-- 过期/失效状态 -->
       <div v-if="shareCancelFlag" class="py-20">
         <BaseResult

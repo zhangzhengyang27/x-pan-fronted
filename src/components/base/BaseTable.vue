@@ -118,7 +118,9 @@ const gridTemplateColumns = computed(() => {
   const parts: string[] = []
   if (props.selectable) parts.push('56px')
   props.columns.forEach((c) => {
-    if (c.width === undefined) parts.push('minmax(0, 1fr)')
+    // auto 必须映射为 1fr：CSS Grid 的 auto 轨道只取 max-content，
+    // 不会吸收剩余宽度，会让“文件名”这类主列被固定列挤成单字竖排。
+    if (c.width === undefined || c.width === 'auto') parts.push('minmax(0, 1fr)')
     else if (typeof c.width === 'number') parts.push(`${c.width}px`)
     else parts.push(c.width as string)
   })
