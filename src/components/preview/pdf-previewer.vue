@@ -31,10 +31,18 @@ const props = defineProps({
 })
 
 const rendered = ref(false)
+const renderError = ref('')
 const url = computed(() => props.url || getPreviewUrl(props.fileId))
 
 const handleRendered = () => {
+  renderError.value = ''
   rendered.value = true
+}
+
+
+const handleError = (err: unknown) => {
+  rendered.value = false
+  renderError.value = 'PDF 加载失败：' + ((err as Error)?.message || '请稍后重试')
 }
 
 // ─── 缩放持久化 ─────────────────────────────────────────────────────────────
@@ -194,6 +202,22 @@ const {
   destroy: destroyPdfDoc
 } = usePdfSearch()
 
+// PDF.js 的 chunk / worker 首次加载可能有数秒空窗；没有显式 loading 时页面
+// 只有一块白底，容易被误判为“预览失败”。切 URL 时重置状态，并销毁旧 PDF 文档：
+// 搜索缓存绑定在 pdfDoc 上，不销毁会让下一次搜索仍命中上一个文件的内容。
+watch(url, () => {
+  rendered.value = false
+  renderError.value = ''
+  searchResults.value = []
+  searchIdx.value = 0
+  // 旋转是文档级视觉状态，不属于用户缩放偏好；切到新 PDF 时必须归零，
+  // 否则上一份文档转 90° 会让新文档也横过来。提取页码范围同理。
+  rotation.value = 0
+  extractOpen.value = false
+  extractRange.value = ''
+  void destroyPdfDoc()
+})
+
 onBeforeUnmount(() => {
   // 组件卸载时销毁 PDF 文档，释放 worker 与内存
   void destroyPdfDoc()
@@ -253,7 +277,7 @@ function closeSearch() {
         variant="ghost"
         size="sm"
         @click="searchOpen = !searchOpen"
-        :class="searchOpen && 'bg-primary-50'"
+        :class="searchOpen && 'bg-(--color-selected)'"
       >
         <Search :size="14" />
         搜索
@@ -334,7 +358,28 @@ function closeSearch() {
     </div>
 
     <div :style="zoomStyle" class="origin-top">
-      <VueOfficePdf :src="url" style="height: 100%; width: 100%" @rendered="handleRendered" />
+      <VueOfficePdf
+        :src="url"
+        style="height: 100%; width: 100%"
+        @rendered="handleRendered"
+        @error="handleError"
+      />
+    </div>
+
+    <!-- PDF.js 首次加载 / worker 初始化期间给出明确状态，避免白屏被误判为失败 -->
+    <div
+      v-if="!rendered && !renderError"
+      class="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-(--color-surface-2)"
+    >
+      <LoaderCircle :size="28" class="animate-spin text-primary-500" />
+      <span class="text-sm text-(--color-text-muted)">正在渲染 PDF…</span>
+    </div>
+    <div
+      v-else-if="renderError"
+      class="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-(--color-surface-2) px-6 text-center"
+    >
+      <span class="text-sm text-(--color-danger-text)">{{ renderError }}</span>
+      <span class="text-xs text-(--color-text-muted)">可下载原文件后本地打开</span>
     </div>
 
     <!-- P2-5 提取页面弹窗 -->

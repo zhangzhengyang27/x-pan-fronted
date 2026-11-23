@@ -23,13 +23,13 @@ const goHome = () => (window.location.href = '/')
     <!-- 500 View -->
     <div class="relative z-10 flex flex-col items-center justify-center w-full max-w-2xl px-gutter text-center">
       <!-- 大号背景数字 -->
-      <div class="error-code-bg text-danger">500</div>
+      <div class="error-code-bg text-(--color-danger-text)">500</div>
 
       <!-- Glass Panel 卡片 -->
       <div
         class="rounded-xl p-8 relative z-10 w-full max-w-md mx-auto transform hover:scale-[1.01] transition-transform duration-300 border-t-4"
         :class="'bg-(--color-surface-container-lowest)/60 dark:bg-(--color-surface-container-low)/60 backdrop-blur-xl border border-(--color-border)/50 dark:border-(--color-border-dark)/50'"
-        style="border-top-color: var(--color-danger);"
+        style="border-top-color: var(--color-danger-text);"
       >
         <div
           class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6"
@@ -37,7 +37,7 @@ const goHome = () => (window.location.href = '/')
         >
           <svg
             class="w-8 h-8"
-            :class="'text-danger'"
+            :class="'text-(--color-danger-text)'"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -64,7 +64,7 @@ const goHome = () => (window.location.href = '/')
           type="button"
           class="w-full flex items-center justify-center gap-2 py-3 px-6 rounded-sm text-sm font-medium transition-colors mb-4"
           :class="
-            'bg-danger hover:bg-danger/80 text-white'
+            'bg-(--color-danger-action) hover:opacity-85 text-white'
           "
           @click="reload"
         >
@@ -80,7 +80,7 @@ const goHome = () => (window.location.href = '/')
           <p class="text-xs font-mono mb-1" :class="'text-(--color-text-muted-dark)'">
             Trace ID:
           </p>
-          <code class="text-xs font-mono break-all" :class="'text-danger'">
+          <code class="text-xs font-mono break-all" :class="'text-(--color-danger-text)'">
             err_req_8f92a1b_cluster_timeout
           </code>
         </div>

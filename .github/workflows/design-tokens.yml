@@ -1,0 +1,28 @@
+# 设计 token 契约门禁（Web 本仓）
+#
+# 为什么单独成 job：token 漂移与业务代码无关，独立状态检查能直接告诉 reviewer
+# 是「视觉契约被改」而不是「页面逻辑回归」。脚本与契约都放在本仓，Web 可离线自检。
+name: Design Token Contract
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+  workflow_dispatch:
+
+jobs:
+  web:
+    name: Web token contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+      - name: Check Web design tokens
+        run: node scripts/check-design-tokens.mjs --platform=web

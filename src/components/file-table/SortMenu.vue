@@ -68,11 +68,11 @@ const active = computed(() => !!sortProp.value && !!sortOrder.value)
     <template #trigger>
       <button
         type="button"
-        class="inline-flex items-center gap-1 h-8 px-2.5 rounded-sm border border-(--color-border) bg-(--color-surface) text-[13px] font-medium transition-colors"
+        class="inline-flex items-center gap-1 h-8 px-2.5 rounded-sm border border-(--color-border) text-[13px] font-medium transition-colors"
         :class="
           active
-            ? 'border-primary-500 text-primary-700 dark:text-primary-300 bg-primary-50 dark:bg-primary-900/30'
-            : 'text-(--color-text) hover:bg-(--color-surface-2)'
+            ? 'border-primary-500 text-primary-700 dark:text-primary-300 bg-(--color-selected)'
+            : 'bg-(--color-surface) text-(--color-text) hover:bg-(--color-surface-2)'
         "
       >
         <ArrowUpDown :size="14" />
@@ -90,7 +90,7 @@ const active = computed(() => !!sortProp.value && !!sortOrder.value)
         :class="
           sortProp === f.key
             ? 'text-primary-500'
-            : 'text-(--color-text) hover:bg-(--color-surface-2)'
+            : 'bg-(--color-surface) text-(--color-text) hover:bg-(--color-surface-2)'
         "
         @click="selectField(f.key)"
       >
@@ -113,7 +113,7 @@ const active = computed(() => !!sortProp.value && !!sortOrder.value)
         :class="
           sortOrder === d.value
             ? 'text-primary-500'
-            : 'text-(--color-text) hover:bg-(--color-surface-2)'
+            : 'bg-(--color-surface) text-(--color-text) hover:bg-(--color-surface-2)'
         "
         @click="selectDirection(d.value)"
       >

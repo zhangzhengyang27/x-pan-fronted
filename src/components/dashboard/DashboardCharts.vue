@@ -151,7 +151,7 @@ function clearHistory() {
         <button
           v-if="history.length > 0"
           type="button"
-          class="text-xs inline-flex items-center gap-1 transition-colors text-(--color-text-muted) hover:text-danger"
+          class="text-xs inline-flex items-center gap-1 transition-colors text-(--color-text-muted) hover:text-(--color-danger-text)"
           @click="clearHistory"
         >
           <Trash2 :size="12" :stroke-width="2" />

@@ -26,6 +26,10 @@ let ArtplayerCtor: any = null
 // hls.js 实例必须显式 destroy：切换清晰度/切回原视频/关闭预览时，
 // 不销毁会继续拉分片并持有 MediaSource。
 let hlsInstance: any = null
+// hls.js 是异步 import 的：如果用户在 import 完成前就切回原视频/切文件，
+// 旧 import 不能继续把过期的 HLS 挂到同一个 video 上。每次销毁/新建都递增，
+// 回调只有在代次仍匹配时才允许 attachMedia。
+let hlsGeneration = 0
 // 竞态保护：initPlayer 中的 await import('artplayer') 是异步的，期间可能
 // 已被快速切换再次触发（需防双实例），或组件已卸载（需防卸载后绑定全局事件）
 let initPromise: Promise<void> | null = null
@@ -92,6 +96,7 @@ async function initArtplayer() {
 }
 
 function destroyHls() {
+  hlsGeneration++
   if (hlsInstance) {
     try {
       hlsInstance.destroy()
@@ -108,9 +113,12 @@ function destroyHls() {
  */
 function hlsCustomType(video: HTMLVideoElement, url: string, art: any) {
   destroyHls()
+  const generation = hlsGeneration
   import('hls.js')
     .then(({ default: Hls }) => {
-      if (destroyed) return
+      // 组件卸载、切回原视频、切文件都会 destroyHls() 并递增代次；
+      // 此时这次异步 import 已经过期，不能再把 HLS 挂到当前 video 上。
+      if (destroyed || generation !== hlsGeneration) return
       if (Hls.isSupported()) {
         const hls = new Hls({
           xhrSetup: (xhr: globalThis.XMLHttpRequest) => {
@@ -127,8 +135,25 @@ function hlsCustomType(video: HTMLVideoElement, url: string, art: any) {
         hls.attachMedia(video)
         hls.on(Hls.Events.ERROR, (_event: unknown, data: any) => {
           if (data?.fatal) {
-            ElMessage.error('高清播放加载失败，可重新生成或下载后播放')
+            ElMessage.error('高清播放加载失败，已回退原视频')
+            const previousTime = art.currentTime
             destroyHls()
+            // 不清掉 m3u8 type 就会继续把原视频当 HLS 加载；有原视频地址时
+            // 立即回退，避免用户只看到错误提示却无法继续播放。
+            art.type = ''
+            if (props.url) {
+              currentUrl = props.url
+              art
+                .switchUrl(props.url)
+                .then(() => {
+                  if (Number.isFinite(previousTime) && previousTime > 0) {
+                    art.currentTime = previousTime
+                  }
+                })
+                .catch(() => {
+                  /* 原视频也失败时不覆盖当前错误提示 */
+                })
+            }
           }
         })
         hlsInstance = hls
@@ -212,7 +237,7 @@ async function doInitPlayer(url: string) {
   const targetUrl = props.hlsUrl || props.url || url
   currentUrl = targetUrl
 
-  // 字幕请求与播放器初始化并行等待：没有字幕时后端 404，耗时很短；
+  // 字幕请求与播放器初始化并行等待：没有字幕时后端 204，耗时很短；
   // 失败一律返回 null，不阻塞播放
   const subtitleUrl = await resolveSubtitleUrl()
   if (destroyed || player || !containerRef.value) return
@@ -222,9 +247,6 @@ async function doInitPlayer(url: string) {
     // 以最新签名的 URL 创建，保证与 currentUrl 一致（否则 currentUrl 已是
     // targetUrl 而播放器实际播的是旧 url，后续 switchUrl 判重会误跳过）
     url: targetUrl,
-    // HLS 地址必须显式声明 type，Artplayer 才会走 customType；
-    // 原视频 URL 不设置 type，交给默认 video 播放。
-    type: isHls ? 'm3u8' : undefined,
     customType: { m3u8: hlsCustomType },
     title: props.title,
     autoplay: true,
@@ -258,6 +280,9 @@ async function doInitPlayer(url: string) {
       column: 1
     }
   }
+  // HLS 地址必须显式声明 type，Artplayer 才会走 customType。
+  // 原视频不能写 type: undefined：Artplayer 5.x 的 schema 会校验失败并拒绝创建实例。
+  if (isHls) playerOptions.type = 'm3u8'
   if (subtitleUrl) {
     // name 显示在设置面板，方便用户知道当前字幕来源
     playerOptions.subtitle = { url: subtitleUrl, type: 'vtt', name: '字幕', encoding: 'utf-8' }
@@ -313,6 +338,12 @@ watch(
     }
 
     currentUrl = newUrl
+    // 从 HLS 切换回原视频时，Artplayer 的 type 仍是 m3u8：不重置会继续走
+    // customType，把 MP4 地址当成 HLS 清单加载，表现为切换文件后黑屏。
+    if (player.type === 'm3u8') {
+      destroyHls()
+      player.type = ''
+    }
     // ArtPlayer.switchUrl 只接受一个 url 参数
     player.switchUrl(newUrl)
     player.play()
@@ -320,11 +351,28 @@ watch(
   }
 )
 
-// 高清版生成完成：保留播放进度，就地切到 HLS
+// 高清版生成完成：保留播放进度，就地切到 HLS；hlsUrl 被清空（切换文件/重置）时
+// 必须显式回退原视频，否则 player.type 仍停在 m3u8，后续原视频地址会被当成清单加载。
 watch(
   () => props.hlsUrl,
   async (newUrl) => {
-    if (!newUrl || newUrl === currentUrl) return
+    if (!newUrl) {
+      if (!player || !props.url || currentUrl === props.url) return
+      destroyHls()
+      const previousTime = player.currentTime
+      player.type = ''
+      currentUrl = props.url
+      try {
+        await player.switchUrl(props.url)
+        if (Number.isFinite(previousTime) && previousTime > 0) {
+          player.currentTime = previousTime
+        }
+      } catch {
+        // 原视频也有问题（文件被删/签名过期）时保持错误提示，交给用户重新打开
+      }
+      return
+    }
+    if (newUrl === currentUrl) return
     if (!player) {
       initPlayer(newUrl)
       return

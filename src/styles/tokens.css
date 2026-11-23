@@ -1,6 +1,12 @@
 /* ==========================================================================
- * X-Pan Design Tokens  —— 夸克网盘设计语言对齐版
- * 基于夸克视觉风格:纯色系 + 强对比 + 轻阴影 + 快动效
+ * X-Pan Design Tokens — 统一设计系统
+ *
+ * 口径（2026-11-21）：
+ * - 品牌识别色 #3366FF；白字按钮/链接使用更深的 action #245BFF（AA 5.23:1）。
+ * - 中性色沿用 Linear 的表面阶梯，避免 Web / Flutter / Desktop 各自一套。
+ * - 圆角/阴影/语义色由三端共享；平台差异只保留触控尺寸与原生字体。
+ * - 兼容旧 token：surface-container-* / primary / brand / fill 等保留别名，
+ *   因为历史页面大量引用；新代码请优先使用语义 token。
  * ========================================================================== */
 
 @import "tailwindcss";
@@ -9,9 +15,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  /* Web 端只保留桌面布局：把 Tailwind 响应式断点统一归零，
-   * 让 sm/md/lg/xl 等桌面规则的最终值在窄窗口也生效。
-   * 这不会影响 @media 手写样式；小屏由下方 1280px 最小宽度横向滚动兜底。
+  /* Web 端只保留桌面布局：桌面断点归零，小屏由 1280px 画布兜底。
    * 移动端适配由 x-pan-mobile 独立承载。 */
   --breakpoint-sm: 0px;
   --breakpoint-md: 0px;
@@ -19,83 +23,101 @@
   --breakpoint-xl: 0px;
   --breakpoint-2xl: 0px;
 
-  /* ============= 品牌主色:夸克蓝(#00A3FF) ============= */
-  --color-primary-50:  #e6f5ff;
-  --color-primary-100: #b3e5ff;
-  --color-primary-200: #80d6ff;
-  --color-primary-300: #4dc7ff;
-  --color-primary-400: #1ab8ff;
-  --color-primary-500: #00a3ff;  /* 核心品牌色 */
-  --color-primary-600: #0088db;
-  --color-primary-700: #006db4;
-  --color-primary-800: #00538d;
-  --color-primary-900: #003a66;
+  /* ============= 品牌色阶：X-Pan Blue ============= */
+  --color-primary-50:  #ebf1ff;
+  --color-primary-100: #d6e4ff;
+  --color-primary-200: #adc8ff;
+  --color-primary-300: #84abff;
+  --color-primary-400: #5b8fff;
+  --color-primary-500: #3366ff;  /* 品牌识别 */
+  --color-primary-600: #245bff;  /* 交互填充（白字 AA） */
+  --color-primary-700: #1a55f0;
+  --color-primary-800: #15399e;
+  --color-primary-900: #102c78;
 
-  /* ============= 中性灰:夸克风格(无蓝调) ============= */
+  /* 语义别名：新代码优先用 brand-action，不要直接用 primary-500 当按钮底色 */
+  --color-brand:             #3366ff;
+  --color-brand-action:      #245bff;
+  --color-brand-action-hover:#1a55f0;
+  --color-brand-action-active:#1b47c4;
+  --color-brand-soft:        #edf2ff;
+  --color-brand-sky:         #00a3ff;  /* 仅装饰/插画，不再承托白字 */
+
+  /* ============= 中性色阶：与 Flutter / Desktop 对齐 ============= */
   --color-neutral-0:   #ffffff;
-  --color-neutral-50:  #fafafa;
-  --color-neutral-100:  #f5f5f5;
-  --color-neutral-200:  #ebebeb;
-  --color-neutral-300:  #d9d9d9;
-  --color-neutral-400:  #b2b2b2;
-  --color-neutral-500:  #808080;
-  --color-neutral-600:  #595959;
-  --color-neutral-700:  #404040;
-  --color-neutral-800:  #262626;
-  --color-neutral-900:  #1a1a1a;
+  --color-neutral-50:  #f7f8f8;
+  --color-neutral-100: #f3f4f5;
+  --color-neutral-200: #e4e6e8;
+  --color-neutral-300: #d0d6e0;
+  --color-neutral-400: #b4b8be;
+  --color-neutral-500: #8a8f98;
+  --color-neutral-600: #4b5058;
+  --color-neutral-700: #34373b;
+  --color-neutral-800: #232528;
+  --color-neutral-900: #1d1d1f;
 
-  /* ============= 语义色(success/warning/danger) ============= */
-  --color-success:     #34c759;
-  --color-warning:     #ff9500;
-  --color-danger:      #ff3b30;
-  --color-info:        #00a3ff;
+  /* ============= 语义色（fill） ============= */
+  --color-success:     #10b981;
+  --color-warning:     #f59e0b;
+  --color-danger:      #ef4444;
+  --color-info:        #3366ff;
+  /* 小字/填充按钮使用深色档，避免白字压亮色 */
+  --color-success-action: #067647;
+  --color-warning-action: #b54708;
+  --color-danger-action:  #b42318;
 
   /* ============= 排版 ============= */
   --font-sans: "Be Vietnam Pro", "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Helvetica, ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", "SF Mono", Menlo, Consolas, ui-monospace, monospace;
 
-  --text-xs:   0.75rem;   /* 12px */
-  --text-sm:   0.875rem;  /* 14px */
-  --text-base: 1rem;      /* 16px */
-  --text-lg:   1.125rem;  /* 18px */
-  --text-xl:   1.25rem;   /* 20px */
-  --text-2xl:  1.5rem;    /* 24px */
-  --text-3xl:  1.875rem;  /* 30px */
-  --text-4xl:  2.25rem;   /* 36px */
+  --text-xs:   0.75rem;
+  --text-sm:   0.875rem;
+  --text-base: 1rem;
+  --text-lg:   1.125rem;
+  --text-xl:   1.25rem;
+  --text-2xl:  1.5rem;
+  --text-3xl:  1.875rem;
+  --text-4xl:  2.25rem;
 
-  /* ============= 圆角(夸克风格:偏小偏锐) ============= */
-  --radius-xs:   0.25rem;  /* 4px - 标签/徽章 */
-  --radius-sm:   0.375rem;  /* 6px - 小按钮 */
-  --radius:      0.5rem;    /* 8px - 按钮/输入框 */
-  --radius-md:   0.75rem;   /* 12px - 卡片(夸克核心圆角) */
-  --radius-lg:   1rem;      /* 16px - 大卡片/弹窗 */
-  --radius-xl:   1.25rem;   /* 20px */
-  --radius-2xl:  1.5rem;    /* 24px */
-  --radius-full:  9999px;
+  /* ============= 圆角：同一语义三端同值 ============= */
+  --radius-xs:   4px;
+  --radius-sm:   6px;   /* control / 小按钮 */
+  --radius:      8px;
+  --radius-md:   8px;   /* card */
+  --radius-lg:  12px;   /* panel */
+  --radius-xl:  16px;   /* overlay / sheet */
+  --radius-2xl: 20px;
+  --radius-full: 9999px;
 
-  /* ============= 阴影(夸克风格:轻量化,偏平面) ============= */
-  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-sm: 0 1px 4px 0 rgb(0 0 0 / 0.06);
-  --shadow:    0 4px 16px 0 rgb(0 0 0 / 0.08);
-  --shadow-lg: 0 8px 32px 0 rgb(0 0 0 / 0.10);
-  --shadow-xl: 0 16px 48px 0 rgb(0 0 0 / 0.12);
+  /* 语义圆角别名；新组件优先用这些，避免 rounded-sm 在不同端含义不同 */
+  --radius-control: 6px;
+  --radius-card:    8px;
+  --radius-panel:  12px;
+  --radius-sheet:  16px;
 
-  /* ============= 动效(夸克风格:轻快) ============= */
+  /* ============= 阴影：克制层级，不靠重阴影 ============= */
+  --shadow-xs: 0 1px 1px 0 rgb(16 24 40 / 0.03);
+  --shadow-sm: 0 1px 2px 0 rgb(16 24 40 / 0.04);
+  --shadow:    0 4px 12px 0 rgb(16 24 40 / 0.06);
+  --shadow-lg: 0 8px 24px 0 rgb(16 24 40 / 0.08);
+  --shadow-xl: 0 16px 40px 0 rgb(16 24 40 / 0.10);
+
+  /* ============= 动效 ============= */
   --ease:        cubic-bezier(0.4, 0, 0.2, 1);
   --ease-out:    cubic-bezier(0, 0, 0.2, 1);
   --ease-in:     cubic-bezier(0.4, 0, 1, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --dur-fast:    100ms;
-  --dur-base:    200ms;    /* 夸克标准 */
+  --dur-base:    200ms;
   --dur-slow:    350ms;
 
   /* ============= 布局尺寸 ============= */
-  --header-h:           48px;   /* 夸克标准顶栏高度 */
+  --header-h:           48px;
   --header-h-lg:        56px;
-  --navbar-w:           200px;  /* 夸克标准侧栏宽度 */
+  --navbar-w:           200px;
   --content-max-w:      1600px;
   --gutter:            24px;
-  --container-padding:   16px;
+  --container-padding:  16px;
 
   /* ============= Z 轴层级 ============= */
   --z-dropdown: 1000;
@@ -106,73 +128,130 @@
   --z-tooltip:  1500;
 }
 
-/* ============= 语义令牌(亮色主题) — 夸克风格:纯灰系 ============= */
+/* ============= 语义令牌（亮色主题） ============= */
 :root {
-  /* 背景色系(无蓝调) */
-  --color-bg:             #ffffff;  /* 页面背景:纯白 */
-  --color-surface:        #ffffff;   /* 卡片:纯白 */
-  --color-surface-2:       #f8f8f8;  /* 次级表面:极浅灰 */
-  --color-surface-3:       #f0f0f0;  /* 三级表面 */
+  --color-bg: #f7f8f8;
 
-  /* 文字色系 */
-  --color-text:           #1d1d1f;   /* 夸克主文字:近黑 */
-  --color-text-secondary: #646466;    /* 次级文字 */
-  --color-text-muted:     #86868b;   /* 辅助文字 */
-  --color-text-disabled:  #b2b2b2;   /* 禁用文字 */
+  /* 表面阶梯：low / container / high 对旧页面保留别名 */
+  --color-surface: #ffffff;
+  --color-surface-2: #f3f4f5;
+  --color-surface-3: #e9eaec;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f7f8f8;
+  --color-surface-container: #f3f4f5;
+  --color-surface-container-high: #e9eaec;
+  --color-surface-container-highest: #e1e3e6;
+  --color-surface-variant: #f3f4f5;
+  --color-fill: #f3f4f5;
 
-  /* 边框色系 */
-  --color-border:         #ebebeb;   /* 夸克标准边框:浅灰 */
-  --color-border-strong:  #d9d9d9;   /* 强边框 */
-  --color-border-focus:   #00a3ff;   /* 聚焦边框 */
+  --color-text: #1d1d1f;
+  --color-text-secondary: #4b5058;
+  --color-text-muted: #8a8f98;
+  --color-text-disabled: #b4b8be;
 
-  /* 交互态 */
-  --color-hover:          rgba(0, 0, 0, 0.04);
-  --color-active:         rgba(0, 0, 0, 0.08);
-  --color-selected:        rgba(0, 113, 227, 0.08); /* 夸克选中:极淡蓝底 */
-  --color-ring:           rgba(0, 113, 227, 0.3);  /* 夸克焦点环 */
+  --color-border: #e4e6e8;
+  --color-border-strong: #d0d6e0;
+  --color-border-focus: #245bff;
 
-  /* 状态色 */
-  --color-success-bg:     rgba(52, 199, 89, 0.1);
-  --color-warning-bg:    rgba(255, 149, 0, 0.1);
-  --color-danger-bg:     rgba(255, 59, 48, 0.1);
+  --color-primary: #3366ff;
+  --color-primary-container: #edf2ff;
+  --color-on-primary-container: #245bff;
+  --color-tertiary-container: #eef0ff;
+  --color-accent-soft: rgb(51 102 255 / 0.12);
+  --color-error-container: #fef3f2;
 
-  /* 配额三色阈值 */
-  --color-quota-normal:   #00a3ff;
-  --color-quota-warning:  #ff9500;
-  --color-quota-danger:   #ff3b30;
+  --color-hover: rgb(0 0 0 / 0.04);
+  --color-active: rgb(0 0 0 / 0.08);
+  --color-selected: rgb(36 91 255 / 0.10);
+  --color-ring: rgb(36 91 255 / 0.40);
+
+  --color-success-bg: rgb(16 185 129 / 0.10);
+  --color-warning-bg: rgb(245 158 11 / 0.12);
+  --color-danger-bg: rgb(239 68 68 / 0.10);
+  --color-success-text: #067647;
+  --color-warning-text: #b54708;
+  --color-danger-text: #b42318;
+  --color-info-text: #245bff;
+
+  --color-quota-normal: #3366ff;
+  --color-quota-warning: #f59e0b;
+  --color-quota-danger: #ef4444;
+
+  /* 错误页/独立暗色块使用；普通页面不要直接依赖 */
+  --color-bg-dark: #08090a;
+  --color-border-dark: #2a2b2e;
+  --color-text-dark: #f7f8f8;
+  --color-text-muted-dark: #8a8f98;
 }
 
-/* ============= 暗色主题 — 夸克暗色:纯黑+灰白 ============= */
+/* ============= 暗色主题 ============= */
 .dark {
-  /* 背景色系 */
-  --color-bg:             #111111;   /* 夸克暗色主背景:纯黑 */
-  --color-surface:        #1d1d1f;   /* 卡片:近黑 */
-  --color-surface-2:      #262629;   /* 次级表面 */
-  --color-surface-3:      #2c2c2f;   /* 三级表面 */
+  --color-bg: #08090a;
+  --color-surface: #0f1011;
+  --color-surface-2: #191a1b;
+  --color-surface-3: #28282c;
+  --color-surface-container-lowest: #08090a;
+  --color-surface-container-low: #0f1011;
+  --color-surface-container: #191a1b;
+  --color-surface-container-high: #28282c;
+  --color-surface-container-highest: #303136;
+  --color-surface-variant: #191a1b;
+  --color-fill: #191a1b;
 
-  /* 文字色系 */
-  --color-text:           #f5f5f7;   /* 主文字:近白 */
-  --color-text-secondary: #a1a1a6;   /* 次级文字 */
-  --color-text-muted:     #86868b;   /* 辅助文字 */
-  --color-text-disabled:  #48484a;   /* 禁用文字 */
+  --color-text: #f7f8f8;
+  --color-text-secondary: #d0d6e0;
+  --color-text-muted: #8a8f98;
+  --color-text-disabled: #62666d;
 
-  /* 边框色系 */
-  --color-border:         #38383a;   /* 夸克暗色边框 */
-  --color-border-strong:  #48484a;   /* 强边框 */
-  --color-border-focus:   #00a3ff;
+  --color-border: #2a2b2e;
+  --color-border-strong: #34343a;
+  --color-border-focus: #5b8fff;
 
-  /* 交互态 */
-  --color-hover:          rgba(255, 255, 255, 0.04);
-  --color-active:         rgba(255, 255, 255, 0.08);
-  --color-selected:       rgba(0, 113, 227, 0.15); /* 暗色选中:稍浓 */
-  --color-ring:           rgba(0, 113, 227, 0.4);
+  --color-primary: #5b8fff;
+  --color-primary-400: #84abff;
+  --color-primary-500: #5b8fff;
+  --color-primary-600: #7aa2ff;
+  --color-primary-700: #9bb6ff;
+  --color-brand: #5b8fff;
+  /* 白字按钮底在暗色下也保持 5.2:1，品牌亮蓝只用于链接/图标 */
+  --color-brand-action: #245bff;
+  --color-brand-action-hover: #1a55f0;
+  --color-brand-action-active: #1b47c4;
+  --color-brand-soft: rgb(91 143 255 / 0.16);
+  --color-primary-container: #1a2550;
+  --color-on-primary-container: #9bb6ff;
+  --color-tertiary-container: #23263a;
+  --color-accent-soft: rgb(91 143 255 / 0.18);
+  --color-error-container: #4a1d1a;
 
-  /* 暗色阴影(更重以建立层次感) */
-  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.3);
-  --shadow-sm: 0 1px 4px 0 rgb(0 0 0 / 0.4);
-  --shadow:    0 4px 16px 0 rgb(0 0 0 / 0.5);
-  --shadow-lg: 0 8px 32px 0 rgb(0 0 0 / 0.6);
-  --shadow-xl: 0 16px 48px 0 rgb(0 0 0 / 0.7);
+  --color-hover: rgb(255 255 255 / 0.05);
+  --color-active: rgb(255 255 255 / 0.09);
+  --color-selected: rgb(91 143 255 / 0.16);
+  --color-ring: rgb(122 162 255 / 0.55);
+
+  --color-success-bg: rgb(16 185 129 / 0.14);
+  --color-warning-bg: rgb(245 158 11 / 0.16);
+  --color-danger-bg: rgb(239 68 68 / 0.14);
+  --color-success-text: #6ce9a6;
+  --color-warning-text: #fec84b;
+  --color-danger-text: #fda29b;
+  --color-info-text: #9bb6ff;
+
+  --color-quota-normal: #5b8fff;
+  --color-quota-warning: #fec84b;
+  --color-quota-danger: #fda29b;
+
+  --color-bg-dark: #08090a;
+  --color-border-dark: #2a2b2e;
+  --color-text-dark: #f7f8f8;
+  --color-text-muted-dark: #8a8f98;
+
+  /* 暗色下阴影用黑色，避免白雾 */
+  --shadow-xs: 0 1px 1px 0 rgb(0 0 0 / 0.30);
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.35);
+  --shadow:    0 4px 12px 0 rgb(0 0 0 / 0.40);
+  --shadow-lg: 0 8px 24px 0 rgb(0 0 0 / 0.45);
+  --shadow-xl: 0 16px 40px 0 rgb(0 0 0 / 0.50);
 }
 
 /* ============= 全局基础 ============= */
@@ -228,11 +307,11 @@ body {
 
 /* 选区 */
 ::selection {
-  background: rgba(0, 163, 255, 0.2);
+  background: rgb(36 91 255 / 0.18);
   color: var(--color-text);
 }
 .dark ::selection {
-  background: rgba(0, 163, 255, 0.3);
+  background: rgb(91 143 255 / 0.28);
 }
 
 /* 焦点环 */
@@ -320,7 +399,7 @@ button:focus-visible,
 
 /* 夸克网盘回收站选中行:浅灰底 */
 .recycle-row-selected {
-  background-color: var(--color-surface-container) !important;
+  background-color: var(--color-surface-2) !important;
   color: var(--color-text);
 }
 
@@ -331,7 +410,7 @@ button:focus-visible,
 
 /* 夸克式危险按钮 */
 .quark-btn-danger {
-  background-color: vardanger;
+  background-color: var(--color-danger-action);
   color: white;
   border-radius: var(--radius);
   transition: opacity var(--dur-fast) var(--ease);
@@ -355,13 +434,13 @@ button:focus-visible,
 
 /* 夸克式玻璃面板 */
 .quark-glass {
-  background: rgba(255, 255, 255, 0.8);
+  background: color-mix(in srgb, var(--color-surface) 82%, transparent);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.3);
 }
 .dark .quark-glass {
-  background: rgba(29, 29, 31, 0.8);
+  background: color-mix(in srgb, var(--color-surface) 82%, transparent);
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -379,21 +458,21 @@ button:focus-visible,
   border: 1px solid var(--color-border);
 }
 .quark-badge-primary {
-  background: rgba(0, 163, 255, 0.1);
+  background: rgb(51 102 255 / 0.10);
   color: var(--color-primary-500);
-  border-color: rgba(0, 163, 255, 0.2);
+  border-color: rgb(51 102 255 / 0.22);
 }
 .quark-badge-success {
   background: var(--color-success-bg);
-  color: varsuccess;
+  color: var(--color-success-text);
 }
 .quark-badge-warning {
   background: var(--color-warning-bg);
-  color: varwarning;
+  color: var(--color-warning-text);
 }
 .quark-badge-danger {
   background: var(--color-danger-bg);
-  color: vardanger;
+  color: var(--color-danger-text);
 }
 
 /* 键盘用户跳过导航直达主内容；鼠标用户不显示，避免挤占首屏。 */
@@ -411,4 +490,13 @@ button:focus-visible,
 .skip-link:focus {
   left: 1rem;
   top: 1rem;
+}
+
+/* 暗色下实心 primary 背景必须用可承载白字的 action 色；
+   亮蓝色（--color-primary-500）只保留给文字、图标和描边。 */
+.dark .bg-primary-500 {
+  background-color: var(--color-brand-action);
+}
+.dark .border-primary-500 {
+  border-color: var(--color-brand-action);
 }

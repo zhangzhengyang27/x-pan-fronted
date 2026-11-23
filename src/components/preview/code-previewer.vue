@@ -6,6 +6,8 @@
  */
 import { createHighlighterCore, type HighlighterCore, type LanguageInput } from '@shikijs/core'
 import { createOnigurumaEngine } from '@shikijs/engine-oniguruma'
+// 内联 wasm：离线/受限网络也能高亮，避免运行时再拉取 wasm 资源
+import getWasmInstance from '@shikijs/engine-oniguruma/wasm-inlined'
 // 按需导入常用语言 grammar（fine-grained bundle），避免把 shiki 全量语言打包进 vendor chunk。
 // 仅覆盖前端 / Java / Python / Linux 运维常用语言；其余语言回退纯文本高亮。
 import javascript from '@shikijs/langs/javascript'
@@ -61,7 +63,9 @@ async function getHighlighter(lang: string): Promise<HighlighterCore> {
   const p = createHighlighterCore({
     themes: [githubLight, githubDark],
     langs,
-    engine: createOnigurumaEngine()
+    // createHighlighterCore 会 await engine；必须直接传 Promise。
+    // 传函数会被当成 RegexEngine 对象，报 createString is not a function。
+    engine: createOnigurumaEngine(getWasmInstance)
   })
   highlighterCache.set(lang, p)
   return p
@@ -255,7 +259,7 @@ watch(isDark, () => {
         variant="ghost"
         size="sm"
         @click="searchOpen = !searchOpen"
-        :class="searchOpen && 'bg-primary-50'"
+        :class="searchOpen && 'bg-(--color-selected)'"
       >
         <Search :size="14" />
         搜索
@@ -268,7 +272,7 @@ watch(isDark, () => {
         variant="ghost"
         size="sm"
         @click="gotoOpen = !gotoOpen"
-        :class="gotoOpen && 'bg-primary-50'"
+        :class="gotoOpen && 'bg-(--color-selected)'"
       >
         <Hash :size="14" />
         行号跳转
@@ -347,7 +351,7 @@ watch(isDark, () => {
     </div>
     <div
       v-else-if="error"
-      class="absolute inset-0 flex items-center justify-center text-sm text-danger"
+      class="absolute inset-0 flex items-center justify-center text-sm text-(--color-danger-text)"
     >
       {{ error }}
     </div>

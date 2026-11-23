@@ -119,7 +119,7 @@ onMounted(loadTableData)
     <!-- 顶行：标题 + 统计 -->
     <div class="flex items-center justify-between gap-3 min-w-0">
       <div class="flex items-center gap-2 min-w-0">
-        <Star :size="16" class="text-amber-400" />
+        <Star :size="16" class="text-(--color-warning-text)" />
         <span class="text-sm font-medium text-(--color-text)">我的收藏</span>
         <span v-if="favorites.length > 0" class="quark-badge text-[11px]">{{ favorites.length }} 项</span>
       </div>
@@ -178,7 +178,7 @@ onMounted(loadTableData)
           <div class="flex items-center gap-1 justify-end transition-opacity opacity-0 group-hover:opacity-100">
             <BaseTooltip text="取消收藏">
               <BaseButton variant="ghost" size="sm" @click="onToggleFavorite(row)">
-                <Star :size="14" :stroke-width="2" class="text-amber-400" />
+                <Star :size="14" :stroke-width="2" class="text-(--color-warning-text)" />
               </BaseButton>
             </BaseTooltip>
           </div>

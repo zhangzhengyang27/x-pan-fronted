@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * BaseEmpty —— 夸克风格空态组件
+ * BaseEmpty —— 统一设计系统空态组件
  * 简约图标 + 品牌色 + 标题 + 描述 + 可选 CTA
  */
 import { FolderOpen } from '@lucide/vue'
@@ -14,16 +14,13 @@ defineProps({
 
 <template>
   <div class="flex flex-col items-center text-center py-12 px-6 select-none">
-    <!-- 夸克式插画:简洁圆形图标 -->
-    <div
-      class="size-16 rounded-2xl flex items-center justify-center mb-5"
-      style="background-color: rgba(0, 163, 255, 0.08);"
-    >
+    <!-- 统一空态：低层级品牌底 + 中性图标框，不再使用高饱和渐变 -->
+    <div class="size-16 rounded-panel flex items-center justify-center mb-5 bg-(--color-brand-soft)">
       <component
         :is="icon"
         :size="30"
         :stroke-width="1.5"
-        class="text-primary-500"
+        class="text-(--color-brand-action)"
       />
     </div>
     <!-- 标题 -->

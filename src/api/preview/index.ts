@@ -1,10 +1,11 @@
 /**
  * 文档在线预览 API —— 对接后端 P4 PreviewController（异步任务模型）
  * - POST /preview/office/{fileId}?targetType=pdf  创建/获取预览任务
- * - GET  /preview/url/{taskId}                    轮询拿预览直链（完成后有值）
+ * - GET  /preview/url/{taskId}                    轮询拿预览地址（完成后有值）
  *
  * taskId 为后端加密字符串。status: 0 待处理 1 转换中 2 完成 3 失败。
- * previewUrl 为实时生成的预签名直链（浏览器可直访）。
+ * previewUrl 为受登录态保护的相对端点（如 /preview/result/{taskId}），
+ * 调用方需自行拼 API 前缀；MinIO 预签名直链才可能是绝对地址。
  */
 'use strict'
 

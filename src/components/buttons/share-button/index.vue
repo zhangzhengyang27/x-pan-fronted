@@ -372,7 +372,7 @@ defineExpose({ openModal })
       <div v-if="step === 1" class="space-y-4">
         <div>
           <label class="block text-xs font-medium text-(--color-text-muted) mb-1.5">
-            分享名称 <span class="text-danger">*</span>
+            分享名称 <span class="text-(--color-danger-text)">*</span>
           </label>
           <BaseInput
             ref="shareNameInputRef"
@@ -495,7 +495,7 @@ defineExpose({ openModal })
       <!-- Step 2：结果 -->
       <div v-else class="space-y-4">
         <div
-          class="flex items-center justify-center size-12 mx-auto rounded-full bg-success/10 text-success"
+          class="flex items-center justify-center size-12 mx-auto rounded-full bg-success/10 text-(--color-success-text)"
         >
           <Check :size="22" />
         </div>
@@ -525,7 +525,7 @@ defineExpose({ openModal })
 
         <div
           v-if="result.e2ee"
-          class="rounded-sm border border-warning/30 bg-warning/10 px-3 py-2 text-[11px] leading-5 text-warning"
+          class="rounded-sm border border-warning/30 bg-warning/10 px-3 py-2 text-[11px] leading-5 text-(--color-warning-text)"
         >
           这是端到端加密分享：链接 # 后包含解密密钥，服务端和日志都看不到。请通过可信渠道发送，任何拿到完整链接的人都能解密。
         </div>

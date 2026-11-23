@@ -416,7 +416,7 @@ watch(
               <button
                 type="button"
                 class="flex items-center gap-1 text-[11px] transition-colors"
-                :class="isFavorite(file.fileId) ? 'text-amber-500' : 'text-(--color-text-muted) hover:text-amber-500'"
+                :class="isFavorite(file.fileId) ? 'text-(--color-warning-text)' : 'text-(--color-text-muted) hover:text-(--color-warning-text)'"
                 @click="toggleFavorite(file as any)"
               >
                 <Star
@@ -438,7 +438,7 @@ watch(
               class="group flex flex-col items-center gap-1.5 flex-1 py-2 rounded-lg text-(--color-text-muted) hover:bg-(--color-surface-2) transition-colors"
               @click="download"
             >
-              <span class="size-9 rounded-full bg-primary-500/10 text-primary-500 group-hover:bg-primary-500 group-hover:text-white flex items-center justify-center transition-colors">
+              <span class="size-9 rounded-full bg-primary-500/10 text-primary-500 group-hover:bg-(--color-brand-action) group-hover:text-white flex items-center justify-center transition-colors">
                 <Download :size="17" :stroke-width="2" />
               </span>
               <span class="text-[11px]">下载</span>
@@ -450,7 +450,7 @@ watch(
               :disabled="file.fileType === 0"
               @click="share"
             >
-              <span class="size-9 rounded-full bg-primary-500/10 text-primary-500 group-hover:bg-primary-500 group-hover:text-white flex items-center justify-center transition-colors">
+              <span class="size-9 rounded-full bg-primary-500/10 text-primary-500 group-hover:bg-(--color-brand-action) group-hover:text-white flex items-center justify-center transition-colors">
                 <Share2 :size="17" :stroke-width="2" />
               </span>
               <span class="text-[11px]">分享</span>
@@ -472,7 +472,7 @@ watch(
               class="group flex flex-col items-center gap-1.5 flex-1 py-2 rounded-lg text-(--color-text-muted) hover:bg-(--color-surface-2) transition-colors"
               @click="deleteFile"
             >
-              <span class="size-9 rounded-full bg-danger/10 text-danger group-hover:bg-danger group-hover:text-white flex items-center justify-center transition-colors">
+              <span class="size-9 rounded-full bg-(--color-danger-bg) text-(--color-danger-text) group-hover:bg-(--color-danger-action) group-hover:text-white flex items-center justify-center transition-colors">
                 <Trash2 :size="17" :stroke-width="2" />
               </span>
               <span class="text-[11px]">删除</span>
@@ -608,7 +608,7 @@ watch(
               {{ tag }}
               <button
                 type="button"
-                class="size-3.5 rounded-full hover:bg-danger/20 hover:text-danger transition-colors ml-0.5 opacity-0 group-hover/tag:opacity-100"
+                class="size-3.5 rounded-full hover:bg-danger/20 hover:text-(--color-danger-text) transition-colors ml-0.5 opacity-0 group-hover/tag:opacity-100"
                 @click="removeTag(file.fileId, tag)"
               >
                 <X :size="10" />
@@ -625,7 +625,7 @@ watch(
             />
             <button
               type="button"
-              class="size-7 rounded-md bg-primary-500 text-white hover:bg-primary-600 transition-colors flex items-center justify-center"
+              class="size-7 rounded-md bg-(--color-brand-action) text-white hover:bg-(--color-brand-action-hover) transition-colors flex items-center justify-center"
               @click="handleAddTag"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="size-3.5">

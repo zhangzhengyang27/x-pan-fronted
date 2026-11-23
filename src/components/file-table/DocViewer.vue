@@ -220,7 +220,7 @@ function iconOf(row: IFileVO) {
             @contextmenu="emit('contextmenu', $event, f)"
           >
             <div class="flex items-start justify-between mb-2">
-              <div class="w-9 h-9 rounded-sm flex items-center justify-center" :style="{ backgroundColor: 'var(--color-primary-50)' }">
+              <div class="w-9 h-9 rounded-sm flex items-center justify-center" :style="{ backgroundColor: 'var(--color-brand-soft)' }">
                 <component :is="iconOf(f)" :size="18" class="text-primary-500" />
               </div>
               <!-- hover 快捷操作 -->
@@ -265,7 +265,7 @@ function iconOf(row: IFileVO) {
             @click="openPreview(f)"
             @contextmenu="emit('contextmenu', $event, f)"
           >
-            <div class="w-9 h-9 rounded-sm flex items-center justify-center shrink-0" :style="{ backgroundColor: 'var(--color-primary-50)' }">
+            <div class="w-9 h-9 rounded-sm flex items-center justify-center shrink-0" :style="{ backgroundColor: 'var(--color-brand-soft)' }">
               <component :is="iconOf(f)" :size="18" class="text-primary-500" />
             </div>
             <div class="min-w-0 flex-1">

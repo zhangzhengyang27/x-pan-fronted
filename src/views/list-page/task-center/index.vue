@@ -108,13 +108,13 @@ function statusMeta(t: ITaskCenterItem): {
   color: string
 } {
   if (t.status === 2) {
-    return { label: '已完成', variant: 'success', icon: CircleCheck, color: 'var(--color-success)' }
+    return { label: '已完成', variant: 'success', icon: CircleCheck, color: 'var(--color-success-text)' }
   }
   if (t.status === 3) {
-    return { label: '失败', variant: 'danger', icon: AlertCircle, color: 'var(--color-danger)' }
+    return { label: '失败', variant: 'danger', icon: AlertCircle, color: 'var(--color-danger-text)' }
   }
   if (t.status === 4) {
-    return { label: '已取消', variant: 'warning', icon: X, color: 'var(--color-warning)' }
+    return { label: '已取消', variant: 'warning', icon: X, color: 'var(--color-warning-text)' }
   }
   if (t.status === 1) {
     const label = t.taskType === 'extract' ? '解压中' : t.taskType === 'archive' ? '压缩中' : t.taskType === 'preview' ? '转换中' : '下载中'
@@ -325,7 +325,7 @@ onUnmounted(() => {
           <div class="flex flex-wrap items-center gap-3 text-xs" style="color: var(--color-text-muted);">
             <span>{{ task.createTime }}</span>
             <span v-if="task.progress != null" class="tabular-nums">{{ task.progress }}%</span>
-            <span v-if="task.errorMsg" class="truncate" style="color: var(--color-danger);">{{ task.errorMsg }}</span>
+            <span v-if="task.errorMsg" class="truncate" style="color: var(--color-danger-text);">{{ task.errorMsg }}</span>
           </div>
           <div v-if="task.progress != null" class="mt-2 max-w-md">
             <BaseProgress :value="task.progress" :status="progressStatus(task)" size="sm" :showText="false" />

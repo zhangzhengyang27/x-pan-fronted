@@ -341,7 +341,7 @@ function permissionLabel(value: string): string {
             class="flex items-center gap-1 rounded-sm border px-2 py-1 text-xs"
             :class="
               group.groupId === activeGroupId
-                ? 'border-primary-500 text-primary-600 bg-primary-50'
+                ? 'border-primary-500 text-primary-600 bg-(--color-selected)'
                 : 'border-(--color-border) text-(--color-text-muted) hover:bg-(--color-surface-container-low)'
             "
             @click="activeGroupId = group.groupId"
@@ -358,7 +358,7 @@ function permissionLabel(value: string): string {
           <div class="mb-2 flex items-center justify-between">
             <span class="text-xs text-(--color-text-muted)">{{ activeGroup.groupName }} 成员</span>
             <button
-              class="text-xs text-danger hover:underline"
+              class="text-xs text-(--color-danger-text) hover:underline"
               @click="deleteGroup(activeGroup)"
             >
               删除用户组
@@ -371,7 +371,7 @@ function permissionLabel(value: string): string {
               class="inline-flex items-center gap-1 rounded-full bg-(--color-surface) px-2 py-0.5 text-xs text-(--color-text)"
             >
               {{ member.username }}
-              <button class="text-(--color-text-muted) hover:text-danger" @click="removeMember(member.userId)">
+              <button class="text-(--color-text-muted) hover:text-(--color-danger-text)" @click="removeMember(member.userId)">
                 <X :size="12" />
               </button>
             </span>
@@ -453,13 +453,13 @@ function permissionLabel(value: string): string {
               class="rounded-sm px-1.5 py-0.5 text-[11px]"
               :class="
                 acl.permission === 'WRITE'
-                  ? 'bg-primary-50 text-primary-600'
+                  ? 'bg-(--color-selected) text-primary-600'
                   : 'bg-(--color-surface-container-low) text-(--color-text-muted)'
               "
             >
               {{ permissionLabel(acl.permission) }}
             </span>
-            <button class="text-(--color-text-muted) hover:text-danger" @click="deleteAcl(acl)">
+            <button class="text-(--color-text-muted) hover:text-(--color-danger-text)" @click="deleteAcl(acl)">
               <Trash2 :size="14" />
             </button>
           </div>

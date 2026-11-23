@@ -1,0 +1,82 @@
+{
+  "contract": "X-Pan cross-client design tokens",
+  "updated": "2026-11-21",
+  "principles": {
+    "brandRecognition": "品牌识别色只负责识别，不承托正文；需要白字的填充使用 brandAction。",
+    "platformDifference": "Web/Desktop 控件 6px、卡片 8px、面板 12px；Flutter 触控控件 8px、卡片 12px、面板 16px。",
+    "neutralSurfaces": "页面底、卡片、浮层、描边、正文、次要正文、弱化正文、禁用正文必须使用同一阶梯。"
+  },
+  "colors": {
+    "brand": {
+      "primary": "#3366FF",
+      "action": "#245BFF",
+      "actionHover": "#1A55F0",
+      "actionActive": "#1B47C4",
+      "soft": "#EDF2FF",
+      "sky": "#00A3FF"
+    },
+    "semantic": {
+      "success": "#10B981",
+      "warning": "#F59E0B",
+      "danger": "#EF4444",
+      "successText": "#067647",
+      "warningText": "#B54708",
+      "dangerText": "#B42318",
+      "successTextDark": "#6CE9A6",
+      "warningTextDark": "#FEC84B",
+      "dangerTextDark": "#FDA29B"
+    },
+    "light": {
+      "bg": "#F7F8F8",
+      "surface": "#FFFFFF",
+      "surface2": "#F3F4F5",
+      "surface3": "#E9EAEC",
+      "border": "#E4E6E8",
+      "borderStrong": "#D0D6E0",
+      "text": "#1D1D1F",
+      "textSecondary": "#4B5058",
+      "textMuted": "#8A8F98",
+      "textDisabled": "#B4B8BE"
+    },
+    "dark": {
+      "bg": "#08090A",
+      "surface": "#0F1011",
+      "surface2": "#191A1B",
+      "surface3": "#28282C",
+      "border": "#2A2B2E",
+      "borderStrong": "#34343A",
+      "text": "#F7F8F8",
+      "textSecondary": "#D0D6E0",
+      "textMuted": "#8A8F98",
+      "textDisabled": "#62666D"
+    }
+  },
+  "radius": {
+    "web": {
+      "control": "6px",
+      "card": "8px",
+      "panel": "12px",
+      "sheet": "16px",
+      "2xl": "20px"
+    },
+    "desktop": {
+      "control": "6px",
+      "card": "8px",
+      "panel": "12px",
+      "sheet": "16px",
+      "2xl": "20px"
+    },
+    "flutter": {
+      "control": 8,
+      "card": 12,
+      "panel": 16,
+      "sheet": 16,
+      "xl": 20
+    }
+  },
+  "files": {
+    "web": "x-pan-fronted/src/styles/tokens.css",
+    "desktop": "x-pan-desktop/src/style.css",
+    "flutter": "x-pan-mobile/lib/core/theme/app_tokens.dart"
+  }
+}

@@ -15,12 +15,12 @@ defineProps({
 
 const variantClass: Record<BadgeVariant, string> = {
   neutral:
-    'bg-(--color-surface-2) text-(--color-text-muted) border border-(--color-border)',
+    'bg-(--color-surface-2) text-(--color-text-secondary) border border-(--color-border)',
   primary:
-    'bg-primary-50 text-primary-700 border border-primary-200',
-  success: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
-  warning: 'bg-amber-50 text-amber-700 border border-amber-200',
-  danger: 'bg-red-50 text-red-700 border border-red-200'
+    'bg-(--color-brand-soft) text-(--color-info-text) border border-(--color-border)',
+  success: 'bg-(--color-success-bg) text-(--color-success-text) border border-(--color-border)',
+  warning: 'bg-(--color-warning-bg) text-(--color-warning-text) border border-(--color-border)',
+  danger: 'bg-(--color-danger-bg) text-(--color-danger-text) border border-(--color-border)'
 }
 
 const sizeClass: Record<BadgeSize, string> = {

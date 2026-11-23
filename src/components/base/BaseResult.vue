@@ -21,10 +21,10 @@ const iconMap: Record<ResultStatus, Component> = {
   warning: AlertTriangle
 }
 const colorMap: Record<ResultStatus, string> = {
-  success: 'text-success',
-  error: 'text-danger',
-  info: 'text-info',
-  warning: 'text-warning'
+  success: 'text-(--color-success-text)',
+  error: 'text-(--color-danger-text)',
+  info: 'text-(--color-info-text)',
+  warning: 'text-(--color-warning-text)'
 }
 </script>
 

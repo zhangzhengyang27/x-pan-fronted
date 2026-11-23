@@ -207,7 +207,7 @@ const hasTree = computed(() => treeData.value.length > 0)
         </div>
         <div
           v-else-if="error"
-          class="flex h-full flex-col items-center justify-center gap-2 text-sm text-danger"
+          class="flex h-full flex-col items-center justify-center gap-2 text-sm text-(--color-danger-text)"
         >
           <AlertCircle :size="20" />
           {{ error }}
@@ -226,7 +226,7 @@ const hasTree = computed(() => treeData.value.length > 0)
               class="w-full flex items-center gap-2 py-1.5 px-2 rounded-sm text-sm transition-colors"
               :class="
                 selectedId === null
-                  ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300'
+                  ? 'bg-(--color-selected) text-primary-700 dark:text-primary-300'
                   : 'hover:bg-(--color-surface-2) text-(--color-text)'
               "
               @click="pickRoot"

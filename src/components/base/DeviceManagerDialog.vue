@@ -117,12 +117,12 @@ function close() {
               >
                 <div
                   class="size-10 rounded-sm flex items-center justify-center shrink-0"
-                  :style="d.isCurrent ? 'background: rgba(34, 197, 94, 0.1);' : 'background: var(--color-surface-container-low);'"
+                  :style="d.isCurrent ? 'background: var(--color-success-bg);' : 'background: var(--color-surface-container-low);'"
                 >
                   <component
                     :is="deviceIcon(d)"
                     :size="20"
-                    :class="d.isCurrent ? 'text-green-500' : 'text-(--color-text-muted)'"
+                    :class="d.isCurrent ? 'text-(--color-success-text)' : 'text-(--color-text-muted)'"
                   />
                 </div>
                 <div class="flex-1 min-w-0">
@@ -130,8 +130,8 @@ function close() {
                     <span class="text-sm font-medium text-(--color-text)">{{ d.deviceName }}</span>
                     <span
                       v-if="d.isCurrent"
-                      class="px-1.5 py-0.5 rounded text-[10px] font-medium text-green-600"
-                      style="background: rgba(34, 197, 94, 0.1);"
+                      class="px-1.5 py-0.5 rounded text-[10px] font-medium text-(--color-success-text)"
+                      style="background: var(--color-success-bg);"
                     >
                       当前设备
                     </span>
@@ -152,7 +152,7 @@ function close() {
                 </div>
                 <button
                   v-if="!d.isCurrent"
-                  class="flex items-center gap-1 px-2.5 py-1.5 rounded-sm text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 shrink-0"
+                  class="flex items-center gap-1 px-2.5 py-1.5 rounded-sm text-xs text-(--color-danger-text) hover:bg-(--color-danger-bg) shrink-0"
                   @click="logout(d)"
                 >
                   <LogOut :size="12" />

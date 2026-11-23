@@ -353,7 +353,7 @@ function usedPercent(space: ISpaceVO): number {
         <button
           type="button"
           class="flex items-center gap-1.5 h-9 px-3.5 rounded-sm text-sm font-medium text-white"
-          style="background-color: var(--color-primary-500)"
+          style="background-color: var(--color-brand-action)"
           @click="createVisible = true"
         >
           <Plus :size="15" :stroke-width="2" />
@@ -448,7 +448,7 @@ function usedPercent(space: ISpaceVO): number {
                   v-if="isOwner"
                   type="button"
                   class="h-8 px-2.5 rounded-sm text-xs border border-(--color-border) hover:bg-(--color-hover)"
-                  style="color: var(--color-danger)"
+                  style="color: var(--color-danger-text)"
                   @click="dissolve"
                 >
                   解散
@@ -492,7 +492,7 @@ function usedPercent(space: ISpaceVO): number {
                     <button
                       type="button"
                       class="size-7 rounded-sm flex items-center justify-center hover:bg-(--color-hover)"
-                      style="color: var(--color-danger)"
+                      style="color: var(--color-danger-text)"
                       title="移除成员"
                       @click="removeMember(member)"
                     >
@@ -542,7 +542,7 @@ function usedPercent(space: ISpaceVO): number {
                       v-if="canInvite"
                       type="button"
                       class="size-7 rounded-sm flex items-center justify-center hover:bg-(--color-hover)"
-                      style="color: var(--color-danger)"
+                      style="color: var(--color-danger-text)"
                       title="撤销"
                       @click="revokeInvite(invite)"
                     >
@@ -576,7 +576,7 @@ function usedPercent(space: ISpaceVO): number {
         />
         <div class="flex justify-end gap-2 mt-5">
           <button type="button" class="h-8 px-3 rounded-sm text-xs border border-(--color-border) text-(--color-text-secondary)" @click="createVisible = false">取消</button>
-          <button type="button" class="h-8 px-3 rounded-sm text-xs text-white inline-flex items-center gap-1" style="background-color: var(--color-primary-500)" @click="doCreateTeam">
+          <button type="button" class="h-8 px-3 rounded-sm text-xs text-white inline-flex items-center gap-1" style="background-color: var(--color-brand-action)" @click="doCreateTeam">
             <Loader2 v-if="creating" :size="13" class="animate-spin" />
             创建
           </button>
@@ -604,7 +604,7 @@ function usedPercent(space: ISpaceVO): number {
         <input v-model.number="inviteMaxUses" type="number" min="0" class="w-full h-9 px-3 text-sm rounded-sm border border-(--color-border) bg-(--color-surface) text-(--color-text)" />
         <div class="flex justify-end gap-2 mt-5">
           <button type="button" class="h-8 px-3 rounded-sm text-xs border border-(--color-border) text-(--color-text-secondary)" @click="inviteVisible = false">取消</button>
-          <button type="button" class="h-8 px-3 rounded-sm text-xs text-white inline-flex items-center gap-1" style="background-color: var(--color-primary-500)" @click="doCreateInvite">
+          <button type="button" class="h-8 px-3 rounded-sm text-xs text-white inline-flex items-center gap-1" style="background-color: var(--color-brand-action)" @click="doCreateInvite">
             <Loader2 v-if="creatingInvite" :size="13" class="animate-spin" />
             生成链接
           </button>
@@ -620,7 +620,7 @@ function usedPercent(space: ISpaceVO): number {
         <input v-model.number="quotaGb" type="number" min="1" max="10240" class="w-full h-9 px-3 text-sm rounded-sm border border-(--color-border) bg-(--color-surface) text-(--color-text)" />
         <div class="flex justify-end gap-2 mt-5">
           <button type="button" class="h-8 px-3 rounded-sm text-xs border border-(--color-border) text-(--color-text-secondary)" @click="quotaVisible = false">取消</button>
-          <button type="button" class="h-8 px-3 rounded-sm text-xs text-white inline-flex items-center gap-1" style="background-color: var(--color-primary-500)" @click="doUpdateQuota">
+          <button type="button" class="h-8 px-3 rounded-sm text-xs text-white inline-flex items-center gap-1" style="background-color: var(--color-brand-action)" @click="doUpdateQuota">
             <Loader2 v-if="savingQuota" :size="13" class="animate-spin" />
             保存
           </button>
@@ -635,7 +635,7 @@ function usedPercent(space: ISpaceVO): number {
         <input v-model="renameName" maxlength="32" class="w-full h-9 px-3 text-sm rounded-sm border border-(--color-border) bg-(--color-surface) text-(--color-text) focus:outline-none focus:border-(--color-border-focus)" @keyup.enter="doRename" />
         <div class="flex justify-end gap-2 mt-5">
           <button type="button" class="h-8 px-3 rounded-sm text-xs border border-(--color-border) text-(--color-text-secondary)" @click="renameVisible = false">取消</button>
-          <button type="button" class="h-8 px-3 rounded-sm text-xs text-white inline-flex items-center gap-1" style="background-color: var(--color-primary-500)" @click="doRename">
+          <button type="button" class="h-8 px-3 rounded-sm text-xs text-white inline-flex items-center gap-1" style="background-color: var(--color-brand-action)" @click="doRename">
             <Loader2 v-if="renaming" :size="13" class="animate-spin" />
             保存
           </button>

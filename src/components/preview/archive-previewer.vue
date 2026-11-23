@@ -7,7 +7,7 @@
  *
  * 复用 ptoken 鉴权链路（不额外暴露长期 token），解压结果直接入库到当前目录。
  */
-import { computed, onBeforeUnmount, ref } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { Archive, FileArchive, Download, LoaderCircle, CheckCircle2, AlertCircle } from '@lucide/vue'
 import { getDownloadUrl, getFileExtension } from '@/utils/preview'
 import extractService from '@/api/file/extract'
@@ -48,7 +48,9 @@ function stopPolling() {
 }
 
 function startExtract() {
-  if (!canExtract.value || status.value === 'extracting') return
+  if (!canExtract.value || status.value === 'extracting' || status.value === 'done') return
+  // 重新开始前先清掉上一轮计时器：否则旧任务继续轮询会把状态覆盖回来
+  stopPolling()
   status.value = 'extracting'
   progress.value = 0
   errorMsg.value = ''
@@ -108,6 +110,18 @@ function startExtract() {
 }
 
 onBeforeUnmount(stopPolling)
+// 预览弹窗内切换压缩包时组件实例会被复用；不重置状态会继续显示上一个包的
+// 解压进度/完成结果，甚至把旧轮询结果写到新文件上。
+watch(
+  () => [props.fileId, props.filename],
+  () => {
+    stopPolling()
+    status.value = 'idle'
+    progress.value = 0
+    errorMsg.value = ''
+    resultCount.value = 0
+  }
+)
 
 const downloadUrl = computed(() => getDownloadUrl(props.fileId))
 </script>
@@ -140,25 +154,31 @@ const downloadUrl = computed(() => getDownloadUrl(props.fileId))
     </div>
 
     <!-- 完成态 -->
-    <div v-else-if="status === 'done'" class="flex items-center gap-1.5 text-sm text-success">
+    <div v-else-if="status === 'done'" class="flex items-center gap-1.5 text-sm text-(--color-success-text)">
       <CheckCircle2 :size="16" />
       已解压 {{ resultCount }} 个文件到当前目录
     </div>
 
     <!-- 错误态 -->
-    <div v-else-if="status === 'error'" class="flex items-center gap-1.5 text-sm text-danger">
+    <div v-else-if="status === 'error'" class="flex items-center gap-1.5 text-sm text-(--color-danger-text)">
       <AlertCircle :size="16" />
       {{ errorMsg || '解压失败，请重试' }}
     </div>
 
     <!-- 超时态：停止轮询，任务转后台继续执行 -->
-    <div v-else-if="status === 'timeout'" class="flex items-center gap-1.5 text-sm text-warning">
+    <div v-else-if="status === 'timeout'" class="flex items-center gap-1.5 text-sm text-(--color-warning-text)">
       <AlertCircle :size="16" />
       解压耗时较长，已转为后台处理，请稍后在文件列表中查看结果
     </div>
 
     <div class="flex items-center gap-2">
-      <BaseButton v-if="canExtract" variant="primary" size="sm" :disabled="status === 'extracting'" @click="startExtract">
+      <BaseButton
+        v-if="canExtract"
+        variant="primary"
+        size="sm"
+        :disabled="status === 'extracting' || status === 'done'"
+        @click="startExtract"
+      >
         <span class="inline-flex items-center gap-1.5">
           <Archive :size="14" />
           {{ status === 'extracting' ? '解压中' : '在线解压' }}

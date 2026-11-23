@@ -177,7 +177,7 @@ function formatCreateTime(row: Partial<IDirectLinkVO>) {
         class="rounded-xl border border-(--color-border) p-4 bg-(--color-surface-container-low)"
       >
         <div class="text-xs mb-1" style="color: var(--color-text-muted)">启用中</div>
-        <div class="text-2xl font-bold tabular-nums" style="color: var(--color-success)">
+        <div class="text-2xl font-bold tabular-nums" style="color: var(--color-success-text)">
           {{ summary.enabled }}
         </div>
       </div>

@@ -56,7 +56,7 @@ const selectedCount = computed(() => props.selectedRows.length)
     <CopyButton roundFlag size="small" />
     <button
       type="button"
-      class="h-7 px-2 rounded-sm text-xs inline-flex items-center gap-1 text-danger hover:bg-(--color-danger-bg)/20"
+      class="h-7 px-2 rounded-sm text-xs inline-flex items-center gap-1 text-(--color-danger-text) hover:bg-(--color-danger-bg)/20"
       @click="onBatchDelete"
     >
       <Trash2 :size="12" />

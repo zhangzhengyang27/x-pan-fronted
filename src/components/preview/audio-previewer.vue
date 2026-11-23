@@ -2,8 +2,12 @@
 /**
  * AudioPreviewer —— 基于 APlayer（动态 import）
  * 1:1 复现 html5-examples AudioPreviewer
+ *
+ * 注意：预览弹窗可能在同一个组件实例内切换音频文件，APlayer 不像 img/audio
+ * 那样会自动跟随 src 变化；这里必须监听 url/fileId/title，销毁旧实例后重建，
+ * 否则切歌后仍播放上一首。
  */
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import 'aplayer/dist/APlayer.min.css'
 import { getPreviewUrl } from '@/utils/preview'
 
@@ -14,12 +18,29 @@ const props = defineProps({
   url: { type: String, default: '' }
 })
 
-const containerRef = ref(null)
+const containerRef = ref<HTMLDivElement | null>(null)
 let player: { destroy: () => void } | null = null
+// 重建是异步的（动态 import + await 后可能已被下一次切换抢先），用序号丢弃旧实例
+let loadSeq = 0
+let destroyed = false
 
-onMounted(async () => {
+function destroyPlayer() {
+  if (!player) return
+  try {
+    player.destroy()
+  } catch {
+    /* noop */
+  }
+  player = null
+}
+
+async function createPlayer() {
   if (!containerRef.value) return
+  const seq = ++loadSeq
+  destroyPlayer()
   const { default: APlayer } = await import('aplayer')
+  // await 后组件可能已卸载，或用户又切了下一首
+  if (destroyed || seq !== loadSeq || !containerRef.value) return
   player = new APlayer({
     container: containerRef.value,
     audio: [
@@ -33,17 +54,15 @@ onMounted(async () => {
     lrcType: 0,
     theme: '#00b2ff'
   })
-})
+}
+
+onMounted(createPlayer)
+watch(() => [props.fileId, props.url, props.title], createPlayer)
 
 onBeforeUnmount(() => {
-  if (player) {
-    try {
-      player.destroy()
-    } catch {
-      /* noop */
-    }
-    player = null
-  }
+  destroyed = true
+  loadSeq++
+  destroyPlayer()
 })
 </script>
 

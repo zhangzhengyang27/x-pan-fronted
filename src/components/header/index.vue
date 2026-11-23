@@ -45,7 +45,7 @@ function openAI() {
       <router-link to="/" class="flex items-center gap-2.5 shrink-0 group">
         <div
           class="size-7 rounded-sm flex items-center justify-center shrink-0"
-          style="background-color: var(--color-primary-500);"
+          style="background-color: var(--color-brand-action);"
         >
           <Cloud :size="14" :stroke-width="2" class="text-white" />
         </div>

@@ -78,13 +78,13 @@ function versionIconBg(op: VersionOperation) {
   const v = operationMeta(op).variant
   switch (v) {
     case 'primary':
-      return 'bg-primary-50 dark:bg-primary-900/30'
+      return 'bg-(--color-selected)'
     case 'warning':
-      return 'bg-amber-50 dark:bg-amber-900/30'
+      return 'bg-(--color-warning-bg)'
     case 'success':
-      return 'bg-emerald-50 dark:bg-emerald-900/30'
+      return 'bg-(--color-success-bg)'
     case 'danger':
-      return 'bg-red-50 dark:bg-red-900/30'
+      return 'bg-(--color-danger-bg)'
     default:
       return 'bg-(--color-surface-2)'
   }
@@ -96,11 +96,11 @@ function versionIconFg(op: VersionOperation) {
     case 'primary':
       return 'text-primary-600'
     case 'warning':
-      return 'text-amber-600 dark:text-amber-400'
+      return 'text-(--color-warning-text)'
     case 'success':
-      return 'text-emerald-600 dark:text-emerald-400'
+      return 'text-(--color-success-text)'
     case 'danger':
-      return 'text-red-600 dark:text-red-400'
+      return 'text-(--color-danger-text)'
     default:
       return 'text-(--color-text-muted)'
   }

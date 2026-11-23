@@ -25,6 +25,9 @@ const hlsUrl = ref('')
 const hlsLoading = ref(false)
 let hlsPollTimer: ReturnType<typeof setTimeout> | null = null
 let hlsPollDeadline = 0
+// 路由参数切换时旧文件的 HLS 创建/轮询请求可能仍在途；用代次隔离，
+// 防止旧任务返回后把上一部视频的 hlsUrl 写到新视频页。
+let requestSeq = 0
 
 function stopHlsPoll() {
   if (hlsPollTimer) {
@@ -33,7 +36,8 @@ function stopHlsPoll() {
   }
 }
 
-async function pollHlsTask(taskId: string) {
+async function pollHlsTask(taskId: string, seq: number) {
+  if (seq !== requestSeq) return
   if (Date.now() > hlsPollDeadline) {
     hlsLoading.value = false
     ElMessage.error('高清转码超时，请稍后重试')
@@ -43,10 +47,17 @@ async function pollHlsTask(taskId: string) {
     const data = await new Promise<{ status: number; previewUrl?: string }>((resolve, reject) => {
       previewService.url(taskId, (res) => resolve(res.data), (err) => reject(err))
     })
+    if (seq !== requestSeq) return
     if (data.status === 2 && data.previewUrl) {
       hlsUrl.value = panUtil.getUrlPrefix() + data.previewUrl
       hlsLoading.value = false
       ElMessage.success('高清版已生成，正在切换播放')
+      return
+    }
+    if (data.status === 2) {
+      // 任务完成但产物地址缺失（目录被清理/脏数据）：继续轮询只会空转 5 分钟。
+      hlsLoading.value = false
+      ElMessage.error('高清版产物缺失，请重新生成')
       return
     }
     if (data.status === 3) {
@@ -55,30 +66,39 @@ async function pollHlsTask(taskId: string) {
       ElMessage.error('高清转码失败，已继续播放原视频')
       return
     }
-    hlsPollTimer = setTimeout(() => pollHlsTask(taskId), 1000)
+    hlsPollTimer = setTimeout(() => pollHlsTask(taskId, seq), 1000)
   } catch {
+    if (seq !== requestSeq) return
     // 网络抖动不应该终止转码；下一次轮询继续
-    hlsPollTimer = setTimeout(() => pollHlsTask(taskId), 2000)
+    hlsPollTimer = setTimeout(() => pollHlsTask(taskId, seq), 2000)
   }
 }
 
 async function generateHls() {
   if (!fileId.value || hlsLoading.value) return
+  const seq = requestSeq
   hlsLoading.value = true
   try {
     const task = await previewService.hls(fileId.value)
+    if (seq !== requestSeq) return
     if (task.status === 2) {
       // 之前已转好：POST 幂等返回完成，直接走 URL 接口拿播放地址
       const data = await new Promise<{ status: number; previewUrl?: string }>((resolve, reject) => {
         previewService.url(task.taskId, (res) => resolve(res.data), (err) => reject(err))
       })
-      if (data.previewUrl) hlsUrl.value = panUtil.getUrlPrefix() + data.previewUrl
+      if (seq !== requestSeq) return
+      if (data.previewUrl) {
+        hlsUrl.value = panUtil.getUrlPrefix() + data.previewUrl
+      } else {
+        ElMessage.error('高清版产物缺失，请重新生成')
+      }
       hlsLoading.value = false
       return
     }
     hlsPollDeadline = Date.now() + 5 * 60 * 1000
-    pollHlsTask(task.taskId)
+    pollHlsTask(task.taskId, seq)
   } catch {
+    if (seq !== requestSeq) return
     hlsLoading.value = false
     ElMessage.error('创建高清转码任务失败')
   }
@@ -87,16 +107,27 @@ async function generateHls() {
 watch(
   fileId,
   (id) => {
+    // 推进代次并清掉旧定时器；在途请求晚到时由 seq 拦截。
+    const seq = ++requestSeq
     stopHlsPoll()
     previewUrl.value = ''
     hlsUrl.value = ''
     hlsLoading.value = false
-    if (id) resolvePreviewUrl(id).then((u) => (previewUrl.value = u)).catch(() => {})
+    if (id) {
+      resolvePreviewUrl(id)
+        .then((u) => {
+          if (seq === requestSeq) previewUrl.value = u
+        })
+        .catch(() => {})
+    }
   },
   { immediate: true }
 )
 
-onBeforeUnmount(stopHlsPoll)
+onBeforeUnmount(() => {
+  requestSeq++
+  stopHlsPoll()
+})
 </script>
 
 <template>

@@ -265,7 +265,7 @@ onMounted(() => {
           class="inline-flex items-center gap-1.5 h-8 px-4 py-1.5 rounded-[6px] text-sm font-medium whitespace-nowrap transition-all"
           :class="[
             typeFilter === t.value
-              ? 'bg-primary-500 text-white border border-transparent shadow-[0_2px_6px_rgba(0,163,255,0.35)]'
+              ? 'bg-(--color-brand-action) text-white border border-transparent shadow-[0_2px_6px_rgb(36_91_255_/_0.28)]'
               : 'bg-(--color-surface) border border-(--color-border) text-(--color-text) hover:border-primary-300 hover:text-primary-600'
           ]"
           @click="typeFilter = t.value"
@@ -349,7 +349,7 @@ onMounted(() => {
         <template #cell-clearDate="{ row }">
           <span
             class="text-xs tabular-nums"
-            :class="expireInfo(row).expired ? 'text-danger' : 'text-(--color-text-secondary)'"
+            :class="expireInfo(row).expired ? 'text-(--color-danger-text)' : 'text-(--color-text-secondary)'"
           >
             {{ formatClearDate(row) }}
           </span>

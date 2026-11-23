@@ -228,7 +228,7 @@ function formatExpireTime(row: Partial<IShareVO>) {
         class="rounded-xl border border-(--color-border) p-4 bg-(--color-surface-container-low)"
       >
         <div class="text-xs mb-1" style="color: var(--color-text-muted);">有效分享</div>
-        <div class="text-2xl font-bold tabular-nums" style="color: var(--color-success);">
+        <div class="text-2xl font-bold tabular-nums" style="color: var(--color-success-text);">
           {{ summary.activeShares }}
         </div>
       </div>
@@ -244,7 +244,7 @@ function formatExpireTime(row: Partial<IShareVO>) {
         class="rounded-xl border border-(--color-border) p-4 bg-(--color-surface-container-low)"
       >
         <div class="text-xs mb-1" style="color: var(--color-text-muted);">剩余下载配额</div>
-        <div class="text-2xl font-bold tabular-nums" style="color: var(--color-warning);">
+        <div class="text-2xl font-bold tabular-nums" style="color: var(--color-warning-text);">
           {{ summary.remainingQuota }}
         </div>
       </div>
@@ -312,7 +312,7 @@ function formatExpireTime(row: Partial<IShareVO>) {
       <template #cell-expireTime="{ row }">
         <span
           class="tabular-nums text-sm"
-          :style="isExpired(row) ? 'color: var(--color-danger);' : 'color: var(--color-text-muted);'"
+          :style="isExpired(row) ? 'color: var(--color-danger-text);' : 'color: var(--color-text-muted);'"
         >
           {{ formatExpireTime(row) }}
           <span v-if="isExpired(row)" class="ml-1">(已过期)</span>

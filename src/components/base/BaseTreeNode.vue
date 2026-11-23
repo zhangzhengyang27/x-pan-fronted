@@ -40,8 +40,8 @@ function onToggle(node: TreeNodeData) {
         cn(
           'flex items-center gap-1.5 py-1 px-2 rounded-sm cursor-pointer text-sm transition-colors',
           'hover:bg-(--color-surface-2)',
-          selected && 'bg-primary-50 text-primary-700',
-          selected && 'dark:bg-primary-900/30 dark:text-primary-300'
+          selected && 'bg-(--color-selected) text-primary-700',
+          selected && 'dark:text-primary-300'
         )
       "
       :style="{ paddingLeft: `${level * 16 + 8}px` }"

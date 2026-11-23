@@ -41,7 +41,7 @@ function pick(value: string | number) {
         class="relative size-4 rounded-full border flex items-center justify-center transition-colors"
         :class="
           modelValue === opt.value
-            ? 'border-primary-600 bg-primary-600'
+            ? 'border-(--color-brand-action) bg-(--color-brand-action)'
             : 'border-(--color-border-strong) bg-(--color-surface)'
         "
       >

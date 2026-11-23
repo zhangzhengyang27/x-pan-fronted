@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * BaseButton —— 通用按钮（夸克风格）
+ * BaseButton —— 通用按钮（统一设计系统）
  * variant: primary | secondary | ghost | danger | warning
  * size: xs | sm | md | lg
  */
@@ -24,28 +24,28 @@ const props = defineProps({
 
 const variantClass = computed(() =>
   ({
-    primary: 'bg-primary-500 text-white hover:bg-primary-600',
+    primary: 'bg-(--color-brand-action) text-white hover:bg-(--color-brand-action-hover) active:bg-(--color-brand-action-active)',
     secondary: 'bg-(--color-surface) text-(--color-text) border border-(--color-border) hover:bg-(--color-surface-2)',
     ghost: 'bg-transparent text-(--color-text) hover:bg-(--color-hover)',
-    danger: 'bg-danger text-white hover:opacity-85',
-    warning: 'bg-warning text-white hover:opacity-85'
+    danger: 'bg-(--color-danger-action) text-white hover:opacity-85',
+    warning: 'bg-(--color-warning-action) text-white hover:opacity-85'
   })[props.variant]
 )
 
 const sizeClass = computed(
   () =>
     ({
-      xs: 'h-6 px-2 text-[11px] gap-1 rounded-sm',
-      sm: 'h-8 px-3 text-xs gap-1.5 rounded-sm',
-      md: 'h-9 px-4 text-sm gap-2 rounded-sm',
-      lg: 'h-10 px-5 text-sm gap-2 rounded-sm'
+      xs: 'h-6 px-2 text-[11px] gap-1 rounded-control',
+      sm: 'h-8 px-3 text-xs gap-1.5 rounded-control',
+      md: 'h-9 px-4 text-sm gap-2 rounded-control',
+      lg: 'h-10 px-5 text-sm gap-2 rounded-control'
     })[props.size] ||
     // 兜底：未知 size 时回退到 sm，避免 className 缺失导致按钮无尺寸
     ({
-      xs: 'h-6 px-2 text-[11px] gap-1 rounded-sm',
-      sm: 'h-8 px-3 text-xs gap-1.5 rounded-sm',
-      md: 'h-9 px-4 text-sm gap-2 rounded-sm',
-      lg: 'h-10 px-5 text-sm gap-2 rounded-sm'
+      xs: 'h-6 px-2 text-[11px] gap-1 rounded-control',
+      sm: 'h-8 px-3 text-xs gap-1.5 rounded-control',
+      md: 'h-9 px-4 text-sm gap-2 rounded-control',
+      lg: 'h-10 px-5 text-sm gap-2 rounded-control'
     }).sm
 )
 

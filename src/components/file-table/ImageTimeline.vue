@@ -213,7 +213,7 @@ function onCardClick(file: IFileVO) {
           <span class="timeline-date-text">{{ group.label }}</span>
           <button
             type="button"
-            class="timeline-date-select text-xs text-(--color-text-muted) hover:text-primary-500"
+            class="timeline-date-select text-xs text-(--color-text-secondary) hover:text-primary-500"
             @click="selectAllInGroup(group.list)"
           >
             全选
@@ -303,7 +303,7 @@ function onCardClick(file: IFileVO) {
 .timeline-date-text {
   font-size: 12px;
   font-weight: 700;
-  color: rgb(82, 86, 94);
+  color: var(--color-text-secondary);
 }
 .timeline-date-select {
   font-size: 12px;
@@ -376,7 +376,7 @@ function onCardClick(file: IFileVO) {
   z-index: 2;
 }
 .ttlimg-select-status.active {
-  background: var(--color-primary-500);
+  background: var(--color-brand-action);
 }
 .ttlimg-item.selected {
   outline: 2px solid var(--color-primary-500);

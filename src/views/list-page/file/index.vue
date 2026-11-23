@@ -429,7 +429,7 @@ onUnmounted(() => {
       <div
         v-if="isDragOver"
         class="pointer-events-none absolute inset-0 z-30 flex items-center justify-center backdrop-blur-sm rounded-xl m-4 border-2 border-dashed"
-        style="border-color: var(--color-primary-500); background-color: rgba(0, 112, 243, 0.05);"
+        style="border-color: var(--color-brand-action); background-color: var(--color-selected);"
       >
         <div class="flex flex-col items-center gap-3" style="color: var(--color-primary-500);">
           <CloudUpload :size="56" :stroke-width="1.5" />
@@ -459,7 +459,7 @@ onUnmounted(() => {
             type="button"
             class="size-4 rounded flex items-center justify-center transition-colors"
             style="border: 1px solid var(--color-border-strong);"
-            :style="(isAllSelected || isIndeterminate) ? 'background-color: var(--color-primary-500); border-color: var(--color-primary-500); color: white;' : ''"
+            :style="(isAllSelected || isIndeterminate) ? 'background-color: var(--color-brand-action); border-color: var(--color-brand-action); color: white;' : ''"
             @click="toggleSelectAll"
           >
             <Check v-if="isAllSelected" :size="12" :stroke-width="3" />
@@ -510,7 +510,7 @@ onUnmounted(() => {
           <BaseTooltip text="删除" position="bottom">
             <button
               type="button"
-              class="h-8 px-2 rounded-sm text-sm inline-flex items-center gap-1 text-danger hover:bg-(--color-danger-bg)/20"
+              class="h-8 px-2 rounded-sm text-sm inline-flex items-center gap-1 text-(--color-danger-text) hover:bg-(--color-danger-bg)/20"
               @click="onBatchDelete"
             >
               <Trash2 :size="16" />
@@ -567,7 +567,7 @@ onUnmounted(() => {
             <button
               type="button"
               class="size-8 flex items-center justify-center transition-colors"
-              :style="view === 'list' ? 'background-color: var(--color-primary-500); color: white;' : 'color: var(--color-text-muted);'"
+              :style="view === 'list' ? 'background-color: var(--color-brand-action); color: white;' : 'color: var(--color-text-muted);'"
               aria-label="列表视图"
               @click="view = 'list'"
             >
@@ -578,7 +578,7 @@ onUnmounted(() => {
             <button
               type="button"
               class="size-8 flex items-center justify-center transition-colors"
-              :style="view === 'grid' ? 'background-color: var(--color-primary-500); color: white;' : 'color: var(--color-text-muted);'"
+              :style="view === 'grid' ? 'background-color: var(--color-brand-action); color: white;' : 'color: var(--color-text-muted);'"
               aria-label="网格视图"
               @click="view = 'grid'"
             >

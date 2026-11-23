@@ -209,7 +209,7 @@ onMounted(() => {
       <div class="w-[380px] max-w-[90vw] rounded-2xl border border-(--color-border) bg-(--color-surface) p-8 text-center shadow-sm">
         <div
           class="size-16 rounded-2xl mx-auto mb-5 flex items-center justify-center"
-          style="background: linear-gradient(135deg, rgba(0, 178, 255, 0.12), rgba(0, 178, 255, 0.04));"
+          style="background: linear-gradient(135deg, var(--color-brand-soft), transparent);"
         >
           <KeyRound :size="32" :stroke-width="1.5" class="text-primary-500" />
         </div>
@@ -247,7 +247,7 @@ onMounted(() => {
         </div>
         <button
           class="w-full py-2.5 rounded-sm text-sm font-medium text-white flex items-center justify-center gap-2 disabled:opacity-60"
-          style="background: var(--color-primary-500);"
+          style="background: var(--color-brand-action);"
           :disabled="submitting"
           @click="setup"
         >
@@ -263,7 +263,7 @@ onMounted(() => {
       <div class="w-[380px] max-w-[90vw] rounded-2xl border border-(--color-border) bg-(--color-surface) p-8 text-center shadow-sm">
         <div
           class="size-16 rounded-2xl mx-auto mb-5 flex items-center justify-center"
-          style="background: linear-gradient(135deg, rgba(0, 178, 255, 0.12), rgba(0, 178, 255, 0.04));"
+          style="background: linear-gradient(135deg, var(--color-brand-soft), transparent);"
         >
           <Shield :size="32" :stroke-width="1.5" class="text-primary-500" />
         </div>
@@ -289,7 +289,7 @@ onMounted(() => {
         </div>
         <button
           class="w-full py-2.5 rounded-sm text-sm font-medium text-white flex items-center justify-center gap-2 disabled:opacity-60"
-          style="background: var(--color-primary-500);"
+          style="background: var(--color-brand-action);"
           :disabled="submitting"
           @click="unlock"
         >
@@ -352,7 +352,7 @@ onMounted(() => {
                 <Download :size="14" />
               </button>
               <button
-                class="p-1.5 rounded-sm hover:bg-(--color-surface) text-red-400 hover:text-red-500"
+                class="p-1.5 rounded-sm hover:bg-(--color-surface) text-(--color-danger-text)"
                 title="永久删除"
                 @click="destroy(f)"
               >

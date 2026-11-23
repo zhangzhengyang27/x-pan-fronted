@@ -70,11 +70,11 @@ const passwordStrength = computed(() => {
   const isLongEnough = pwd.length >= 12
 
   if (isLongEnough && hasLetter && hasNumber && hasSpecial) {
-    return { level: 3, label: '强', bars: 3, color: 'var(--color-success)' }
+    return { level: 3, label: '强', bars: 3, color: 'var(--color-success-text)' }
   } else if (hasLength && hasLetter && hasNumber) {
-    return { level: 2, label: '中', bars: 2, color: 'var(--color-warning)' }
+    return { level: 2, label: '中', bars: 2, color: 'var(--color-warning-text)' }
   } else {
-    return { level: 1, label: '弱', bars: 1, color: 'var(--color-danger)' }
+    return { level: 1, label: '弱', bars: 1, color: 'var(--color-danger-text)' }
   }
 })
 
@@ -113,13 +113,13 @@ const goLogin = () => router.push({ name: 'Login' })
   <div class="min-h-screen flex items-center justify-center bg-(--color-bg) relative overflow-hidden">
     <!-- 夸克风格背景 -->
     <div class="absolute inset-0 pointer-events-none">
-      <div class="absolute top-[-15%] right-[-5%] w-[50%] h-[50%] rounded-full blur-[130px] opacity-[0.07]" style="background-color: var(--color-primary-500);" />
+      <div class="absolute top-[-15%] right-[-5%] w-[50%] h-[50%] rounded-full blur-[130px] opacity-[0.07]" style="background-color: var(--color-brand-action);" />
     </div>
 
     <div class="w-full max-w-[380px] mx-4 relative z-10">
       <!-- Logo 头部 -->
       <div class="text-center mb-7">
-        <div class="inline-flex items-center justify-center w-12 h-12 rounded-sm mb-5" style="background-color: var(--color-primary-500);">
+        <div class="inline-flex items-center justify-center w-12 h-12 rounded-sm mb-5" style="background-color: var(--color-brand-action);">
           <Cloud :size="22" :stroke-width="2" class="text-white" />
         </div>
         <h1 class="text-2xl font-bold tracking-tight text-(--color-text)">
@@ -260,7 +260,7 @@ const goLogin = () => router.push({ name: 'Login' })
                 <EyeOff v-else :size="15" :stroke-width="2" />
               </button>
             </div>
-            <p v-if="rePasswordError" class="text-xs mt-1.5 text-danger">{{ rePasswordError }}</p>
+            <p v-if="rePasswordError" class="text-xs mt-1.5 text-(--color-danger-text)">{{ rePasswordError }}</p>
           </div>
 
           <!-- 注册按钮 -->
@@ -268,7 +268,7 @@ const goLogin = () => router.push({ name: 'Login' })
             type="submit"
             :disabled="loading"
             class="w-full flex justify-center items-center h-10 rounded-sm text-sm font-medium transition-all duration-150 text-white mt-1"
-            style="background-color: var(--color-primary-500);"
+            style="background-color: var(--color-brand-action);"
             :style="{ opacity: loading ? 0.7 : 1 }"
           >
             <svg v-if="loading" class="animate-spin size-4 mr-2" viewBox="0 0 24 24" fill="none">

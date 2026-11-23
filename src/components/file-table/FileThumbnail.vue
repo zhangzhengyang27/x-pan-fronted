@@ -93,7 +93,7 @@ const visual = computed(() => {
         9: 'text-violet-600 dark:text-violet-400',
         10: 'text-cyan-600 dark:text-cyan-400',
         11: 'text-orange-600 dark:text-orange-400'
-      }[t] || 'text-slate-500',
+      }[t] || 'text-(--color-text-muted)',
     label: ''
   }
 })

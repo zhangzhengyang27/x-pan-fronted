@@ -180,12 +180,12 @@ function closePanel() {
               <Check
                 v-else-if="task.status === 4 || task.status === 5"
                 :size="11"
-                class="text-success"
+                class="text-(--color-success-text)"
               />
               <FileWarning
                 v-else-if="task.status === 6"
                 :size="11"
-                class="text-danger"
+                class="text-(--color-danger-text)"
               />
               <span>{{ task.statusText }} · {{ task.percentage }}%</span>
               <span v-if="task.status === 3 || task.status === 4">

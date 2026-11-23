@@ -264,7 +264,7 @@ function fileTypeIcon(f: ExtractedFile) {
             <div class="flex items-center gap-3">
               <div
                 class="size-9 rounded-sm flex items-center justify-center"
-                style="background: rgba(0, 178, 255, 0.1);"
+                style="background: var(--color-selected);"
               >
                 <FileArchive :size="18" class="text-primary-500" />
               </div>
@@ -346,7 +346,7 @@ function fileTypeIcon(f: ExtractedFile) {
             <!-- 解压完成 -->
             <div v-else-if="status === 'done'">
               <div class="flex items-center gap-2 mb-4">
-                <CheckCircle2 :size="16" class="text-green-500" />
+                <CheckCircle2 :size="16" class="text-(--color-success-text)" />
                 <span class="text-sm text-(--color-text)">解压完成，共 {{ files.length }} 个文件</span>
               </div>
               <div class="max-h-[280px] overflow-y-auto rounded-sm border border-(--color-border)">
@@ -364,10 +364,10 @@ function fileTypeIcon(f: ExtractedFile) {
 
             <!-- 解压失败 -->
             <div v-else-if="status === 'error'" class="flex flex-col items-center py-8">
-              <p class="text-sm text-red-500">{{ errorMsg || '解压失败，请稍后重试' }}</p>
+              <p class="text-sm text-(--color-danger-text)">{{ errorMsg || '解压失败，请稍后重试' }}</p>
               <button
                 class="mt-4 px-4 py-1.5 rounded-sm text-sm text-white"
-                style="background: var(--color-primary-500);"
+                style="background: var(--color-brand-action);"
                 @click="retryExtract"
               >
                 {{ currentTaskId ? '从断点重试' : '重新读取' }}
@@ -380,7 +380,7 @@ function fileTypeIcon(f: ExtractedFile) {
               <p class="text-xs text-(--color-text-muted)">解压完成后文件会自动入库，请稍后在文件列表中查看结果</p>
               <button
                 class="mt-4 px-4 py-1.5 rounded-sm text-sm text-white"
-                style="background: var(--color-primary-500);"
+                style="background: var(--color-brand-action);"
                 @click="close"
               >
                 我知道了
@@ -399,7 +399,7 @@ function fileTypeIcon(f: ExtractedFile) {
             <button
               v-if="status === 'selecting'"
               class="px-4 py-1.5 rounded-sm text-sm text-white disabled:opacity-50"
-              style="background: var(--color-primary-500);"
+              style="background: var(--color-brand-action);"
               :disabled="selectedPaths.length === 0"
               @click="startExtract"
             >
@@ -408,7 +408,7 @@ function fileTypeIcon(f: ExtractedFile) {
             <button
               v-if="status === 'done'"
               class="px-4 py-1.5 rounded-sm text-sm text-white"
-              style="background: var(--color-primary-500);"
+              style="background: var(--color-brand-action);"
               @click="finish"
             >
               完成

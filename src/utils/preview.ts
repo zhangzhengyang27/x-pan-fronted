@@ -275,10 +275,23 @@ export function getPreviewUrl(fileId: string | number): string {
  * 无需把长期登录 token 拼进 URL，避免泄露到日志/Referer/浏览器历史。
  */
 export function getDownloadUrl(fileId: string | number): string {
+  // 团队空间的下载链接由 <a href> 直接发起，无法带 X-Space-Id 请求头；
+  // 把当前空间 ID 放到 query，由后端按登录用户重新校验成员资格。
+  let spaceId = ''
+  try {
+    spaceId = localStorage.getItem('xpan_space_id') || ''
+  } catch {
+    /* 隐私模式下读取失败：按个人空间处理 */
+  }
+  // 只接受纯数字空间 ID：localStorage 可能残留 "null"/旧格式，不能让坏值把个人空间下载也带崩。
+  const spaceQuery = spaceId && /^\d+$/.test(spaceId)
+    ? `&spaceId=${encodeURIComponent(spaceId)}`
+    : ''
   return (
     panUtil.getUrlPrefix() +
     '/file/download?fileId=' +
-    panUtil.handleId(String(fileId))
+    panUtil.handleId(String(fileId)) +
+    spaceQuery
   )
 }
 

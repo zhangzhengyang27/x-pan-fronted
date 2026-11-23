@@ -353,7 +353,7 @@ function fmtTime(time: string): string {
           <UsersIcon :size="15" /> 好友
           <span
             v-if="chatStore.pendingApplies > 0"
-            class="absolute top-1 right-2 min-w-4 h-4 px-1 rounded-full bg-red-500 text-white text-[10px] leading-4 text-center"
+            class="absolute top-1 right-2 min-w-4 h-4 px-1 rounded-full bg-(--color-danger-action) text-white text-[10px] leading-4 text-center"
           >{{ chatStore.pendingApplies }}</span>
         </button>
       </div>
@@ -369,16 +369,16 @@ function fmtTime(time: string): string {
         >
           <span
             class="size-9 rounded-full shrink-0 flex items-center justify-center text-xs font-bold text-white"
-            :class="conv.type === 'GROUP' ? 'bg-violet-500' : 'bg-primary-500'"
+            :class="conv.type === 'GROUP' ? 'bg-primary-500' : 'bg-primary-500'"
           >{{ conv.type === 'GROUP' ? '群' : (conv.displayName || '?').slice(0, 1) }}</span>
           <span class="flex-1 min-w-0">
             <span class="flex items-center justify-between gap-2">
               <span class="truncate text-sm text-(--color-text) font-medium">{{ conv.displayName }}</span>
-              <span v-if="conv.type === 'DIRECT'" class="size-1.5 rounded-full shrink-0" :class="conv.peerOnline ? 'bg-green-500' : 'bg-(--color-text-muted)/40'" />
+              <span v-if="conv.type === 'DIRECT'" class="size-1.5 rounded-full shrink-0" :class="conv.peerOnline ? 'bg-(--color-success)' : 'bg-(--color-text-muted)/40'" />
             </span>
             <span class="block truncate text-xs text-(--color-text-muted) mt-0.5">{{ conv.lastMsgPreview || '…' }}</span>
           </span>
-          <span v-if="conv.unread > 0" class="min-w-5 h-5 px-1.5 rounded-full bg-red-500 text-white text-[11px] leading-5 text-center shrink-0">{{ conv.unread > 99 ? '99+' : conv.unread }}</span>
+          <span v-if="conv.unread > 0" class="min-w-5 h-5 px-1.5 rounded-full bg-(--color-danger-action) text-white text-[11px] leading-5 text-center shrink-0">{{ conv.unread > 99 ? '99+' : conv.unread }}</span>
         </button>
         <p v-if="chatStore.conversations.length === 0" class="p-4 text-xs text-(--color-text-muted)">
           暂无会话。到「好友」页添加好友或创建群聊开始聊天。
@@ -423,7 +423,7 @@ function fmtTime(time: string): string {
         <!-- 好友列表 -->
         <div v-for="friend in chatStore.friends" :key="friend.friendUserId" class="px-3 py-2 border-b border-(--color-border)/60">
           <div class="flex items-center gap-2">
-            <span class="size-1.5 rounded-full shrink-0" :class="friend.online ? 'bg-green-500' : 'bg-(--color-text-muted)/40'" />
+            <span class="size-1.5 rounded-full shrink-0" :class="friend.online ? 'bg-(--color-success)' : 'bg-(--color-text-muted)/40'" />
             <span class="flex-1 min-w-0 truncate text-sm text-(--color-text)">{{ friend.remark || friend.username }}</span>
             <button class="text-xs text-primary-500 hover:underline" @click="startDirectChat(friend.friendUserId)">发消息</button>
           </div>
@@ -436,7 +436,7 @@ function fmtTime(time: string): string {
             <button v-if="remarkDraft[friend.friendUserId] != null" class="text-[11px] text-primary-500" @click="saveRemark(friend.friendUserId)">
               <CheckIcon :size="12" />
             </button>
-            <button class="text-[11px] text-(--color-text-muted) hover:text-red-500" @click="removeFriend(friend.friendUserId)">删除</button>
+            <button class="text-[11px] text-(--color-text-muted) hover:text-(--color-danger-text)" @click="removeFriend(friend.friendUserId)">删除</button>
           </div>
         </div>
         <p v-if="chatStore.friends.length === 0" class="p-4 text-xs text-(--color-text-muted)">
@@ -450,7 +450,7 @@ function fmtTime(time: string): string {
       <template v-if="activeConv">
         <div class="flex items-center gap-2 px-4 h-12 border-b border-(--color-border) shrink-0">
           <strong class="text-sm text-(--color-text)">{{ activeConv.displayName }}</strong>
-          <span v-if="activeConv.type === 'DIRECT'" class="text-xs" :class="activeConv.peerOnline ? 'text-green-600' : 'text-(--color-text-muted)'">
+          <span v-if="activeConv.type === 'DIRECT'" class="text-xs" :class="activeConv.peerOnline ? 'text-(--color-success-text)' : 'text-(--color-text-muted)'">
             {{ activeConv.peerOnline ? '在线' : '离线' }}
           </span>
           <span v-else class="text-xs text-(--color-text-muted)">群聊 · {{ activeConv.role === 'OWNER' ? '你是群主' : '成员' }}</span>
@@ -507,7 +507,7 @@ function fmtTime(time: string): string {
                   {{ fmtTime(message.createTime) }}
                   <button
                     v-if="message.recallable"
-                    class="hover:text-red-500 inline-flex items-center gap-0.5"
+                    class="hover:text-(--color-danger-text) inline-flex items-center gap-0.5"
                     @click="recallMessage(message)"
                   ><RecallIcon :size="11" /> 撤回</button>
                   <button
@@ -528,9 +528,9 @@ function fmtTime(time: string): string {
               <ImageIcon :size="17" />
             </button>
             <input ref="imageInput" type="file" accept="image/*" class="hidden" @change="pickImage" />
-            <button class="p-1 relative hover:text-primary-500" :class="recording ? 'text-red-500' : ''" @click="toggleRecord">
+            <button class="p-1 relative hover:text-primary-500" :class="recording ? 'text-(--color-danger-text)' : ''" @click="toggleRecord">
               <MicIcon :size="17" />
-              <span v-if="recording" class="absolute -top-3 left-4 text-[10px] text-red-500">{{ recordSeconds }}s</span>
+              <span v-if="recording" class="absolute -top-3 left-4 text-[10px] text-(--color-danger-text)">{{ recordSeconds }}s</span>
             </button>
             <button class="p-1 hover:text-primary-500" @click="showFilePicker = true">
               <FileCardIcon :size="17" />

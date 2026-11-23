@@ -540,7 +540,7 @@ onUnmounted(() => {
       <div class="flex items-center gap-2.5">
         <div
           class="size-9 rounded-sm flex items-center justify-center shadow-sm"
-          style="background: linear-gradient(135deg, var(--color-primary-500) 0%, var(--color-primary-700) 100%);"
+          style="background: linear-gradient(135deg, var(--color-brand-action) 0%, var(--color-brand-action-hover) 100%);"
         >
           <Cloud :size="18" class="text-white" :stroke-width="2" />
         </div>
@@ -593,18 +593,18 @@ onUnmounted(() => {
         <!-- 分享信息卡 -->
         <div class="rounded-sm border border-(--color-border) p-6 bg-(--color-surface)">
           <div class="flex items-start gap-4 mb-4">
-            <div class="size-16 rounded-sm flex items-center justify-center shrink-0" style="background-color: rgba(0, 112, 243, 0.1);">
+            <div class="size-16 rounded-sm flex items-center justify-center shrink-0" style="background-color: var(--color-selected);">
               <Folder :size="32" :stroke-width="1.5" style="color: var(--color-primary-500);" />
             </div>
             <div class="flex-1 min-w-0">
               <h2 class="text-xl font-semibold text-(--color-text)">{{ shareCodeHeader }}</h2>
-              <div class="flex items-center gap-4 mt-2 text-xs" style="color: var(--color-text-muted);">
+              <div class="flex items-center gap-4 mt-2 text-xs" style="color: var(--color-text-secondary);">
                 <span class="inline-flex items-center gap-1">
                   <Clock :size="12" :stroke-width="2" />
                   {{ shareDate }}
                 </span>
                 <span
-                  :style="shareExpireDate === '永久有效' ? 'color: var(--color-success);' : 'color: var(--color-warning);'"
+                  :style="shareExpireDate === '永久有效' ? 'color: var(--color-success-text);' : 'color: var(--color-warning-text);'"
                   class="inline-flex items-center gap-1"
                 >
                   <Lock :size="12" :stroke-width="2" />
@@ -679,7 +679,7 @@ onUnmounted(() => {
             <button
               type="button"
               class="text-[11px] inline-flex items-center gap-1 transition-colors"
-              style="color: var(--color-text-muted);"
+              style="color: var(--color-text-secondary);"
               @click="openReport"
             >
               <Flag :size="11" :stroke-width="2" />
@@ -809,7 +809,7 @@ onUnmounted(() => {
       <div class="text-center py-2">
         <div
           class="size-14 mx-auto rounded-sm flex items-center justify-center mb-4"
-          style="background-color: rgba(0, 112, 243, 0.1);"
+          style="background-color: var(--color-selected);"
         >
           <Lock :size="28" :stroke-width="2" style="color: var(--color-primary-500);" />
         </div>

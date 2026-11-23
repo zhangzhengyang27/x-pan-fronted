@@ -347,7 +347,7 @@ onBeforeUnmount(() => {
         >
           v{{ version }}
         </span>
-        <span v-if="dirty" class="shrink-0 text-[11px] text-amber-500">未保存</span>
+        <span v-if="dirty" class="shrink-0 text-[11px] text-(--color-warning-text)">未保存</span>
       </div>
 
       <div class="flex items-center gap-2 shrink-0">

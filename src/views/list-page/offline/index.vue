@@ -152,9 +152,9 @@ function statusMeta(s: number | null | undefined) {
 
 function statusColor(s: number | null | undefined) {
   const meta = statusMeta(s)
-  if (meta.variant === 'success') return 'var(--color-success)'
-  if (meta.variant === 'danger') return 'var(--color-danger)'
-  if (meta.variant === 'warning') return 'var(--color-warning)'
+  if (meta.variant === 'success') return 'var(--color-success-text)'
+  if (meta.variant === 'danger') return 'var(--color-danger-text)'
+  if (meta.variant === 'warning') return 'var(--color-warning-text)'
   if (meta.variant === 'primary') return 'var(--color-primary-500)'
   return 'var(--color-text-muted)'
 }
@@ -304,7 +304,7 @@ onUnmounted(() => {
             <span v-if="t.progress != null && t.status === 1" class="tabular-nums">
               进度 {{ t.progress }}%
             </span>
-            <span v-if="t.errorMsg" style="color: var(--color-danger);">{{ t.errorMsg }}</span>
+            <span v-if="t.errorMsg" style="color: var(--color-danger-text);">{{ t.errorMsg }}</span>
             <span>{{ t.createTime }}</span>
           </div>
           

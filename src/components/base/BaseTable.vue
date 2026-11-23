@@ -85,7 +85,7 @@ function rowClass(row: Row) {
   return cn(
     'group transition-all duration-150 cursor-pointer',
     'hover:bg-(--color-hover)',
-    isSelected(row) && 'bg-primary-50',
+    isSelected(row) && 'bg-(--color-selected)',
     getRowKey(row) === props.activeKey && 'outline outline-2 outline-primary-500'
   )
 }
@@ -165,8 +165,8 @@ const gridMinWidth = computed(() => {
             class="size-[18px] rounded-[4px] flex items-center justify-center transition-all duration-200"
             :class="
               allSelected || partialSelected
-                ? 'bg-primary-600 border border-primary-600 text-white shadow-sm'
-                : 'border border-(--color-border-strong) bg-white hover:border-primary-500'
+                ? 'bg-(--color-brand-action) border border-(--color-brand-action) text-white shadow-sm'
+                : 'border border-(--color-border-strong) bg-(--color-surface) hover:border-primary-500'
             "
             :aria-checked="allSelected ? 'true' : partialSelected ? 'mixed' : 'false'"
             role="checkbox"
@@ -250,7 +250,7 @@ const gridMinWidth = computed(() => {
         <div
           v-else-if="error"
           class="px-3 py-12 text-center text-sm"
-          style="color: var(--color-danger)"
+          style="color: var(--color-danger-text)"
         >
           加载失败：{{ errorMsg }}
         </div>
@@ -284,8 +284,8 @@ const gridMinWidth = computed(() => {
                 class="size-[18px] rounded-[4px] flex items-center justify-center transition-all duration-200"
                 :class="
                   isSelected(row)
-                    ? 'bg-primary-600 border border-primary-600 text-white shadow-sm'
-                    : 'border border-(--color-border-strong) bg-white opacity-0 group-hover:opacity-100 hover:border-primary-500'
+                    ? 'bg-(--color-brand-action) border border-(--color-brand-action) text-white shadow-sm'
+                    : 'border border-(--color-border-strong) bg-(--color-surface) opacity-0 group-hover:opacity-100 hover:border-primary-500'
                 "
                 :aria-checked="isSelected(row) ? 'true' : 'false'"
                 role="checkbox"
