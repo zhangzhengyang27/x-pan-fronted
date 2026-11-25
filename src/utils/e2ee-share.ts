@@ -168,12 +168,23 @@ interface CipherSink {
   abort: () => Promise<void>
 }
 
+/**
+ * TS 5.7 把 Uint8Array 的 buffer 泛化为 ArrayBufferLike（可能是 SharedArrayBuffer），
+ * 而 BlobPart 只接受 ArrayBuffer。这里复制到独立 ArrayBuffer，既满足类型，
+ * 也避免把共享内存直接交给 Blob；调用点只在 ≤256MB 的内存路径，复制成本可控。
+ */
+function toBlobPart(bytes: Uint8Array): ArrayBuffer {
+  const buffer = new ArrayBuffer(bytes.byteLength)
+  new Uint8Array(buffer).set(bytes)
+  return buffer
+}
+
 async function createCipherSink(fileSize: number): Promise<CipherSink> {
   if (fileSize <= E2EE_MEMORY_LIMIT_BYTES) {
     const parts: BlobPart[] = []
     return {
       write: async (bytes) => {
-        parts.push(bytes)
+        parts.push(toBlobPart(bytes))
       },
       finish: async () => ({ blob: new Blob(parts, { type: 'application/octet-stream' }) }),
       abort: async () => {
@@ -532,7 +543,7 @@ export async function decryptE2eeBlob(
     })
     return {
       ...meta,
-      blob: new Blob(chunks, { type: meta.type })
+      blob: new Blob(chunks.map(toBlobPart), { type: meta.type })
     }
   } catch (error) {
     // v1 没有外层 MAGIC，无法在解析阶段可靠识别；用一次 v1 解密尝试兜底。
