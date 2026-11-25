@@ -115,7 +115,7 @@ jobs:
 
       # P1-3：镜像发布前阻断 High/Critical 漏洞；和 backend 保持一致的口径
       - name: Scan frontend image (Trivy)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE }}:${{ github.sha }}
           format: 'table'
