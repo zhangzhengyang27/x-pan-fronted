@@ -7,28 +7,86 @@
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useVideoThumbnails } from '@/composables/useVideoThumbnails'
 import { ElMessage } from '@/composables/useToast'
+import { clearVideoProgress, loadVideoProgress, saveVideoProgress } from '@/utils/video-progress'
+import previewService from '@/api/preview'
 
 const props = defineProps({
   fileId: { type: [String, Number], required: true },
   title: { type: String, default: '' },
   /** 外部已解析好的预览 URL（优先于本地拼接） */
-  url: { type: String, default: '' }
+  url: { type: String, default: '' },
+  /** HLS 播放地址；有值时优先于原视频 URL，由 hls.js 接管 */
+  hlsUrl: { type: String, default: '' }
 })
 
 const containerRef = ref<HTMLDivElement | null>(null)
 let player: any = null
 let currentUrl = ''
 let ArtplayerCtor: any = null
+// hls.js 实例必须显式 destroy：切换清晰度/切回原视频/关闭预览时，
+// 不销毁会继续拉分片并持有 MediaSource。
+let hlsInstance: any = null
+// hls.js 是异步 import 的：如果用户在 import 完成前就切回原视频/切文件，
+// 旧 import 不能继续把过期的 HLS 挂到同一个 video 上。每次销毁/新建都递增，
+// 回调只有在代次仍匹配时才允许 attachMedia。
+let hlsGeneration = 0
 // 竞态保护：initPlayer 中的 await import('artplayer') 是异步的，期间可能
 // 已被快速切换再次触发（需防双实例），或组件已卸载（需防卸载后绑定全局事件）
 let initPromise: Promise<void> | null = null
 let destroyed = false
+// P3-4 续播：记录当前 video 元素与最近一次落盘时间，timeupdate 每 5 秒最多写一次
+let progressVideo: HTMLVideoElement | null = null
+let lastProgressSave = 0
+// P3-4 字幕：Blob URL 必须显式 revoke，否则切换多个视频会持续占用内存
+let subtitleObjectUrl: string | null = null
 
 // P3-1：视频关键帧缩略图
 const { generate: generateThumbnails } = useVideoThumbnails()
 
 // 倍速档位（对标夸克 0.5-5x）
 const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4, 5]
+
+function formatTime(seconds: number) {
+  const s = Math.max(0, Math.floor(seconds))
+  const h = Math.floor(s / 3600)
+  const m = Math.floor((s % 3600) / 60)
+  const sec = s % 60
+  return h > 0
+    ? `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`
+    : `${m}:${String(sec).padStart(2, '0')}`
+}
+
+function saveProgress() {
+  if (!progressVideo || !Number.isFinite(progressVideo.currentTime) || !Number.isFinite(progressVideo.duration)) {
+    return
+  }
+  // 标题用于根目录“继续观看”展示；文件类型固定为 9（视频），打开时复用视频预览
+  saveVideoProgress(props.fileId, progressVideo.currentTime, progressVideo.duration, {
+    title: props.title || undefined,
+    fileType: 9
+  })
+}
+
+function onLoadedMetadata() {
+  if (!progressVideo) return
+  const saved = loadVideoProgress(props.fileId)
+  // 只在有意义的旧位置恢复；太靠近结尾的位置 helper 已过滤
+  if (saved != null && progressVideo.duration > saved + 5) {
+    progressVideo.currentTime = saved
+    ElMessage.success(`已从上次播放位置 ${formatTime(saved)} 继续`)
+  }
+}
+
+function onProgressTimeUpdate() {
+  const now = Date.now()
+  if (now - lastProgressSave < 5000) return
+  lastProgressSave = now
+  saveProgress()
+}
+
+function onProgressEnded() {
+  clearVideoProgress(props.fileId)
+}
 
 async function initArtplayer() {
   if (!ArtplayerCtor) {
@@ -37,8 +95,95 @@ async function initArtplayer() {
   }
 }
 
+function destroyHls() {
+  hlsGeneration++
+  if (hlsInstance) {
+    try {
+      hlsInstance.destroy()
+    } catch {
+      /* noop */
+    }
+    hlsInstance = null
+  }
+}
+
+/**
+ * Artplayer customType：HLS 不是所有浏览器原生支持，Chrome/Firefox 必须经 hls.js。
+ * XHR 需要带登录 Cookie 和团队空间头，否则后端按个人空间校验会 404。
+ */
+function hlsCustomType(video: HTMLVideoElement, url: string, art: any) {
+  destroyHls()
+  const generation = hlsGeneration
+  import('hls.js')
+    .then(({ default: Hls }) => {
+      // 组件卸载、切回原视频、切文件都会 destroyHls() 并递增代次；
+      // 此时这次异步 import 已经过期，不能再把 HLS 挂到当前 video 上。
+      if (destroyed || generation !== hlsGeneration) return
+      if (Hls.isSupported()) {
+        const hls = new Hls({
+          xhrSetup: (xhr: globalThis.XMLHttpRequest) => {
+            xhr.withCredentials = true
+            try {
+              const spaceId = localStorage.getItem('xpan_space_id')
+              if (spaceId) xhr.setRequestHeader('X-Space-Id', spaceId)
+            } catch {
+              // 隐私模式无法读 localStorage：按个人空间请求
+            }
+          }
+        })
+        hls.loadSource(url)
+        hls.attachMedia(video)
+        hls.on(Hls.Events.ERROR, (_event: unknown, data: any) => {
+          if (data?.fatal) {
+            ElMessage.error('高清播放加载失败，已回退原视频')
+            const previousTime = art.currentTime
+            destroyHls()
+            // 不清掉 m3u8 type 就会继续把原视频当 HLS 加载；有原视频地址时
+            // 立即回退，避免用户只看到错误提示却无法继续播放。
+            art.type = ''
+            if (props.url) {
+              currentUrl = props.url
+              art
+                .switchUrl(props.url)
+                .then(() => {
+                  if (Number.isFinite(previousTime) && previousTime > 0) {
+                    art.currentTime = previousTime
+                  }
+                })
+                .catch(() => {
+                  /* 原视频也失败时不覆盖当前错误提示 */
+                })
+            }
+          }
+        })
+        hlsInstance = hls
+        art.hls = hls
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        // Safari 原生支持 HLS，直接交给浏览器
+        video.src = url
+      } else {
+        ElMessage.error('当前浏览器不支持 HLS 播放')
+      }
+    })
+    .catch(() => {
+      ElMessage.error('高清播放组件加载失败')
+    })
+}
+
 function bindPlayerEvents() {
   if (!player) return
+
+  // P3-4：续播位置绑定原生 video 事件；Artplayer 的 video:* 事件不保证覆盖
+  // loadedmetadata/timeupdate，这里直接监听元素更稳定。
+  progressVideo = player.video as HTMLVideoElement
+  if (progressVideo) {
+    progressVideo.addEventListener('loadedmetadata', onLoadedMetadata)
+    progressVideo.addEventListener('timeupdate', onProgressTimeUpdate)
+    progressVideo.addEventListener('pause', saveProgress)
+    progressVideo.addEventListener('ended', onProgressEnded)
+  }
+  // 页面被关闭/刷新时兜底保存一次，弥补 timeupdate 的 5 秒间隔
+  window.addEventListener('pagehide', saveProgress)
 
   player.on('video:canplay', () => {
     if (player && player.video) {
@@ -71,20 +216,38 @@ function initPlayer(url: string): Promise<void> {
   return initPromise
 }
 
+async function resolveSubtitleUrl(): Promise<string | null> {
+  const vtt = await previewService.videoSubtitle(String(props.fileId))
+  if (!vtt) return null
+  // 组件已卸载时不再创建 Blob URL，否则 unmount 的 revoke 会漏掉它
+  if (destroyed) return null
+  // 用 Blob URL 而不是把 VTT 文本塞进 URL，避免长字幕触发 URL 长度限制
+  subtitleObjectUrl = URL.createObjectURL(new Blob([vtt], { type: 'text/vtt' }))
+  return subtitleObjectUrl
+}
+
 async function doInitPlayer(url: string) {
   await initArtplayer()
   // await 之后必须复查：组件可能已卸载（不再创建、不再绑定 window keydown），
   // 或已被其他入口创建出实例（避免双实例）
   if (destroyed || player || !containerRef.value) return
-  // await 期间外部签名 URL 可能已更新（快速切换），创建时以最新 URL 为准
-  const targetUrl = props.url || url
+  // await 期间外部签名 URL 可能已更新（快速切换），创建时以最新 URL 为准；
+  // HLS 就绪时优先用 HLS（同一视频不会同时播原视频和高清版）。
+  const isHls = Boolean(props.hlsUrl)
+  const targetUrl = props.hlsUrl || props.url || url
   currentUrl = targetUrl
+
+  // 字幕请求与播放器初始化并行等待：没有字幕时后端 204，耗时很短；
+  // 失败一律返回 null，不阻塞播放
+  const subtitleUrl = await resolveSubtitleUrl()
+  if (destroyed || player || !containerRef.value) return
 
   const playerOptions: any = {
     container: containerRef.value,
     // 以最新签名的 URL 创建，保证与 currentUrl 一致（否则 currentUrl 已是
     // targetUrl 而播放器实际播的是旧 url，后续 switchUrl 判重会误跳过）
     url: targetUrl,
+    customType: { m3u8: hlsCustomType },
     title: props.title,
     autoplay: true,
     // 高度由容器 CSS（aspect-video + min-h）决定，
@@ -117,6 +280,13 @@ async function doInitPlayer(url: string) {
       column: 1
     }
   }
+  // HLS 地址必须显式声明 type，Artplayer 才会走 customType。
+  // 原视频不能写 type: undefined：Artplayer 5.x 的 schema 会校验失败并拒绝创建实例。
+  if (isHls) playerOptions.type = 'm3u8'
+  if (subtitleUrl) {
+    // name 显示在设置面板，方便用户知道当前字幕来源
+    playerOptions.subtitle = { url: subtitleUrl, type: 'vtt', name: '字幕', encoding: 'utf-8' }
+  }
 
   player = new ArtplayerCtor(playerOptions)
 
@@ -126,7 +296,10 @@ async function doInitPlayer(url: string) {
   window.addEventListener('keydown', onKeydown)
 
   // P3-1：后台异步采样关键帧，生成后动态注入 ArtPlayer（同样以最新 URL 为准）
-  refreshThumbnails(targetUrl)
+  // HLS 的清单地址不是可直接解码的视频文件，缩略图采样会失败，跳过即可。
+  if (!isHls) {
+    refreshThumbnails(targetUrl)
+  }
 }
 
 function refreshThumbnails(videoUrl: string) {
@@ -154,6 +327,9 @@ watch(
   () => props.url,
   (newUrl) => {
     if (!newUrl || newUrl === currentUrl) return
+    // HLS 已生效时忽略原视频 URL 的更新，避免把高清播放器切回源码率；
+    // 如果 HLS 后来清空（重置文件），hlsUrl watch 会负责回退。
+    if (props.hlsUrl) return
 
     if (!player) {
       // 首次拿到签名 URL 时才真正创建播放器（避免用未签名 URL 初始化导致黑屏）
@@ -162,10 +338,67 @@ watch(
     }
 
     currentUrl = newUrl
+    // 从 HLS 切换回原视频时，Artplayer 的 type 仍是 m3u8：不重置会继续走
+    // customType，把 MP4 地址当成 HLS 清单加载，表现为切换文件后黑屏。
+    if (player.type === 'm3u8') {
+      destroyHls()
+      player.type = ''
+    }
     // ArtPlayer.switchUrl 只接受一个 url 参数
     player.switchUrl(newUrl)
     player.play()
     refreshThumbnails(newUrl)
+  }
+)
+
+// 高清版生成完成：保留播放进度，就地切到 HLS；hlsUrl 被清空（切换文件/重置）时
+// 必须显式回退原视频，否则 player.type 仍停在 m3u8，后续原视频地址会被当成清单加载。
+watch(
+  () => props.hlsUrl,
+  async (newUrl) => {
+    if (!newUrl) {
+      if (!player || !props.url || currentUrl === props.url) return
+      destroyHls()
+      const previousTime = player.currentTime
+      player.type = ''
+      currentUrl = props.url
+      try {
+        await player.switchUrl(props.url)
+        if (Number.isFinite(previousTime) && previousTime > 0) {
+          player.currentTime = previousTime
+        }
+      } catch {
+        // 原视频也有问题（文件被删/签名过期）时保持错误提示，交给用户重新打开
+      }
+      return
+    }
+    if (newUrl === currentUrl) return
+    if (!player) {
+      initPlayer(newUrl)
+      return
+    }
+    const previousTime = player.currentTime
+    try {
+      // 先改 type，switchUrl 才会调用 customType.m3u8；
+      // 不销毁播放器，避免丢失全屏/音量/播放进度等瞬态状态。
+      player.type = 'm3u8'
+      currentUrl = newUrl
+      await player.switchUrl(newUrl)
+      if (Number.isFinite(previousTime) && previousTime > 0) {
+        player.currentTime = previousTime
+      }
+      player.play().catch(() => {
+        // 自动播放被拦截属正常，用户点播放即可
+      })
+    } catch {
+      ElMessage.error('高清播放切换失败，已回退原视频')
+      destroyHls()
+      player.type = ''
+      if (props.url) {
+        currentUrl = props.url
+        player.switchUrl(props.url).catch(() => {})
+      }
+    }
   }
 )
 
@@ -248,6 +481,16 @@ function showSpeedToast(rate: number) {
 onBeforeUnmount(() => {
   // 先置卸载标志：initPlayer 的 await 恢复后不再创建实例/绑定事件
   destroyed = true
+  // 卸载前保存当前位置；视频组件被弹窗关闭/路由切换时也能续播
+  saveProgress()
+  window.removeEventListener('pagehide', saveProgress)
+  if (progressVideo) {
+    progressVideo.removeEventListener('loadedmetadata', onLoadedMetadata)
+    progressVideo.removeEventListener('timeupdate', onProgressTimeUpdate)
+    progressVideo.removeEventListener('pause', saveProgress)
+    progressVideo.removeEventListener('ended', onProgressEnded)
+    progressVideo = null
+  }
   window.removeEventListener('keydown', onKeydown)
   if (speedToastEl) {
     speedToastEl.remove()
@@ -260,6 +503,11 @@ onBeforeUnmount(() => {
       /* noop */
     }
     player = null
+  }
+  destroyHls()
+  if (subtitleObjectUrl) {
+    URL.revokeObjectURL(subtitleObjectUrl)
+    subtitleObjectUrl = null
   }
 })
 </script>

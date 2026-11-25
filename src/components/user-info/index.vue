@@ -199,7 +199,7 @@ function resetChangePasswordForm() {
 
 // ─── 空间容量（配额）调整 ─────────────────────────────────
 const quotaVisible = ref(false)
-const quotaInputGB = ref<number | null>(null)
+const quotaInputGB = ref<number | string>('')
 const quotaSaving = ref(false)
 
 /** 字节 → 可读大小 */
@@ -414,7 +414,7 @@ onMounted(initUserInfoIfNecessary)
       </button>
       <button
         type="button"
-        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-danger hover:bg-(--color-surface-2) transition-colors text-left"
+        class="w-full flex items-center gap-2 px-3 py-2 text-sm text-(--color-danger-text) hover:bg-(--color-surface-2) transition-colors text-left"
         @click="doExit"
       >
         <LogOut :size="14" />

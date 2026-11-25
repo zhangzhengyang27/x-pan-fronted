@@ -14,6 +14,14 @@ import http, { type ApiResponse } from '@/utils/http'
 
 type Callback<T> = (res: ApiResponse<T>) => void
 
+export interface ExtractEntry {
+  path: string
+  name: string
+  size: number
+  sizeDesc: string
+  isDir: boolean
+}
+
 export interface ExtractedFile {
   filename: string
   fileSize: number
@@ -46,12 +54,23 @@ const extractService = {
     fileId: string,
     resolve: Callback<ExtractTask>,
     reject: Callback<unknown>,
-    targetParentId?: string
+    targetParentId?: string,
+    entries?: string[]
   ) {
-    const data: { fileId: string; targetParentId?: string } = { fileId }
+    const data: { fileId: string; targetParentId?: string; entries?: string[] } = { fileId }
     if (targetParentId) data.targetParentId = targetParentId
+    // 空数组语义是“整包”，不要在用户取消全部勾选时误传空数组
+    if (entries && entries.length > 0) data.entries = entries
     http
       .post<unknown, ApiResponse<ExtractTask>>('/file/extract', data)
+      .then(resolve)
+      .catch(reject)
+  },
+
+  /** 列出压缩包条目；只读元数据，不解压 */
+  listEntries(fileId: string, resolve: Callback<ExtractEntry[]>, reject: Callback<unknown>) {
+    http
+      .get<unknown, ApiResponse<ExtractEntry[]>>('/file/extract/entries', { params: { fileId } })
       .then(resolve)
       .catch(reject)
   },
@@ -65,6 +84,14 @@ const extractService = {
   progress(taskId: string, resolve: Callback<ExtractTask>, reject: Callback<unknown>) {
     http
       .get<unknown, ApiResponse<ExtractTask>>('/file/extract/progress', { params: { taskId } })
+      .then(resolve)
+      .catch(reject)
+  },
+
+  /** 重试失败任务；后端按 resume_data 检查点跳过已完成条目 */
+  retry(taskId: string, resolve: Callback<ExtractTask>, reject: Callback<unknown>) {
+    http
+      .post<unknown, ApiResponse<ExtractTask>>('/file/extract/retry', null, { params: { taskId } })
       .then(resolve)
       .catch(reject)
   }

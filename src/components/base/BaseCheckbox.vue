@@ -28,7 +28,7 @@ function toggle() {
       class="relative size-4 rounded border flex items-center justify-center transition-colors"
       :class="
         modelValue || indeterminate
-          ? 'bg-primary-600 border-primary-600 text-white'
+          ? 'bg-(--color-brand-action) border-(--color-brand-action) text-white'
           : 'border-(--color-border-strong) bg-(--color-surface)'
       "
     >

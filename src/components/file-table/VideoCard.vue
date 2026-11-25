@@ -70,7 +70,7 @@ function formatSize(size: string | number | undefined): string {
       <!-- 居中播放按钮 -->
       <div class="absolute inset-0 flex items-center justify-center">
         <div
-          class="size-11 rounded-full bg-primary-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 scale-75 group-hover:scale-100 shadow-lg"
+          class="size-11 rounded-full bg-(--color-brand-action) text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 scale-75 group-hover:scale-100 shadow-lg"
         >
           <Play :size="18" class="ml-0.5" :fill="'currentColor'" />
         </div>

@@ -157,7 +157,9 @@ const panUtil: PanUtil = {
   },
 
   getMaxFileSize(): number {
-    return 1024 * 1024 * 1024 * 3
+    // 与后端 FileConstants.MAX_FILE_SIZE 对齐（20GB）；默认 5MB 分片下需 4096 片，
+    // 正好落在后端 MAX_TOTAL_CHUNKS 上限内，不要再单独放大分片数。
+    return 1024 * 1024 * 1024 * 20
   },
 
   getChunkUploadSwitch(): boolean {

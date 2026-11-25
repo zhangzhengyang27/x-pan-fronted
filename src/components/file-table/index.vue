@@ -19,8 +19,6 @@ import FolderPickerDialog from '@/components/base/FolderPickerDialog.vue'
 import FileThumbnail from './FileThumbnail.vue'
 import { useFavorites } from '@/composables/useFavorites'
 import { useRecent } from '@/composables/useRecent'
-import { useBreakpoint } from '@/composables/useMediaQuery'
-import FileCardList from './FileCardList.vue'
 import { useFileTags } from '@/composables/useFileTags'
 import { getDownloadUrl, invalidatePreviewUrl } from '@/utils/preview'
 import { removeThumbnailFromCache } from '@/utils/thumbnail-cache'
@@ -75,7 +73,6 @@ const {
 } = storeToRefs(fileStore)
 
 const selected = ref<string[]>([]) // 多选 fileId
-const { isMobile } = useBreakpoint()
 const currentView = ref(props.view)
 
 // 外部传入 view 变化时同步
@@ -310,6 +307,11 @@ function openEditor(row: Record<string, any>) {
   window.open(href, '_blank', 'noopener,noreferrer')
 }
 
+/** 最近访问条目的打开入口：复用列表的行双击逻辑（文件夹进入、文件弹预览） */
+function openRecent(row: Record<string, any>) {
+  clickFilename(row)
+}
+
 function clickFilename(row: Record<string, any>) {
   // 文件夹：进入目录（后端统一用 fileType === 0 判断，type === 'folder' 为冗余字段）
   if (row.fileType === 0) {
@@ -368,6 +370,37 @@ function onRowDblclick(row: Record<string, any>) {
 }
 
 // ─── 批量下载 ────────────────────────────────────────────────────────────────
+/** 在线 ZIP：服务端把选中项打包后写回当前目录，复用上传/配额链路。 */
+async function archiveToDrive(rows: Record<string, any>[]) {
+  if (!rows?.length) return
+  try {
+    const defaultName = `xpan-archive-${new Date().toISOString().slice(0, 10)}.zip`
+    const { value, action } = await ElMessageBox.prompt('压缩包名称（将保存到当前目录）', '压缩为 ZIP', {
+      inputValue: defaultName,
+      inputPattern: /^[^\\/]+$/,
+      inputErrorMessage: '名称不能包含路径分隔符',
+      confirmButtonText: '开始压缩',
+      cancelButtonText: '取消'
+    })
+    if (action !== 'confirm') return
+    const zipName = (value || '').trim()
+    if (!zipName) return ElMessage.error('请输入压缩包名称')
+    ElMessage.info(`正在提交压缩任务（${rows.length} 个项目）...`)
+    const fileIds = rows.map((r) => String(r.fileId))
+    const parentId = fileStore.parentId && fileStore.parentId !== '-1' ? fileStore.parentId : undefined
+    fileService.archiveToDrive(
+      { fileIds, zipName, targetParentId: parentId },
+      (res) => {
+        if (res.code !== 0) return ElMessage.error(res.message || '在线压缩失败')
+        ElMessage.success('压缩任务已提交，可在任务中心查看进度')
+      },
+      (err) => ElMessage.error(err.message || '在线压缩失败')
+    )
+  } catch {
+    // 用户取消
+  }
+}
+
 async function batchDownload(rows: Record<string, any>[]) {
   if (!rows?.length) return
   if (rows.length === 1) {
@@ -589,13 +622,6 @@ function teardownIntersectionObserver() {
   if (intersectionObserver) {
     intersectionObserver.disconnect()
     intersectionObserver = null
-  }
-}
-
-// 移动端卡片列表滚动到底部时触发（等效桌面 loadMoreSentinel）
-function onLoadMore() {
-  if (hasMore.value && !isLoadingMore.value && !filterActive.value) {
-    fileStore.loadMore()
   }
 }
 
@@ -826,6 +852,12 @@ const ctxItems = computed(() => {
       action: () => batchDownload(multiRows)
     },
     {
+      key: 'archive',
+      label: '压缩为 ZIP',
+      icon: FileArchive,
+      action: () => archiveToDrive(multiRows)
+    },
+    {
       key: 'rename',
       label: isMulti ? `批量重命名 ${selectedRows.value.length} 项` : '重命名',
       icon: Edit2,
@@ -969,6 +1001,7 @@ async function batchRename(rows: Record<string, any>[]) {
 
 // 暴露方法给父组件（列表/网格视图切换、筛选、快捷键操作、批量选择）
 defineExpose({
+  openRecent,
   applyFilter,
   setView: (v: string) => { currentView.value = v as 'list' | 'grid' },
   download: downloadSelected,
@@ -979,6 +1012,7 @@ defineExpose({
   selectedRows,
   selectedCount,
   batchDownload,
+  archiveToDrive,
   batchDelete,
   batchRename,
   toggleFavorite,
@@ -1014,31 +1048,9 @@ function onStorageChanged(e: StorageEvent) {
 <template>
   <div class="h-full flex flex-col">
 
-    <!-- 列表视图（移动端：卡片列表；桌面：表格） -->
+    <!-- 列表视图：桌面表格 -->
     <div v-if="currentView === 'list'" class="flex-1 min-h-0 flex flex-col overflow-hidden">
-      <!-- 移动端卡片列表：单击选中+打开，长按上下文菜单，无横向溢出 -->
-      <FileCardList
-        v-if="isMobile"
-        :data="filteredList"
-        :selected="selected"
-        :loading="tableLoading"
-        :skeleton="tableLoading && filteredList.length === 0"
-        :filter-active="filterActive"
-        :has-more="hasMore"
-        :is-loading-more="isLoadingMore"
-        :total="total"
-        @row-click="(row: any, e: MouseEvent) => onRowClick(row, e)"
-        @open="clickFilename"
-        @contextmenu="(e: MouseEvent, row: any) => onContextMenu(e, row)"
-        @load-more="onLoadMore"
-      >
-        <template #after-list>
-          <slot name="after-list" />
-        </template>
-      </FileCardList>
-
       <BaseTable
-        v-else
         :columns="columns"
         :data="filteredList"
         :loading="tableLoading"
@@ -1049,14 +1061,14 @@ function onStorageChanged(e: StorageEvent) {
         :selected="selected"
         empty-text="该文件夹为空，试试上传文件"
         :sort-field="sortProp"
-        :sort-order="sortOrder"
+        :sort-order="sortOrder || ''"
         @update:selected="(v: any) => handleSelectionChange(v)"
         @rowClick="(row: any, idx: number, e: MouseEvent) => onRowClick(row, e)"
         @rowDblclick="onRowDblclick"
         @rowContextmenu="(e: MouseEvent, row: any) => onContextMenu(e, row)"
       >
         <template #cell-filename="{ row }">
-          <BaseTooltip :text="row.filename" position="top">
+          <BaseTooltip :text="row.filename" position="top" class="w-full min-w-0">
             <button
               type="button"
               class="group flex items-center gap-3.5 text-left w-full min-w-0"
@@ -1089,7 +1101,8 @@ function onStorageChanged(e: StorageEvent) {
         <template #cell-parentFilename="{ row }">
           <button
             type="button"
-            class="text-xs text-primary-500 hover:underline"
+            class="block max-w-full truncate text-xs text-primary-500 hover:underline"
+            :title="row.parentFilename"
             @click="goInFolder(row.parentId)"
           >
             {{ row.parentFilename }}
@@ -1201,7 +1214,7 @@ function onStorageChanged(e: StorageEvent) {
 
           <FileThumbnail :file="row" :size="56" rounded="rounded-sm" class="mb-2" />
 
-          <BaseTooltip :text="row.filename" position="top">
+          <BaseTooltip :text="row.filename" position="top" class="max-w-full">
             <p class="text-xs font-medium text-(--color-text) line-clamp-2 leading-snug w-full break-all">
               {{ row.filename }}
             </p>

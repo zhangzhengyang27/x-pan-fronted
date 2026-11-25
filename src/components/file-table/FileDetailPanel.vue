@@ -9,7 +9,6 @@
  * - 标签(来自 useFileTags)
  */
 import { computed, ref, watch } from 'vue'
-import { useBreakpoint } from '@/composables/useMediaQuery'
 import {
   X,
   Download,
@@ -42,7 +41,7 @@ import vaultService from '@/api/vault'
 import panUtil, { isArchive } from '@/utils/common'
 import { getDownloadUrl } from '@/utils/preview'
 import { ElMessage, ElMessageBox } from '@/composables/useToast'
-import type { IFileVO } from '@/types'
+import type { IFileVO, IMediaMetadataVO } from '@/types'
 
 const props = defineProps<{
   file: IFileVO | null
@@ -57,7 +56,6 @@ const emit = defineEmits<{
 }>()
 
 const router = useRouter()
-const { isMobile } = useBreakpoint()
 const { isFavorite, toggle: toggleFavorite } = useFavorites()
 const { loading: tagLoading, autoTag, getTags, addTag, removeTag, loadTags } = useFileTags()
 
@@ -259,6 +257,36 @@ const fileTags = computed(() => {
 // ─── 在线解压 ───────────────────────────────────────────────────────────────
 const extractDialog = ref({ open: false, fileId: '', filename: '' })
 
+// ─── 媒体元数据（图片/音频/视频） ─────────────────────────────────────────
+const mediaMeta = ref<IMediaMetadataVO | null>(null)
+const mediaRows = computed(() => {
+  const m = mediaMeta.value
+  if (!m) return []
+  const rows: Array<{ label: string; value: string }> = []
+  if (m.width && m.height) rows.push({ label: '尺寸', value: `${m.width} × ${m.height}` })
+  if (m.durationMs) {
+    const total = Math.round(m.durationMs / 1000)
+    rows.push({ label: '时长', value: `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}` })
+  }
+  if (m.title) rows.push({ label: '标题', value: m.title })
+  if (m.artist) rows.push({ label: '艺术家', value: m.artist })
+  if (m.album) rows.push({ label: '专辑', value: m.album })
+  if (m.camera) rows.push({ label: '拍摄设备', value: m.camera })
+  if (m.capturedAt) rows.push({ label: '拍摄时间', value: m.capturedAt.replace('T', ' ').slice(0, 19) })
+  if (m.location) rows.push({ label: '位置', value: m.location })
+  return rows
+})
+
+async function loadMediaMeta(fileId: string): Promise<void> {
+  mediaMeta.value = null
+  try {
+    const res = await fileService.mediaMetadata(fileId)
+    mediaMeta.value = res.data
+  } catch {
+    // 非媒体文件或尚未抽取完成：详情面板不展示该区块
+  }
+}
+
 function openExtract() {
   if (!props.file) return
   extractDialog.value = {
@@ -324,6 +352,11 @@ watch(
     if (f && f.fileType !== 0) {
       loadTags(f.fileId)
     }
+    if (f && [7, 8, 9].includes(f.fileType)) {
+      void loadMediaMeta(f.fileId)
+    } else {
+      mediaMeta.value = null
+    }
   },
   { immediate: true }
 )
@@ -333,11 +366,8 @@ watch(
   <Transition name="detail-slide">
     <aside
       v-if="open && file"
-      class="fixed z-40 flex flex-col border-(--color-border) bg-(--color-surface) overflow-hidden"
-      :class="isMobile
-        ? 'left-0 right-0 bottom-0 max-h-[85vh] rounded-t-2xl border-t pb-(--safe-bottom)'
-        : 'top-0 right-0 bottom-0 border-l'"
-      :style="isMobile ? '' : 'width: 320px; max-width: 90vw;'"
+      class="fixed z-40 flex flex-col border-(--color-border) bg-(--color-surface) overflow-hidden top-0 right-0 bottom-0 border-l"
+      style="width: 320px; max-width: 90vw;"
     >
       <!-- Header -->
       <div class="flex items-center justify-between px-4 py-3 border-b border-(--color-border)">
@@ -386,7 +416,7 @@ watch(
               <button
                 type="button"
                 class="flex items-center gap-1 text-[11px] transition-colors"
-                :class="isFavorite(file.fileId) ? 'text-amber-500' : 'text-(--color-text-muted) hover:text-amber-500'"
+                :class="isFavorite(file.fileId) ? 'text-(--color-warning-text)' : 'text-(--color-text-muted) hover:text-(--color-warning-text)'"
                 @click="toggleFavorite(file as any)"
               >
                 <Star
@@ -408,7 +438,7 @@ watch(
               class="group flex flex-col items-center gap-1.5 flex-1 py-2 rounded-lg text-(--color-text-muted) hover:bg-(--color-surface-2) transition-colors"
               @click="download"
             >
-              <span class="size-9 rounded-full bg-primary-500/10 text-primary-500 group-hover:bg-primary-500 group-hover:text-white flex items-center justify-center transition-colors">
+              <span class="size-9 rounded-full bg-primary-500/10 text-primary-500 group-hover:bg-(--color-brand-action) group-hover:text-white flex items-center justify-center transition-colors">
                 <Download :size="17" :stroke-width="2" />
               </span>
               <span class="text-[11px]">下载</span>
@@ -420,7 +450,7 @@ watch(
               :disabled="file.fileType === 0"
               @click="share"
             >
-              <span class="size-9 rounded-full bg-primary-500/10 text-primary-500 group-hover:bg-primary-500 group-hover:text-white flex items-center justify-center transition-colors">
+              <span class="size-9 rounded-full bg-primary-500/10 text-primary-500 group-hover:bg-(--color-brand-action) group-hover:text-white flex items-center justify-center transition-colors">
                 <Share2 :size="17" :stroke-width="2" />
               </span>
               <span class="text-[11px]">分享</span>
@@ -442,7 +472,7 @@ watch(
               class="group flex flex-col items-center gap-1.5 flex-1 py-2 rounded-lg text-(--color-text-muted) hover:bg-(--color-surface-2) transition-colors"
               @click="deleteFile"
             >
-              <span class="size-9 rounded-full bg-danger/10 text-danger group-hover:bg-danger group-hover:text-white flex items-center justify-center transition-colors">
+              <span class="size-9 rounded-full bg-(--color-danger-bg) text-(--color-danger-text) group-hover:bg-(--color-danger-action) group-hover:text-white flex items-center justify-center transition-colors">
                 <Trash2 :size="17" :stroke-width="2" />
               </span>
               <span class="text-[11px]">删除</span>
@@ -540,6 +570,12 @@ watch(
             <span class="text-(--color-text-muted)">修改时间</span>
             <span class="text-(--color-text) text-right tabular-nums">{{ fileMeta?.modified }}</span>
           </div>
+          <div v-if="mediaRows.length" class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-xs mt-2 pt-2 border-t border-(--color-border)">
+            <template v-for="row in mediaRows" :key="row.label">
+              <span class="text-(--color-text-muted)">{{ row.label }}</span>
+              <span class="text-(--color-text) text-right truncate max-w-[160px]">{{ row.value }}</span>
+            </template>
+          </div>
         </div>
 
         <!-- 分隔线 -->
@@ -572,7 +608,7 @@ watch(
               {{ tag }}
               <button
                 type="button"
-                class="size-3.5 rounded-full hover:bg-danger/20 hover:text-danger transition-colors ml-0.5 opacity-0 group-hover/tag:opacity-100"
+                class="size-3.5 rounded-full hover:bg-danger/20 hover:text-(--color-danger-text) transition-colors ml-0.5 opacity-0 group-hover/tag:opacity-100"
                 @click="removeTag(file.fileId, tag)"
               >
                 <X :size="10" />
@@ -589,7 +625,7 @@ watch(
             />
             <button
               type="button"
-              class="size-7 rounded-md bg-primary-500 text-white hover:bg-primary-600 transition-colors flex items-center justify-center"
+              class="size-7 rounded-md bg-(--color-brand-action) text-white hover:bg-(--color-brand-action-hover) transition-colors flex items-center justify-center"
               @click="handleAddTag"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="size-3.5">

@@ -21,10 +21,13 @@ const musicList = ref<MusicItem[]>([])
 const musicName = ref('')
 const musicSrc = ref('')
 const playing = ref(false)
-const audioRef = ref(null)
+const audioRef = ref<HTMLAudioElement | null>(null)
 const activeIndex = ref<string | number>('')
 const currentTime = ref(0)
 const duration = ref(0)
+// 音乐列表里快速点歌时，上一首的签名 URL 请求可能后返回。
+// 用代次只允许最后一次点击更新播放器，否则会出现“点 B 却在播 A”。
+let playSeq = 0
 
 const downloadUrl = computed(() => getDownloadUrl(String(route.params.fileId || '')))
 
@@ -36,6 +39,7 @@ function renderList(dataList: IFileVO[]) {
 }
 
 async function playMusic(item: MusicItem, idx: number) {
+  const seq = ++playSeq
   musicName.value = item.filename
   // 优先使用签名 URL（短时效、绑定 fileId），失败降级到授权 query 直链
   let url = ''
@@ -44,22 +48,27 @@ async function playMusic(item: MusicItem, idx: number) {
   } catch {
     url = getPreviewUrl(item.fileId)
   }
+  if (seq !== playSeq) return
   musicSrc.value = url
   activeIndex.value = idx
   playing.value = true
-  setTimeout(() => audioRef.value?.play(), 30)
+  setTimeout(() => {
+    if (seq === playSeq) void audioRef.value?.play()
+  }, 30)
 }
 
 function next() {
   const idx = musicList.value.findIndex((m) => activeIndex.value === m.fileId)
-  if (idx === -1 || idx === musicList.value.length - 1) return
-  playMusic(musicList.value[idx + 1], idx + 1)
+  const nextItem = musicList.value[idx + 1]
+  if (idx === -1 || !nextItem) return
+  playMusic(nextItem, idx + 1)
 }
 
 function prev() {
   const idx = musicList.value.findIndex((m) => activeIndex.value === m.fileId)
-  if (idx <= 0) return
-  playMusic(musicList.value[idx - 1], idx - 1)
+  const prevItem = musicList.value[idx - 1]
+  if (idx <= 0 || !prevItem) return
+  playMusic(prevItem, idx - 1)
 }
 
 function togglePlay() {
@@ -86,9 +95,10 @@ onMounted(() => {
     (res) => {
       const list = res.data?.records || []
       renderList(list)
-      const idx = list.findIndex((x) => x.fileId === route.params.fileId)
+      const idx = list.findIndex((x) => x.fileId === String(route.params.fileId || ''))
       if (idx !== -1) {
-        playMusic(list[idx], idx)
+        const first = list[idx]
+        if (first) playMusic(first, idx)
       }
     },
     (res) => ElMessage.error(res.message)
@@ -96,6 +106,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  playSeq++
   if (audioRef.value) audioRef.value.pause()
 })
 </script>
@@ -123,7 +134,7 @@ onBeforeUnmount(() => {
           class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-(--color-surface-2) transition-colors"
           :class="
             activeIndex === item.fileId
-              ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300'
+              ? 'bg-(--color-selected) text-primary-700 dark:text-primary-300'
               : ''
           "
           @click="playMusic(item, idx)"
@@ -143,7 +154,7 @@ onBeforeUnmount(() => {
       >
         <div class="flex items-center gap-4 mb-6">
           <div
-            class="size-20 rounded-sm bg-linear-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-md"
+            class="size-20 rounded-sm bg-linear-to-br from-(--color-brand-action) to-(--color-brand-action-hover) flex items-center justify-center shadow-md"
           >
             <Music :size="32" class="text-white" />
           </div>
@@ -176,7 +187,7 @@ onBeforeUnmount(() => {
           </button>
           <button
             type="button"
-            class="size-16 rounded-full bg-primary-600 text-white flex items-center justify-center hover:bg-primary-700 transition-colors shadow-md"
+            class="size-16 rounded-full bg-(--color-brand-action) text-white flex items-center justify-center hover:bg-(--color-brand-action-hover) transition-colors shadow-md"
             aria-label="播放/暂停"
             @click="togglePlay"
           >

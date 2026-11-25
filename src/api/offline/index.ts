@@ -36,6 +36,13 @@ export default {
       .catch(reject)
   },
 
+  retry(taskId: string, resolve: Callback<unknown>, reject: Callback<unknown>) {
+    http
+      .post<unknown, ApiResponse<unknown>>('/offline/retry', null, { params: { taskId } })
+      .then(resolve)
+      .catch(reject)
+  },
+
   delete(taskId: string, resolve: Callback<unknown>, reject: Callback<unknown>) {
     http
       .delete<unknown, ApiResponse<unknown>>('/offline', { params: { taskId } })

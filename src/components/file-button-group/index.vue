@@ -8,7 +8,6 @@
  */
 import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
-import { useBreakpoint } from '@/composables/useMediaQuery'
 import { useFileStore } from '@/stores/file'
 import UploadButton from '@/components/buttons/upload-button/index.vue'
 import CreateFolderButton from '@/components/buttons/create-folder-button/index.vue'
@@ -16,6 +15,7 @@ import DownloadButton from '@/components/buttons/download-button/index.vue'
 import DeleteButton from '@/components/buttons/delete-button/index.vue'
 import RenameButton from '@/components/buttons/rename-button/index.vue'
 import ShareButton from '@/components/buttons/share-button/index.vue'
+import DirectLinkButton from '@/components/buttons/direct-link-button/index.vue'
 import CopyButton from '@/components/buttons/copy-button/index.vue'
 import TransferButton from '@/components/buttons/transfer-button/index.vue'
 
@@ -32,12 +32,12 @@ const map = {
   delete: DeleteButton,
   rename: RenameButton,
   share: ShareButton,
+  directLink: DirectLinkButton,
   copy: CopyButton,
   transfer: TransferButton
 }
 
 const enabled = computed(() => new Set(props.buttonArray || []))
-const { isMobile } = useBreakpoint()
 
 // 默认从 Pinia store 读取多选（向后兼容老用法）
 // 注意：必须用 storeToRefs 解构拿到 ref，否则 fileStore.multipleSelection 拿到的是
@@ -53,15 +53,16 @@ const items = computed<any[]>(() =>
 
 <template>
   <div class="flex items-center gap-2 flex-wrap">
-    <UploadButton v-if="enabled.has('upload')" :size="isMobile ? 'small' : 'default'" />
-    <CreateFolderButton v-if="enabled.has('createFolder')" :size="isMobile ? 'small' : 'default'" />
-    <DownloadButton v-if="enabled.has('download')" :size="isMobile ? 'small' : 'default'" />
+    <UploadButton v-if="enabled.has('upload')" />
+    <CreateFolderButton v-if="enabled.has('createFolder')" />
+    <DownloadButton v-if="enabled.has('download')" />
     <!-- DeleteButton 显式接收选中行数组 -->
-    <DeleteButton v-if="enabled.has('delete')" :size="isMobile ? 'small' : 'default'" :item="items" />
-    <RenameButton v-if="enabled.has('rename')" :size="isMobile ? 'small' : 'default'" />
+    <DeleteButton v-if="enabled.has('delete')" :item="items" />
+    <RenameButton v-if="enabled.has('rename')" />
     <!-- ShareButton 显式接收选中行数组（这是修复点：保证无参点击也能拿到完整对象） -->
-    <ShareButton v-if="enabled.has('share')" :size="isMobile ? 'small' : 'default'" :item="items" />
-    <CopyButton v-if="enabled.has('copy')" :size="isMobile ? 'small' : 'default'" />
-    <TransferButton v-if="enabled.has('transfer')" :size="isMobile ? 'small' : 'default'" />
+    <ShareButton v-if="enabled.has('share')" :item="items" />
+    <DirectLinkButton v-if="enabled.has('directLink')" :item="items" />
+    <CopyButton v-if="enabled.has('copy')" />
+    <TransferButton v-if="enabled.has('transfer')" />
   </div>
 </template>

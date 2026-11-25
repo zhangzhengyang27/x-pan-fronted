@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * BaseModal —— 模态对话框（夸克风格）
+ * BaseModal —— 模态对话框（统一设计系统）
  * 基于原生 <dialog> + Teleport
  */
 import { watch, ref, nextTick, onMounted } from 'vue'
@@ -73,7 +73,7 @@ function onCancel(e: Event) {
       :class="
         cn(
           'm-auto p-0 text-(--color-text)',
-          'rounded-xl',
+          'rounded-panel',
           'shadow-xl',
           'w-[92vw]',
           'bg-(--color-surface) border border-(--color-border)',
@@ -108,7 +108,7 @@ function onCancel(e: Event) {
       <!-- 底部 -->
       <div
         v-if="$slots.footer"
-        class="px-5 py-3 flex items-center justify-end gap-2 rounded-b-xl border-t border-(--color-border) bg-(--color-surface-2)"
+        class="px-5 py-3 flex items-center justify-end gap-2 rounded-b-panel border-t border-(--color-border) bg-(--color-surface-2)"
       >
         <slot name="footer" />
       </div>

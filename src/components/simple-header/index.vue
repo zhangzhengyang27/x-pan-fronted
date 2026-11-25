@@ -7,7 +7,7 @@
       <router-link to="/" class="flex items-center gap-2.5 shrink-0 group">
         <div
           class="size-9 rounded-xl flex items-center justify-center shadow-sm"
-          style="background: linear-gradient(135deg, var(--color-primary-500) 0%, var(--color-primary-700) 100%);"
+          style="background: linear-gradient(135deg, var(--color-brand-action) 0%, var(--color-brand-action-hover) 100%);"
         >
           <Cloud :size="18" :stroke-width="2" class="text-white" />
         </div>

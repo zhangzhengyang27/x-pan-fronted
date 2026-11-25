@@ -122,7 +122,7 @@ onUnmounted(() => document.removeEventListener('keydown', onKeyDown))
               item.disabled
                 ? 'text-(--color-text-muted) cursor-not-allowed opacity-50'
                 : item.danger
-                  ? 'text-danger hover:bg-danger/10'
+                  ? 'text-(--color-danger-text) hover:bg-danger/10'
                   : 'text-(--color-text) hover:bg-(--color-surface-2)'
             ]"
             @click="onSelect(item, idx)"
@@ -133,7 +133,7 @@ onUnmounted(() => document.removeEventListener('keydown', onKeyDown))
                 :is="item.icon"
                 :size="15"
                 :class="
-                  item.danger ? 'text-danger' : 'text-(--color-text-muted)'
+                  item.danger ? 'text-(--color-danger-text)' : 'text-(--color-text-muted)'
                 "
               />
               <span class="truncate">{{ item.label }}</span>

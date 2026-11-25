@@ -356,7 +356,7 @@ function remove(m: MountVO) {
         </button>
         <button
           type="button"
-          class="text-(--color-text-secondary) hover:text-danger transition-colors"
+          class="text-(--color-text-secondary) hover:text-(--color-danger-text) transition-colors"
           title="删除"
           @click="remove(m)"
         >
@@ -426,7 +426,7 @@ function remove(m: MountVO) {
           </button>
           <button
             type="button"
-            class="text-(--color-text-secondary) hover:text-danger"
+            class="text-(--color-text-secondary) hover:text-(--color-danger-text)"
             title="删除"
             @click="removeEntry(entry)"
           >
@@ -486,7 +486,7 @@ function remove(m: MountVO) {
         </button>
         <button
           type="button"
-          class="flex flex-1 items-center justify-center rounded-lg bg-(--color-brand) py-2 text-sm text-white hover:opacity-90 transition-opacity disabled:opacity-50"
+          class="flex flex-1 items-center justify-center rounded-lg bg-(--color-brand-action) py-2 text-sm text-white hover:opacity-90 transition-opacity disabled:opacity-50"
           :disabled="saving"
           @click="save"
         >

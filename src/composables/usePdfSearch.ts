@@ -24,8 +24,12 @@ export function usePdfSearch() {
   const loading = ref(false)
   const error = ref('')
 
-  /** 销毁当前 PDF 文档（释放 worker 与内存），更换文档或组件卸载时调用 */
-  async function destroy(): Promise<void> {
+  // 加载代次：URL 切换/组件卸载时递增，让在途的 getDocument 结果自动作废。
+  // 只清 pdfDoc 不够：旧请求完成后仍会把自己写回 pdfDoc，下一次搜索就会命中旧文档。
+  let loadToken = 0
+
+  /** 销毁当前已加载的文档（不递增代次，供 load 内部替换文档时使用） */
+  async function destroyCurrent(): Promise<void> {
     const doc = pdfDoc.value
     pdfDoc.value = null
     if (!doc) return
@@ -36,32 +40,57 @@ export function usePdfSearch() {
     }
   }
 
+  /** 销毁当前 PDF 文档并使在途加载失效，更换文档或组件卸载时调用 */
+  async function destroy(): Promise<void> {
+    loadToken++
+    loading.value = false
+    await destroyCurrent()
+  }
+
   async function load(url: string): Promise<PDFDocumentProxy | null> {
     if (loading.value) return null
+    const token = ++loadToken
     loading.value = true
     error.value = ''
     try {
       const lib = await import('pdfjs-dist/build/pdf.mjs')
       lib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl
       // 加载新文档前销毁旧文档，避免旧文档持有的 worker/内存泄漏
-      await destroy()
+      await destroyCurrent()
       const doc = await lib.getDocument({ url }).promise
+      // URL 已切换/组件已卸载：销毁刚拿到的旧文档，不能写回 pdfDoc
+      if (token !== loadToken) {
+        await doc.destroy()
+        return null
+      }
       pdfDoc.value = doc
-      // 预提取前 50 页文本
+      // 预提取前 50 页文本；逐页检查代次，避免大文档把旧 URL 的缓存跑完
       const pagesToCache = Math.min(doc.numPages, 50)
       const cache = new Map<number, string>()
       for (let i = 1; i <= pagesToCache; i++) {
+        if (token !== loadToken) {
+          pdfDoc.value = null
+          await doc.destroy()
+          return null
+        }
         const page = await doc.getPage(i)
         const content = await page.getTextContent()
         cache.set(i, content.items.map((it) => it.str).join(' '))
       }
+      if (token !== loadToken) {
+        pdfDoc.value = null
+        await doc.destroy()
+        return null
+      }
       textCache.set(doc, cache)
       return doc
     } catch (e) {
+      if (token !== loadToken) return null
       error.value = (e as { message?: string })?.message || 'PDF 加载失败'
       throw e
     } finally {
-      loading.value = false
+      // 旧加载的 finally 不能覆盖新加载的 loading 状态
+      if (token === loadToken) loading.value = false
     }
   }
 

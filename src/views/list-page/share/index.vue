@@ -7,38 +7,31 @@
  * - BaseTable（分享类型/提取码/过期时间/浏览次数/操作）
  */
 import { computed, onMounted, ref } from 'vue'
-import { Share2, Link as LinkIcon, X, Globe, Lock, Eye } from '@lucide/vue'
+import { Share2, Link as LinkIcon, X, Globe, Lock, Eye, Inbox, ShieldAlert, ShieldCheck } from '@lucide/vue'
 import shareService from '@/api/share'
 import { ElMessage, ElMessageBox } from '@/composables/useToast'
 import BaseTable from '@/components/base/BaseTable.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseBadge from '@/components/base/BaseBadge.vue'
 import BaseTooltip from '@/components/base/BaseTooltip.vue'
-import { useBreakpoint } from '@/composables/useMediaQuery'
 import type { IShareVO } from '@/types'
 
-const { isMobile } = useBreakpoint()
-const tableData = ref([])
-const selected = ref([])
+const tableData = ref<IShareVO[]>([])
+const selected = ref<(string | number)[]>([])
 const tableLoading = ref(true)
 
 // 列字段与后端 XPanShareUrlListVO 契约对齐：
 // shareName（分享名称）/ shareEndTime（过期时间）/ visitCount（浏览次数）
 const columns: { key: string; title: string; width: string | number; align?: 'left' | 'right' | 'center' }[] = [
   { key: 'shareName', title: '分享名称', width: 'auto' },
-  { key: 'shareType', title: '分享类型', width: 120, align: 'center' },
-  { key: 'shareCode', title: '提取码', width: 100, align: 'center' },
+  { key: 'shareType', title: '分享类型', width: 110, align: 'center' },
+  { key: 'shareCode', title: '提取码', width: 90, align: 'center' },
   { key: 'expireTime', title: '过期时间', width: 160, align: 'center' },
-  { key: 'visitCount', title: '浏览次数', width: 100, align: 'center' },
-  { key: 'actions', title: '操作', width: 160, align: 'right' }
+  { key: 'visitCount', title: '浏览次数', width: 90, align: 'center' },
+  { key: 'collect', title: '文件收集', width: 100, align: 'center' },
+  // 报告隐藏行会多一个“申诉复核”按钮；230px 可容纳 5 个图标按钮、间距和单元格内边距
+  { key: 'actions', title: '操作', width: 230, align: 'right' }
 ]
-
-// 移动端隐藏「分享类型/提取码/浏览次数」次要列，避免横向溢出
-const displayColumns = computed(() =>
-  isMobile.value
-    ? columns.filter((c) => !['shareType', 'shareCode', 'visitCount'].includes(c.key))
-    : columns
-)
 
 function loadTableData() {
   tableLoading.value = true
@@ -117,7 +110,40 @@ function cancelShares() {
 }
 
 function cancelShare(row: Partial<IShareVO>) {
+  if (!row.shareId) return
   doCancelShares([row.shareId])
+}
+
+async function appealShare(row: Partial<IShareVO>) {
+  if (!row.shareId) return
+  try {
+    const { value } = await ElMessageBox.prompt(
+      '请说明申诉理由（例如：分享内容为原创、无违规）。管理员复核后会恢复或驳回。',
+      '申诉被隐藏的分享',
+      {
+        confirmButtonText: '提交申诉',
+        cancelButtonText: '取消',
+        inputValidator: (v: string) => {
+          const text = String(v || '').trim()
+          if (!text) return '申诉理由不能为空'
+          if (text.length > 500) return '申诉理由不能超过 500 字'
+          return true
+        }
+      }
+    )
+    shareService.appealShare(
+      { shareId: row.shareId, reason: String(value || '').trim() },
+      (res) => {
+        if (res.code === 0) {
+          ElMessage.success('申诉已提交，请等待管理员复核')
+          loadTableData()
+        } else ElMessage.error(res.message || '申诉提交失败')
+      },
+      () => ElMessage.error('申诉提交失败')
+    )
+  } catch {
+    // 用户取消输入
+  }
 }
 
 onMounted(loadTableData)
@@ -127,8 +153,10 @@ const summary = computed(() => {
   const now = Date.now()
   const active = rows.filter((r) => {
     if (r.shareStatus === 1) return false
+    // 举报待复核隐藏不算有效分享：访问者已经无法打开，统计应与实际状态一致
+    if (r.reportHidden === 1) return false
     if (r.shareDayType === 0) return true
-    return new Date(r.shareEndTime).getTime() > now
+    return !!r.shareEndTime && new Date(r.shareEndTime).getTime() > now
   })
   const totalDownloads = rows.reduce((s, r) => s + (r.downloadCount || 0), 0)
   const remaining = rows.reduce((s, r) => {
@@ -142,6 +170,22 @@ const summary = computed(() => {
     remainingQuota: remaining
   }
 })
+
+function toggleCollect(row: Partial<IShareVO>) {
+  const shareId = row.shareId
+  if (!shareId) return
+  const enabled = row.collectEnabled !== 1
+  shareService.setShareCollect(
+    shareId,
+    enabled,
+    (res) => {
+      if (res.code !== 0) return ElMessage.error(res.message)
+      ElMessage.success(enabled ? '已开启文件收集' : '已关闭文件收集')
+      loadTableData()
+    },
+    (res) => ElMessage.error(res.message)
+  )
+}
 
 function isPublicShare(row: Partial<IShareVO>) {
   return row.shareType === 0
@@ -184,7 +228,7 @@ function formatExpireTime(row: Partial<IShareVO>) {
         class="rounded-xl border border-(--color-border) p-4 bg-(--color-surface-container-low)"
       >
         <div class="text-xs mb-1" style="color: var(--color-text-muted);">有效分享</div>
-        <div class="text-2xl font-bold tabular-nums" style="color: var(--color-success);">
+        <div class="text-2xl font-bold tabular-nums" style="color: var(--color-success-text);">
           {{ summary.activeShares }}
         </div>
       </div>
@@ -200,7 +244,7 @@ function formatExpireTime(row: Partial<IShareVO>) {
         class="rounded-xl border border-(--color-border) p-4 bg-(--color-surface-container-low)"
       >
         <div class="text-xs mb-1" style="color: var(--color-text-muted);">剩余下载配额</div>
-        <div class="text-2xl font-bold tabular-nums" style="color: var(--color-warning);">
+        <div class="text-2xl font-bold tabular-nums" style="color: var(--color-warning-text);">
           {{ summary.remainingQuota }}
         </div>
       </div>
@@ -225,7 +269,7 @@ function formatExpireTime(row: Partial<IShareVO>) {
 
     <!-- 表格 -->
     <BaseTable
-      :columns="displayColumns"
+      :columns="columns"
       :data="tableData"
       :loading="tableLoading"
       :selected="selected"
@@ -235,9 +279,16 @@ function formatExpireTime(row: Partial<IShareVO>) {
       @update:selected="(v) => (selected = v)"
     >
       <template #cell-shareName="{ row }">
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-3 min-w-0">
           <Share2 :size="18" :stroke-width="2" class="shrink-0" style="color: var(--color-primary-500);" />
           <span class="truncate text-(--color-text)">{{ row.shareName || '未命名' }}</span>
+          <BaseBadge v-if="row.e2ee === 1" variant="success" size="sm">
+            <span class="inline-flex items-center gap-1">
+              <ShieldCheck :size="11" :stroke-width="2" />
+              E2EE
+            </span>
+          </BaseBadge>
+          <BaseBadge v-if="row.reportHidden === 1" variant="danger" size="sm">待复核</BaseBadge>
         </div>
       </template>
 
@@ -261,11 +312,20 @@ function formatExpireTime(row: Partial<IShareVO>) {
       <template #cell-expireTime="{ row }">
         <span
           class="tabular-nums text-sm"
-          :style="isExpired(row) ? 'color: vardanger;' : 'color: var(--color-text-muted);'"
+          :style="isExpired(row) ? 'color: var(--color-danger-text);' : 'color: var(--color-text-muted);'"
         >
           {{ formatExpireTime(row) }}
           <span v-if="isExpired(row)" class="ml-1">(已过期)</span>
         </span>
+      </template>
+
+      <template #cell-collect="{ row }">
+        <BaseBadge :variant="row.collectEnabled === 1 ? 'success' : 'neutral'">
+          <span class="inline-flex items-center gap-1">
+            <Inbox :size="12" :stroke-width="2" />
+            {{ row.collectEnabled === 1 ? '已开启' : '未开启' }}
+          </span>
+        </BaseBadge>
       </template>
 
       <template #cell-visitCount="{ row }">
@@ -276,13 +336,25 @@ function formatExpireTime(row: Partial<IShareVO>) {
       </template>
 
       <template #cell-actions="{ row }">
-        <div
-          class="flex items-center gap-1 justify-end transition-opacity"
-          :class="isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'"
-        >
+        <div class="flex items-center gap-1 justify-end transition-opacity opacity-0 group-hover:opacity-100">
           <BaseTooltip text="复制链接" position="top">
             <BaseButton variant="secondary" size="sm" @click="copyShare(row)">
               <LinkIcon :size="14" :stroke-width="2" />
+            </BaseButton>
+          </BaseTooltip>
+          <BaseTooltip v-if="row.reportHidden === 1" text="申诉复核" position="top">
+            <BaseButton variant="primary" size="sm" @click="appealShare(row)">
+              <ShieldAlert :size="14" :stroke-width="2" />
+            </BaseButton>
+          </BaseTooltip>
+          <BaseTooltip :text="row.collectEnabled === 1 ? '关闭文件收集' : '开启文件收集'" position="top">
+            <BaseButton
+              variant="secondary"
+              size="sm"
+              :disabled="row.shareStatus === 1 || row.reportHidden === 1 || isExpired(row)"
+              @click="toggleCollect(row)"
+            >
+              <Inbox :size="14" :stroke-width="2" />
             </BaseButton>
           </BaseTooltip>
           <BaseTooltip text="取消分享" position="top">

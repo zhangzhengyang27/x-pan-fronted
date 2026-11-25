@@ -25,14 +25,14 @@ const { defaultParentId, defaultParentFilename, fileList } = storeToRefs(fileSto
 
 const searchKey = ref('')
 const showSuggest = ref(false)
-const suggestions = ref([])
+const suggestions = ref<IFileVO[]>([])
 /** 是否同时搜索文件正文（全文检索） */
 const searchContent = ref(false)
 /** 后端联想词（字符串关键词，点击后直接搜索） */
 const suggestWords = ref<string[]>([])
-/** 热搜词 */
-const hotWords = ref<string[]>([])
-const inputRef = ref(null)
+/** 我的最近搜索词 */
+const recentWords = ref<string[]>([])
+const inputRef = ref<{ focus: () => void } | null>(null)
 
 let suggestTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -52,12 +52,12 @@ function fetchSuggest(prefix: string) {
   }, 200)
 }
 
-/** 加载热搜词（聚焦空框时展示） */
-function fetchHot() {
-  fileService.hot(
+/** 加载当前账号的最近搜索词（聚焦空框时展示） */
+function fetchRecent() {
+  fileService.recent(
     10,
     (res) => {
-      hotWords.value = res.data || []
+      recentWords.value = res.data || []
     },
     () => {}
   )
@@ -68,10 +68,10 @@ function onFocusSearch() {
   inputRef.value?.focus()
 }
 
-// 输入框聚焦：空框时加载热搜并展示下拉
+// 输入框聚焦：空框时加载“我的最近搜索”并展示下拉
 function onInputFocus() {
   if (!searchKey.value.trim()) {
-    if (hotWords.value.length === 0) fetchHot()
+    if (recentWords.value.length === 0) fetchRecent()
   }
   showSuggest.value = true
 }
@@ -306,7 +306,7 @@ function clickSuggestion(item: IFileVO) {
       />
     </form>
 
-    <!-- 搜索建议下拉（本地 Fuse + 后端 suggest 联想词 + 热搜词） -->
+    <!-- 搜索建议下拉（本地 Fuse + 后端 suggest 联想词 + 我的最近搜索） -->
     <Transition name="modal">
       <div
         v-if="showSuggest"
@@ -343,11 +343,11 @@ function clickSuggestion(item: IFileVO) {
           </button>
         </template>
 
-        <!-- 热搜词（空框聚焦时） -->
-        <template v-if="!searchKey.trim() && hotWords.length > 0">
-          <p class="px-3 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-(--color-text-muted)">热搜</p>
+        <!-- 我的最近搜索（空框聚焦时；只展示当前账号自己的记录） -->
+        <template v-if="!searchKey.trim() && recentWords.length > 0">
+          <p class="px-3 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-(--color-text-muted)">最近搜索</p>
           <button
-            v-for="(word, i) in hotWords"
+            v-for="(word, i) in recentWords"
             :key="'h' + i"
             type="button"
             class="w-full flex items-center gap-3 px-3 py-2 text-sm text-left transition-colors hover:bg-(--color-surface-2)"

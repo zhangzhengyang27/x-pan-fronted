@@ -26,17 +26,16 @@ import {
   RotateCcw
 } from '@lucide/vue'
 import recycleService, { type IRecycleStatVO } from '@/api/recycle'
+import type { IFileVO } from '@/types'
 import { ElMessage, ElMessageBox } from '@/composables/useToast'
 import BaseTable from '@/components/base/BaseTable.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseTooltip from '@/components/base/BaseTooltip.vue'
-import { useBreakpoint } from '@/composables/useMediaQuery'
 
-const { isMobile } = useBreakpoint()
 const RECYCLE_EXPIRE_DAYS = 30
 
-const tableData = ref([])
-const selected = ref([])
+const tableData = ref<IFileVO[]>([])
+const selected = ref<(string | number)[]>([])
 const tableLoading = ref(true)
 const recycleStat = ref<IRecycleStatVO | null>(null)
 
@@ -65,15 +64,8 @@ const columns: { key: string; title: string; width: string | number; align?: 'le
   { key: 'fileSizeDesc', title: '大小', width: 90, align: 'right' },
   { key: 'deleteTime', title: '删除时间', width: 150, align: 'center' },
   { key: 'clearDate', title: '清除日期', width: 120, align: 'center' },
-  { key: 'actions', title: '操作', width: 80, align: 'right' }
+  { key: 'actions', title: '操作', width: 110, align: 'right' }
 ]
-
-// 移动端隐藏次要列，避免横向溢出
-const displayColumns = computed(() =>
-  isMobile.value
-    ? columns.filter((c) => !['originPath', 'clearDate'].includes(c.key))
-    : columns
-)
 
 function fileIcon(type: number) {
   return (
@@ -273,7 +265,7 @@ onMounted(() => {
           class="inline-flex items-center gap-1.5 h-8 px-4 py-1.5 rounded-[6px] text-sm font-medium whitespace-nowrap transition-all"
           :class="[
             typeFilter === t.value
-              ? 'bg-primary-500 text-white border border-transparent shadow-[0_2px_6px_rgba(0,163,255,0.35)]'
+              ? 'bg-(--color-brand-action) text-white border border-transparent shadow-[0_2px_6px_rgb(36_91_255_/_0.28)]'
               : 'bg-(--color-surface) border border-(--color-border) text-(--color-text) hover:border-primary-300 hover:text-primary-600'
           ]"
           @click="typeFilter = t.value"
@@ -317,7 +309,7 @@ onMounted(() => {
     <!-- 表格 -->
     <div class="flex-1 min-h-0 overflow-y-auto -mx-4 px-4">
       <BaseTable
-        :columns="displayColumns"
+        :columns="columns"
         :data="filteredTableData"
         :loading="tableLoading"
         :selected="selected"
@@ -327,7 +319,7 @@ onMounted(() => {
         @update:selected="(v) => (selected = v)"
       >
         <template #cell-filename="{ row }">
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 min-w-0">
             <component
               :is="fileIcon(row.fileType)"
               :size="18"
@@ -339,7 +331,7 @@ onMounted(() => {
         </template>
 
         <template #cell-originPath="{ row }">
-          <span class="truncate text-xs text-(--color-text-secondary)" :title="row.parentFilename || row.realPath || '-'">
+          <span class="block truncate text-xs text-(--color-text-secondary)" :title="row.parentFilename || row.realPath || '-'">
             {{ row.parentFilename || row.realPath || '-' }}
           </span>
         </template>
@@ -357,17 +349,14 @@ onMounted(() => {
         <template #cell-clearDate="{ row }">
           <span
             class="text-xs tabular-nums"
-            :class="expireInfo(row).expired ? 'text-danger' : 'text-(--color-text-secondary)'"
+            :class="expireInfo(row).expired ? 'text-(--color-danger-text)' : 'text-(--color-text-secondary)'"
           >
             {{ formatClearDate(row) }}
           </span>
         </template>
 
         <template #cell-actions="{ row }">
-          <div
-            class="flex items-center gap-1 justify-end transition-opacity"
-            :class="isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'"
-          >
+          <div class="flex items-center gap-1 justify-end transition-opacity opacity-0 group-hover:opacity-100">
             <BaseTooltip text="还原">
               <BaseButton variant="primary" size="sm" @click="doRestore([row.fileId])">
                 <RefreshCw :size="14" :stroke-width="2" />

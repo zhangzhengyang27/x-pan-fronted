@@ -190,7 +190,7 @@ function close() {
             <Settings :size="14" :stroke-width="2" />
             <span
               v-if="isConfigured"
-              class="absolute top-0 right-0 size-1.5 rounded-full bg-emerald-500"
+              class="absolute top-0 right-0 size-1.5 rounded-full bg-(--color-success)"
             />
           </button>
         </div>
@@ -236,7 +236,7 @@ function close() {
         <div
           v-if="errorMsg"
           class="flex items-center gap-2 px-3 py-2 rounded-sm text-xs"
-          style="background-color: rgba(239, 68, 68, 0.1); color: var(--color-danger);"
+          style="background-color: var(--color-danger-bg); color: var(--color-danger-text);"
         >
           <AlertCircle :size="12" :stroke-width="2" />
           {{ errorMsg }}
@@ -286,7 +286,7 @@ function close() {
             :prefix="Wand2"
             @enter="saveApiKey"
           />
-          <div v-if="apiKeySaved" class="flex items-center gap-1.5 text-xs text-emerald-600">
+          <div v-if="apiKeySaved" class="flex items-center gap-1.5 text-xs text-(--color-success-text)">
             <Check :size="12" :stroke-width="2" />
             API Key 已保存
           </div>

@@ -49,8 +49,9 @@ function startCountdown() {
   countdown.value = 60
   countdownTimer = setInterval(() => {
     countdown.value--
-    if (countdown.value <= 0) {
+    if (countdown.value <= 0 && countdownTimer) {
       clearInterval(countdownTimer)
+      countdownTimer = null
     }
   }, 1000)
 }
@@ -67,11 +68,11 @@ const passwordStrength = computed(() => {
   const isLongEnough = pwd.length >= 12
   
   if (isLongEnough && hasLetter && hasNumber && hasSpecial) {
-    return { level: 3, label: '强', bars: 3, color: 'var(--color-success)' }
+    return { level: 3, label: '强', bars: 3, color: 'var(--color-success-text)' }
   } else if (hasLength && hasLetter && hasNumber) {
-    return { level: 2, label: '中', bars: 2, color: 'var(--color-warning)' }
+    return { level: 2, label: '中', bars: 2, color: 'var(--color-warning-text)' }
   } else {
-    return { level: 1, label: '弱', bars: 1, color: 'var(--color-danger)' }
+    return { level: 1, label: '弱', bars: 1, color: 'var(--color-danger-text)' }
   }
 })
 
@@ -144,15 +145,15 @@ const goLoginLink = () => router.push({ name: 'Login' })
         <div class="mb-12">
           <ol class="flex items-center w-full">
             <!-- Step 1 -->
-            <li class="flex w-full items-center text-primary-200">
+            <li class="flex w-full items-center text-(--color-info-text)">
               <span
-                class="flex items-center justify-center w-8 h-8 lg:w-10 lg:h-10 rounded-full shrink-0 bg-primary-200"
+                class="flex items-center justify-center w-8 h-8 lg:w-10 lg:h-10 rounded-full shrink-0 bg-(--color-brand-action)"
               >
-                <span class="text-sm font-bold text-(--color-bg)">1</span>
+                <span class="text-sm font-bold text-white">1</span>
               </span>
               <span
                 v-if="0 < currentStep"
-                class="flex-grow h-1 border-b-4 border-primary-200"
+                class="flex-grow h-1 border-b-4 border-(--color-brand-action)"
               />
               <span
                 v-else
@@ -160,12 +161,12 @@ const goLoginLink = () => router.push({ name: 'Login' })
               />
             </li>
             <!-- Step 2 -->
-            <li class="flex w-full items-center" :class="currentStep >= 1 ? 'text-primary-200' : 'text-(--color-text-muted)'">
+            <li class="flex w-full items-center" :class="currentStep >= 1 ? 'text-(--color-info-text)' : 'text-(--color-text-muted)'">
               <span
                 v-if="currentStep > 1"
-                class="flex items-center justify-center w-8 h-8 lg:w-10 lg:h-10 rounded-full shrink-0 bg-primary-200"
+                class="flex items-center justify-center w-8 h-8 lg:w-10 lg:h-10 rounded-full shrink-0 bg-(--color-brand-action)"
               >
-                <Check :size="16" :stroke-width="3" class="text-(--color-bg)" />
+                <Check :size="16" :stroke-width="3" class="text-white" />
               </span>
               <span
                 v-else
@@ -175,7 +176,7 @@ const goLoginLink = () => router.push({ name: 'Login' })
               </span>
               <span
                 v-if="1 < currentStep"
-                class="flex-grow h-1 border-b-4 border-primary-200"
+                class="flex-grow h-1 border-b-4 border-(--color-brand-action)"
               />
               <span
                 v-else-if="currentStep >= 1"
@@ -183,12 +184,12 @@ const goLoginLink = () => router.push({ name: 'Login' })
               />
             </li>
             <!-- Step 3 -->
-            <li class="flex w-full items-center" :class="currentStep >= 2 ? 'text-primary-200' : 'text-(--color-text-muted)'">
+            <li class="flex w-full items-center" :class="currentStep >= 2 ? 'text-(--color-info-text)' : 'text-(--color-text-muted)'">
               <span
                 v-if="currentStep > 2"
-                class="flex items-center justify-center w-8 h-8 lg:w-10 lg:h-10 rounded-full shrink-0 bg-primary-200"
+                class="flex items-center justify-center w-8 h-8 lg:w-10 lg:h-10 rounded-full shrink-0 bg-(--color-brand-action)"
               >
-                <Check :size="16" :stroke-width="3" class="text-(--color-bg)" />
+                <Check :size="16" :stroke-width="3" class="text-white" />
               </span>
               <span
                 v-else
@@ -198,7 +199,7 @@ const goLoginLink = () => router.push({ name: 'Login' })
               </span>
               <span
                 v-if="2 < currentStep"
-                class="flex-grow h-1 border-b-4 border-primary-200"
+                class="flex-grow h-1 border-b-4 border-(--color-brand-action)"
               />
               <span
                 v-else-if="currentStep >= 2"
@@ -206,12 +207,12 @@ const goLoginLink = () => router.push({ name: 'Login' })
               />
             </li>
             <!-- Step 4 -->
-            <li class="flex items-center" :class="currentStep >= 3 ? 'text-primary-200' : 'text-(--color-text-muted)'">
+            <li class="flex items-center" :class="currentStep >= 3 ? 'text-(--color-info-text)' : 'text-(--color-text-muted)'">
               <span
                 v-if="currentStep > 3"
-                class="flex items-center justify-center w-8 h-8 lg:w-10 lg:h-10 rounded-full shrink-0 bg-primary-200"
+                class="flex items-center justify-center w-8 h-8 lg:w-10 lg:h-10 rounded-full shrink-0 bg-(--color-brand-action)"
               >
-                <Check :size="16" :stroke-width="3" class="text-(--color-bg)" />
+                <Check :size="16" :stroke-width="3" class="text-white" />
               </span>
               <span
                 v-else
@@ -222,10 +223,10 @@ const goLoginLink = () => router.push({ name: 'Login' })
             </li>
           </ol>
           <div class="flex justify-between mt-2 px-2">
-            <span class="text-xs font-medium text-primary-200">账号</span>
-            <span class="text-xs font-medium ml-4" :class="currentStep >= 1 ? 'text-primary-200' : 'text-(--color-text-muted)'">验证</span>
-            <span class="text-xs font-medium ml-6" :class="currentStep >= 2 ? 'text-primary-200' : 'text-(--color-text-muted)'">重置</span>
-            <span class="text-xs font-medium" :class="currentStep >= 3 ? 'text-primary-200' : 'text-(--color-text-muted)'">完成</span>
+            <span class="text-xs font-medium text-(--color-info-text)">账号</span>
+            <span class="text-xs font-medium ml-4" :class="currentStep >= 1 ? 'text-(--color-info-text)' : 'text-(--color-text-muted)'">验证</span>
+            <span class="text-xs font-medium ml-6" :class="currentStep >= 2 ? 'text-(--color-info-text)' : 'text-(--color-text-muted)'">重置</span>
+            <span class="text-xs font-medium" :class="currentStep >= 3 ? 'text-(--color-info-text)' : 'text-(--color-text-muted)'">完成</span>
           </div>
         </div>
 
@@ -273,7 +274,7 @@ const goLoginLink = () => router.push({ name: 'Login' })
               <div class="text-center mt-4">
                 <button
                   type="button"
-                  class="text-sm transition-colors text-(--color-text-muted) hover:text-primary-200"
+                  class="text-sm transition-colors text-(--color-text-muted) hover:text-(--color-info-text)"
                   @click="goLoginLink"
                 >
                   记起密码了？返回登录
@@ -307,7 +308,7 @@ const goLoginLink = () => router.push({ name: 'Login' })
                   />
                   <button
                     type="button"
-                    class="absolute right-3 top-1/2 -translate-y-1/2 text-sm transition-colors text-primary-200 disabled:opacity-50"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 text-sm transition-colors text-(--color-info-text) disabled:opacity-50"
                     :disabled="countdown > 0"
                     @click="startCountdown"
                   >
@@ -454,9 +455,9 @@ const goLoginLink = () => router.push({ name: 'Login' })
           <div v-if="currentStep === 3" class="text-center py-8">
             <div
               class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6"
-              style="background-color: rgba(16, 185, 129, 0.1);"
+              style="background-color: var(--color-success-bg);"
             >
-              <Check :size="32" :stroke-width="2" style="color: var(--color-success);" />
+              <Check :size="32" :stroke-width="2" style="color: var(--color-success-text);" />
             </div>
             <h2 class="text-xl font-semibold mb-2 text-(--color-text)">
               密码重置成功
@@ -485,9 +486,9 @@ const goLoginLink = () => router.push({ name: 'Login' })
         © 2024 X Pan Distributed Storage. All rights reserved.
       </div>
       <div class="flex gap-4">
-        <a href="#" class="text-xs transition-colors hover:text-primary-200">存储统计</a>
-        <a href="#" class="text-xs transition-colors hover:text-primary-200">系统状态</a>
-        <a href="#" class="text-xs transition-colors hover:text-primary-200">API 文档</a>
+        <a href="#" class="text-xs transition-colors hover:text-(--color-info-text)">存储统计</a>
+        <a href="#" class="text-xs transition-colors hover:text-(--color-info-text)">系统状态</a>
+        <a href="#" class="text-xs transition-colors hover:text-(--color-info-text)">API 文档</a>
       </div>
     </footer>
   </div>

@@ -165,7 +165,7 @@ function countNodes(n: TopicNode | null): number {
     </div>
     <div
       v-else-if="error"
-      class="absolute inset-0 flex items-center justify-center px-8 text-center text-sm text-danger"
+      class="absolute inset-0 flex items-center justify-center px-8 text-center text-sm text-(--color-danger-text)"
     >
       {{ error }}
     </div>

@@ -84,7 +84,7 @@ function doCreate(): void {
 }
 
 function doCancel(task: IOfflineTaskVO): void {
-  ElMessageBox.confirm('确定取消该下载任务？已下载的部分会被丢弃。', '取消下载', {
+  ElMessageBox.confirm('确定取消该下载任务？已下载的部分会保留，之后可重试继续。', '取消下载', {
     confirmButtonText: '确认取消',
     cancelButtonText: '取消',
     type: 'warning'
@@ -100,6 +100,19 @@ function doCancel(task: IOfflineTaskVO): void {
       )
     })
     .catch(() => {})
+}
+
+function doRetry(task: IOfflineTaskVO): void {
+  offlineService.retry(
+    taskKey(task),
+    (res) => {
+      if (res.code === 0) {
+        ElMessage.success('已重新排队，将从已下载部分继续')
+        loadTasks()
+      } else ElMessage.error(res.message || '重试失败')
+    },
+    (err) => ElMessage.error((err as { message?: string })?.message || '重试失败')
+  )
 }
 
 function doDelete(task: IOfflineTaskVO): void {
@@ -139,9 +152,9 @@ function statusMeta(s: number | null | undefined) {
 
 function statusColor(s: number | null | undefined) {
   const meta = statusMeta(s)
-  if (meta.variant === 'success') return 'var(--color-success)'
-  if (meta.variant === 'danger') return 'var(--color-danger)'
-  if (meta.variant === 'warning') return 'var(--color-warning)'
+  if (meta.variant === 'success') return 'var(--color-success-text)'
+  if (meta.variant === 'danger') return 'var(--color-danger-text)'
+  if (meta.variant === 'warning') return 'var(--color-warning-text)'
   if (meta.variant === 'primary') return 'var(--color-primary-500)'
   return 'var(--color-text-muted)'
 }
@@ -291,7 +304,7 @@ onUnmounted(() => {
             <span v-if="t.progress != null && t.status === 1" class="tabular-nums">
               进度 {{ t.progress }}%
             </span>
-            <span v-if="t.errorMsg" style="color: var(--color-danger);">{{ t.errorMsg }}</span>
+            <span v-if="t.errorMsg" style="color: var(--color-danger-text);">{{ t.errorMsg }}</span>
             <span>{{ t.createTime }}</span>
           </div>
           
@@ -310,6 +323,15 @@ onUnmounted(() => {
         
         <!-- 操作按钮 -->
         <div class="flex items-center gap-1 shrink-0">
+          <BaseButton
+            v-if="t.status === 3 || t.status === 4"
+            variant="ghost"
+            size="sm"
+            @click="doRetry(t)"
+            title="重试（断点续传）"
+          >
+            <RefreshCw :size="14" :stroke-width="2" />
+          </BaseButton>
           <BaseButton
             v-if="t.status === 0 || t.status === 1"
             variant="ghost"

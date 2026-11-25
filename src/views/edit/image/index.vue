@@ -659,7 +659,7 @@ function handleClass(h: Handle) {
         >
           v{{ version }}
         </span>
-        <span v-if="dirty" class="shrink-0 text-[11px] text-amber-500">未保存</span>
+        <span v-if="dirty" class="shrink-0 text-[11px] text-(--color-warning-text)">未保存</span>
       </div>
 
       <div class="flex items-center gap-2 shrink-0">
@@ -818,7 +818,7 @@ function handleClass(h: Handle) {
 .tool-btn {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start; /* 桌面工具条左对齐；Web 端不再按视口宽度切回居中 */
   gap: 10px;
   height: 38px;
   padding: 0 10px;
@@ -834,10 +834,5 @@ function handleClass(h: Handle) {
 .tool-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
-}
-@media (min-width: 640px) {
-  .tool-btn {
-    justify-content: flex-start;
-  }
 }
 </style>

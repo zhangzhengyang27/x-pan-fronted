@@ -216,7 +216,7 @@ onMounted(() => {
         </button>
         <button
           type="button"
-          class="h-8 px-2 rounded-sm text-sm inline-flex items-center gap-1 text-danger hover:bg-(--color-danger-bg)/20"
+          class="h-8 px-2 rounded-sm text-sm inline-flex items-center gap-1 text-(--color-danger-text) hover:bg-(--color-danger-bg)/20"
           @click="doDelete([])"
         >
           <Trash2 :size="16" />

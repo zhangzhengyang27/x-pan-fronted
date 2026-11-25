@@ -23,11 +23,11 @@ const goBack = () => window.history.back()
     <!-- 环境光晕 -->
     <div
       class="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-[120px] opacity-10 pointer-events-none"
-      style="background-color: var(--color-primary-500);"
+      style="background-color: var(--color-brand-action);"
     />
     <div
       class="absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full blur-[120px] opacity-5 pointer-events-none"
-      style="background-color: var(--color-warning);"
+      style="background-color: var(--color-warning-text);"
     />
 
     <!-- 404 View -->
@@ -44,7 +44,7 @@ const goBack = () => window.history.back()
           class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6"
           style="background-color: var(--color-surface-container-high); border: 1px solid var(--color-border-strong);"
         >
-          <AlertCircle :size="32" :stroke-width="2" style="color: var(--color-warning);" />
+          <AlertCircle :size="32" :stroke-width="2" style="color: var(--color-warning-text);" />
         </div>
 
         <h1 class="text-3xl font-bold mb-4 tracking-tight text-(--color-text)">

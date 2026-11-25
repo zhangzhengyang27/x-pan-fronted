@@ -322,7 +322,6 @@ X Pan（仓库内称 **X-Pan**）是一个面向个人的、可扩展的分布�
 |---|---|
 | `useFavorites.ts` / `useRecent.ts` | 收藏 / 最近访问（前端 localStorage） |
 | `useIcon.ts` | 文件类型 → Lucide 图标 |
-| `useMediaQuery.ts` | 响应式断点 |
 | `usePdfSearch.ts` | PDF 内文本搜索 |
 | `useResizable.ts` | 可拖拽分栏尺寸 |
 | `useTableSort.ts` | 表格排序类型（`SortOrder`） |
@@ -357,9 +356,9 @@ X Pan（仓库内称 **X-Pan**）是一个面向个人的、可扩展的分布�
 
 | 组件 | 职责 |
 |---|---|
-| [`layout/index.vue`](src/layout/index.vue) | `Header + (Navbar + AppMain) + Footer`，含路由过渡 `route-fade`、移动端汉堡触发 `xpan:open-mobile-nav` |
-| `header` / `simple-header` | 顶栏（登录态/匿名态） |
-| `navbar` | 侧栏导航，支持移动端抽屉 |
+| [`layout/index.vue`](src/layout/index.vue) | `Header + (Navbar + AppMain) + Footer`，含路由过渡 `route-fade` 与全窗拖拽上传 |
+| `header` / `simple-header` | 桌面顶栏（登录态/匿名态） |
+| `navbar` | 桌面固定可拖拽侧栏 |
 | `breadcrumb` | 面包屑 |
 | `footer` | 底栏 |
 | `app-main` | 主内容容器 |
@@ -602,7 +601,7 @@ mvn -pl server spring-boot:run     # 默认 8081
 
 ### 9.4 Docker
 
-前端镜像（[`Dockerfile`](Dockerfile)）：`node:20-alpine` 构建 → `nginx:1.27-alpine` 提供静态服务，[`nginx.conf`](nginx.conf) 配置 SPA fallback、`/api/` 反代（`http://x-pan-backend:8081/`，10G body / 600s 读超时）、静态资源 1 年 immutable 缓存、gzip、安全头、`/health` 健康检查。
+前端镜像（[`Dockerfile`](Dockerfile)）：`node:20-alpine` 构建 → `nginx:1.27-alpine` 提供静态服务，[`nginx.conf`](nginx.conf) 配置 SPA fallback、`/api/` 反代（`http://xpan-backend:8081/`，10G body / 600s 读超时）、静态资源 1 年 immutable 缓存、gzip、安全头、`/health` 健康检查。
 
 后端镜像：见 `r_pan_parent/server/Dockerfile`。
 

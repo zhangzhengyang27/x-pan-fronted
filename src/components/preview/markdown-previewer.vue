@@ -21,7 +21,7 @@ const props = defineProps({
 const resolvedUrl = () => props.url || getPreviewUrl(props.fileId)
 
 const { isDark } = useTheme()
-const containerRef = ref(null)
+const containerRef = ref<HTMLDivElement | null>(null)
 const loading = ref(true)
 const error = ref('')
 let vditor: InstanceType<typeof Vditor> | null = null
@@ -76,20 +76,26 @@ function parseHeadings(src: string): { level: number; text: string; index: numbe
 }
 
 /** 返回渲染后第 index 个标题 DOM 节点（Vditor IR 模式下为 .vditor-ir__node[data-marker="#"]） */
-function getHeadingEl(index: number): HTMLElement | null {
-  const nodes = document.querySelectorAll<HTMLElement>(
-    '.vditor-ir__node[data-marker="#"], .vditor-reset > h1, .vditor-reset > h2, .vditor-reset > h3, .vditor-reset > h4, .vditor-reset > h5, .vditor-reset > h6'
+function headingNodes(): HTMLElement[] {
+  // 必须限定在当前组件容器内：弹窗预览和独立路由同时存在时，
+  // document.querySelectorAll 会把另一份 Markdown 的标题也混进来，
+  // 导致目录点击滚动到错误文档。
+  const root = containerRef.value
+  if (!root) return []
+  return Array.from(
+    root.querySelectorAll<HTMLElement>(
+      '.vditor-ir__node[data-marker="#"], .vditor-reset > h1, .vditor-reset > h2, .vditor-reset > h3, .vditor-reset > h4, .vditor-reset > h5, .vditor-reset > h6'
+    )
   )
-  return nodes[index] || null
+}
+
+function getHeadingEl(index: number): HTMLElement | null {
+  return headingNodes()[index] || null
 }
 
 function setupObserver() {
   observer?.disconnect()
-  const nodes = Array.from(
-    document.querySelectorAll<HTMLElement>(
-      '.vditor-ir__node[data-marker="#"], .vditor-reset > h1, .vditor-reset > h2, .vditor-reset > h3, .vditor-reset > h4, .vditor-reset > h5, .vditor-reset > h6'
-    )
-  )
+  const nodes = headingNodes()
   if (!nodes.length) return
   observer = new IntersectionObserver(
     (entries) => {
@@ -104,7 +110,8 @@ function setupObserver() {
     },
     // 以 Vditor 内部实际滚动节点（.vditor-ir > pre.vditor-reset）为 root
     {
-      root: document.querySelector('.vditor-ir > .vditor-reset') || document.querySelector('.vditor-ir'),
+      root: containerRef.value?.querySelector('.vditor-ir > .vditor-reset')
+        || containerRef.value?.querySelector('.vditor-ir') || null,
       rootMargin: '0px 0px -70% 0px',
       threshold: 0
     }
@@ -115,7 +122,7 @@ function setupObserver() {
 function scrollToHeading(index: number) {
   const el = getHeadingEl(index)
   if (!el) return
-  const scroller = document.querySelector<HTMLElement>('.vditor-ir > .vditor-reset')
+  const scroller = containerRef.value?.querySelector<HTMLElement>('.vditor-ir > .vditor-reset')
   if (scroller) {
     // 滚动节点是 Vditor 内部的 <pre>，直接按标题偏移量定位
     scroller.scrollTo({ top: el.offsetTop - 8, behavior: 'smooth' })
@@ -258,7 +265,7 @@ onBeforeUnmount(() => {
     </div>
     <div
       v-else-if="error"
-      class="absolute inset-0 flex items-center justify-center text-sm text-danger"
+      class="absolute inset-0 flex items-center justify-center text-sm text-(--color-danger-text)"
     >
       {{ error }}
     </div>

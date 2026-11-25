@@ -20,7 +20,7 @@ const uploadingCount = computed(() => taskStore.uploadTaskList.filter(t => [1, 2
     />
     <span
       v-if="uploadingCount > 0"
-      class="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] text-white"
+      class="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-(--color-danger-action) px-1 text-[10px] text-white"
     >
       {{ uploadingCount }}
     </span>

@@ -38,11 +38,11 @@ const goBack = () => window.history.back()
     <!-- 环境光晕 -->
     <div
       class="absolute top-[-20%] left-[-10%] size-[50%] rounded-full blur-[120px] opacity-10 pointer-events-none"
-      style="background-color: var(--color-primary-500);"
+      style="background-color: var(--color-brand-action);"
     />
     <div
       class="absolute bottom-[-20%] right-[-10%] size-[50%] rounded-full blur-[120px] opacity-10 pointer-events-none"
-      style="background-color: var(--color-warning);"
+      style="background-color: var(--color-warning-text);"
     />
 
     <div class="relative z-10 w-full max-w-2xl">

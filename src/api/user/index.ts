@@ -95,7 +95,7 @@ const userService = {
   },
 
   infoWithoutPageJump(resolve: Callback<IUserInfo>) {
-    simpleHttp.get<unknown, ApiResponse<IUserInfo>>('/user').then(resolve)
+    simpleHttp.get<unknown, ApiResponse<IUserInfo>>('/user/').then(resolve)
   },
 
   updateQuota(data: { totalSize: number }, resolve: Callback<unknown>, reject: Callback<unknown>) {

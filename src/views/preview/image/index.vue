@@ -10,12 +10,13 @@ import { computed, onMounted, ref, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 import { ChevronLeft, ChevronRight, X, Download, ZoomIn, ZoomOut, RotateCcw } from '@lucide/vue'
 import fileService from '@/api/file'
+import type { IFileVO } from '@/types'
 import panUtil from '@/utils/common'
 import { ElMessage } from '@/composables/useToast'
 import { getPreviewUrl, getDownloadUrl, resolvePreviewUrl } from '@/utils/preview'
 
 const route = useRoute()
-const items = ref([])
+const items = ref<IFileVO[]>([])
 const activeIdx = ref(0)
 const loading = ref(true)
 const scale = ref(1)
@@ -25,12 +26,12 @@ const showList = ref(true)
 // fileId -> 签名 URL（优先），失败保持空由 urlOf 降级到授权直链
 const urlMap = ref<Record<string, string>>({})
 
-const activeItem = computed(() => items.value[activeIdx.value] || null)
+const activeItem = computed<IFileVO | null>(() => items.value[activeIdx.value] || null)
 // 优先签名 URL，降级到授权 query 直链
 const urlOf = (fileId: string) => urlMap.value[fileId] || getPreviewUrl(fileId)
-const src = computed(() => (activeItem.value ? urlOf(activeItem.value.fileId) : ''))
+const src = computed(() => (activeItem.value?.fileId ? urlOf(activeItem.value.fileId) : ''))
 const downloadUrl = computed(() =>
-  activeItem.value ? getDownloadUrl(activeItem.value.fileId) : ''
+  activeItem.value?.fileId ? getDownloadUrl(activeItem.value.fileId) : ''
 )
 
 function next() {
@@ -87,7 +88,7 @@ onMounted(() => {
     { parentId: panUtil.handleId(String(route.params.parentId || '')), fileTypes: '7', pageSize: 9999 },
     (res) => {
       items.value = res.data?.records || []
-      const idx = items.value.findIndex((x) => x.fileId === route.params.fileId)
+      const idx = items.value.findIndex((x) => x.fileId === String(route.params.fileId || ''))
       activeIdx.value = idx === -1 ? 0 : idx
       loading.value = false
       // 预取每个图片的签名 URL，避免长期 token 进 URL
@@ -226,7 +227,7 @@ onBeforeUnmount(() => {
         <img
           v-else
           :src="src"
-          :alt="activeItem.filename"
+          :alt="activeItem?.filename || '图片'"
           class="max-w-full max-h-full select-none transition-transform duration-200"
           :style="{ transform: `scale(${scale}) rotate(${rotation}deg)` }"
           draggable="false"

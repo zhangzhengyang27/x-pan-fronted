@@ -59,8 +59,19 @@ const doDownload = (item: IFileVO) => {
   }
   const fileId = String(item.fileId).replace(/\+/g, '%2B')
   const filename = item.filename
-  // 不再拼 authorization query：后端从同源 Cookie 读取登录 token 鉴权
-  let url = panUtil.getUrlPrefix() + '/file/download?fileId=' + fileId,
+  // 不再拼 authorization query：后端从同源 Cookie 读取登录 token 鉴权。
+  // 团队空间下载走 <a href>，无法带 X-Space-Id 头，因此把空间 ID 放 query；
+  // 后端仍会按当前登录用户校验成员资格，不信任前端参数。
+  let spaceId = ''
+  try {
+    spaceId = localStorage.getItem('xpan_space_id') || ''
+  } catch {
+    /* 隐私模式下读取失败：按个人空间处理 */
+  }
+  const spaceQuery = spaceId && /^\d+$/.test(spaceId)
+    ? '&spaceId=' + encodeURIComponent(spaceId)
+    : ''
+  let url = panUtil.getUrlPrefix() + '/file/download?fileId=' + fileId + spaceQuery,
     link = document.createElement('a')
   link.style.display = 'none'
   link.href = url

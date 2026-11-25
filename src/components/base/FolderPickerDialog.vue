@@ -177,7 +177,7 @@ watch(
           class="w-full flex items-center gap-1.5 px-2 py-1.5 rounded-sm text-sm transition-colors"
           :class="
             selectedId === null
-              ? 'bg-primary-50 text-primary-700 font-medium'
+              ? 'bg-(--color-selected) text-primary-700 font-medium'
               : 'hover:bg-(--color-surface-2)'
           "
           @click="selectRoot"
@@ -207,7 +207,7 @@ watch(
               class="flex-1 flex items-center gap-1.5 px-2 py-1.5 rounded-sm text-sm transition-colors"
               :class="
                 selectedId === node.id
-                  ? 'bg-primary-50 text-primary-700 font-medium'
+                  ? 'bg-(--color-selected) text-primary-700 font-medium'
                   : 'hover:bg-(--color-surface-2)'
               "
               @click="selectNode(node)"
@@ -230,7 +230,7 @@ watch(
                 class="flex-1 flex items-center gap-1.5 px-2 py-1.5 rounded-sm text-sm transition-colors"
                 :class="
                   selectedId === child.id
-                    ? 'bg-primary-50 text-primary-700 font-medium'
+                    ? 'bg-(--color-selected) text-primary-700 font-medium'
                     : 'hover:bg-(--color-surface-2)'
                 "
                 @click="selectNode(child)"

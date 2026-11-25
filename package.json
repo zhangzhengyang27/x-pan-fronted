@@ -12,7 +12,8 @@
     "test:coverage": "vitest run --coverage",
     "lint": "eslint . --ext .ts,.js,.tsx,.jsx,.vue",
     "lint:fix": "eslint . --ext .ts,.js,.tsx,.jsx,.vue --fix",
-    "format": "prettier --write \"src/**/*.{ts,js,vue,json,css,scss,html}\""
+    "format": "prettier --write \"src/**/*.{ts,js,vue,json,css,scss,html}\"",
+    "api:types": "openapi-typescript http://127.0.0.1:8081/v3/api-docs/x-pan-server -o src/types/openapi.d.ts"
   },
   "dependencies": {
     "@lucide/vue": "^1.30.0",
@@ -25,6 +26,7 @@
     "artplayer": "^5.4.0",
     "axios": "^1.7.9",
     "fuse.js": "^7.5.0",
+    "hls.js": "^1.7.4",
     "js-cookie": "^3.0.5",
     "jszip": "^3.10.1",
     "markdown-it": "^15.0.0",
@@ -56,6 +58,7 @@
     "eslint-plugin-prettier": "^5.2.1",
     "eslint-plugin-vue": "^9.32.0",
     "happy-dom": "^15.11.7",
+    "openapi-typescript": "^7.13.0",
     "prettier": "^3.4.2",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.6.0",

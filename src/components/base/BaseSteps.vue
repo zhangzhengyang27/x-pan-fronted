@@ -31,9 +31,9 @@ defineProps({
           :class="
             cn(
               'size-7 rounded-full flex items-center justify-center text-xs font-medium transition-colors',
-              i < active && 'bg-primary-600 text-white',
+              i < active && 'bg-(--color-brand-action) text-white',
               i === active &&
-                'bg-primary-600 text-white ring-4 ring-primary-100',
+                'bg-(--color-brand-action) text-white ring-4 ring-(--color-brand-soft)',
               i > active &&
                 'bg-(--color-surface-2) text-(--color-text-muted) border border-(--color-border)'
             )
@@ -64,7 +64,7 @@ defineProps({
         :class="
           cn(
             'flex-1 h-px mx-2 transition-colors',
-            i < active ? 'bg-primary-600' : 'bg-(--color-border)'
+            i < active ? 'bg-(--color-brand-action)' : 'bg-(--color-border)'
           )
         "
       />

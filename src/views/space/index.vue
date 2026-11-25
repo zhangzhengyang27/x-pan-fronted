@@ -14,10 +14,12 @@ import {
   Shield,
   User as UserIcon,
   Eye,
+  FolderLock,
   Loader2,
   X
 } from '@lucide/vue'
 import spaceService from '@/api/space'
+import AclPanel from '@/components/space/AclPanel.vue'
 import { useSpaceStore } from '@/stores/space'
 import { ElMessage, ElMessageBox } from '@/composables/useToast'
 import type { ISpaceInviteVO, ISpaceMemberVO, ISpaceVO } from '@/types'
@@ -35,8 +37,11 @@ const createName = ref('')
 const creating = ref(false)
 
 const inviteVisible = ref(false)
+const aclVisible = ref(false)
 const inviteExpireHours = ref(72)
 const inviteMaxUses = ref(0)
+// 邀请码只授予 MEMBER/VIEWER；ADMIN 必须由空间所有者单独提升
+const inviteRole = ref<'MEMBER' | 'VIEWER'>('MEMBER')
 const creatingInvite = ref(false)
 
 const quotaVisible = ref(false)
@@ -52,8 +57,16 @@ const activeSpace = computed<ISpaceVO | undefined>(() =>
   spaces.value.find((s) => s.spaceId === activeSpaceId.value)
 )
 const isOwner = computed(() => activeSpace.value?.role === 'OWNER')
+// 能力位以后端为准；旧数据未返回能力位时回退到角色判断，保证兼容
 const canManage = computed(
-  () => activeSpace.value?.role === 'OWNER' || activeSpace.value?.role === 'ADMIN'
+  () =>
+    activeSpace.value?.canManageMembers ??
+    (activeSpace.value?.role === 'OWNER' || activeSpace.value?.role === 'ADMIN')
+)
+const canInvite = computed(
+  () =>
+    activeSpace.value?.canInvite ??
+    (activeSpace.value?.role === 'OWNER' || activeSpace.value?.role === 'ADMIN')
 )
 const isPersonal = computed(() => activeSpace.value?.spaceType === 'PERSONAL')
 
@@ -155,6 +168,7 @@ function doCreateTeam(): void {
 function openInvite(): void {
   inviteExpireHours.value = 72
   inviteMaxUses.value = 0
+  inviteRole.value = 'MEMBER'
   inviteVisible.value = true
 }
 
@@ -163,7 +177,7 @@ function doCreateInvite(): void {
   creatingInvite.value = true
   spaceService.createInvite(
     activeSpace.value.spaceId,
-    { expireHours: inviteExpireHours.value, maxUses: inviteMaxUses.value },
+    { expireHours: inviteExpireHours.value, maxUses: inviteMaxUses.value, role: inviteRole.value },
     () => {
       creatingInvite.value = false
       inviteVisible.value = false
@@ -339,7 +353,7 @@ function usedPercent(space: ISpaceVO): number {
         <button
           type="button"
           class="flex items-center gap-1.5 h-9 px-3.5 rounded-sm text-sm font-medium text-white"
-          style="background-color: var(--color-primary-500)"
+          style="background-color: var(--color-brand-action)"
           @click="createVisible = true"
         >
           <Plus :size="15" :stroke-width="2" />
@@ -400,6 +414,15 @@ function usedPercent(space: ISpaceVO): number {
                   v-if="canManage"
                   type="button"
                   class="flex items-center gap-1 h-8 px-2.5 rounded-sm text-xs border border-(--color-border) text-(--color-text-secondary) hover:bg-(--color-hover)"
+                  @click="aclVisible = true"
+                >
+                  <FolderLock :size="13" :stroke-width="1.75" />
+                  目录权限
+                </button>
+                <button
+                  v-if="canInvite"
+                  type="button"
+                  class="flex items-center gap-1 h-8 px-2.5 rounded-sm text-xs border border-(--color-border) text-(--color-text-secondary) hover:bg-(--color-hover)"
                   @click="openInvite"
                 >
                   <Link2 :size="13" :stroke-width="1.75" />
@@ -425,7 +448,7 @@ function usedPercent(space: ISpaceVO): number {
                   v-if="isOwner"
                   type="button"
                   class="h-8 px-2.5 rounded-sm text-xs border border-(--color-border) hover:bg-(--color-hover)"
-                  style="color: var(--color-danger)"
+                  style="color: var(--color-danger-text)"
                   @click="dissolve"
                 >
                   解散
@@ -456,20 +479,20 @@ function usedPercent(space: ISpaceVO): number {
                     <div class="text-sm truncate text-(--color-text)">{{ member.username }}</div>
                     <div class="text-[11px] text-(--color-text-muted)">{{ roleLabel(member.role) }}</div>
                   </div>
-                  <div v-if="canManage && member.role !== 'OWNER'" class="ml-auto flex items-center gap-1.5">
+                  <div v-if="canManage && member.role !== 'OWNER' && (isOwner || member.role !== 'ADMIN')" class="ml-auto flex items-center gap-1.5">
                     <select
                       class="h-7 px-2 rounded-sm text-xs border border-(--color-border) bg-(--color-surface) text-(--color-text)"
                       :value="member.role"
                       @change="changeRole(member, ($event.target as HTMLSelectElement).value)"
                     >
-                      <option value="ADMIN">管理员</option>
+                      <option v-if="isOwner" value="ADMIN">管理员</option>
                       <option value="MEMBER">成员</option>
                       <option value="VIEWER">只读</option>
                     </select>
                     <button
                       type="button"
                       class="size-7 rounded-sm flex items-center justify-center hover:bg-(--color-hover)"
-                      style="color: var(--color-danger)"
+                      style="color: var(--color-danger-text)"
                       title="移除成员"
                       @click="removeMember(member)"
                     >
@@ -494,7 +517,8 @@ function usedPercent(space: ISpaceVO): number {
                   <div class="min-w-0">
                     <div class="text-xs font-mono text-(--color-text)">{{ invite.inviteCode }}</div>
                     <div class="text-[11px] text-(--color-text-muted)">
-                      {{ invite.expireTime ? '到期 ' + new Date(invite.expireTime).toLocaleString() : '永久有效' }}
+                      {{ invite.role === 'VIEWER' ? '只读' : '成员' }}
+                      · {{ invite.expireTime ? '到期 ' + new Date(invite.expireTime).toLocaleString() : '永久有效' }}
                       · 已用 {{ invite.usedCount }}{{ invite.maxUses ? '/' + invite.maxUses : '' }} 次
                     </div>
                   </div>
@@ -515,10 +539,10 @@ function usedPercent(space: ISpaceVO): number {
                       App 链接
                     </button>
                     <button
-                      v-if="canManage"
+                      v-if="canInvite"
                       type="button"
                       class="size-7 rounded-sm flex items-center justify-center hover:bg-(--color-hover)"
-                      style="color: var(--color-danger)"
+                      style="color: var(--color-danger-text)"
                       title="撤销"
                       @click="revokeInvite(invite)"
                     >
@@ -533,6 +557,12 @@ function usedPercent(space: ISpaceVO): number {
       </div>
     </div>
 
+    <AclPanel
+      v-model:open="aclVisible"
+      :space-id="activeSpace?.spaceType === 'TEAM' ? activeSpace.spaceId : ''"
+      :members="members"
+    />
+
     <!-- 创建团队 -->
     <div v-if="createVisible" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" @click.self="createVisible = false">
       <div class="w-full max-w-sm rounded-sm bg-(--color-surface) border border-(--color-border) p-5">
@@ -546,7 +576,7 @@ function usedPercent(space: ISpaceVO): number {
         />
         <div class="flex justify-end gap-2 mt-5">
           <button type="button" class="h-8 px-3 rounded-sm text-xs border border-(--color-border) text-(--color-text-secondary)" @click="createVisible = false">取消</button>
-          <button type="button" class="h-8 px-3 rounded-sm text-xs text-white inline-flex items-center gap-1" style="background-color: var(--color-primary-500)" @click="doCreateTeam">
+          <button type="button" class="h-8 px-3 rounded-sm text-xs text-white inline-flex items-center gap-1" style="background-color: var(--color-brand-action)" @click="doCreateTeam">
             <Loader2 v-if="creating" :size="13" class="animate-spin" />
             创建
           </button>
@@ -565,11 +595,16 @@ function usedPercent(space: ISpaceVO): number {
           <option :value="168">7 天</option>
           <option :value="0">永久有效</option>
         </select>
+        <label class="block text-xs mb-1.5 text-(--color-text-secondary)">加入后的角色</label>
+        <select v-model="inviteRole" class="w-full h-9 px-2 mb-3 text-sm rounded-sm border border-(--color-border) bg-(--color-surface) text-(--color-text)">
+          <option value="MEMBER">成员（可读写）</option>
+          <option value="VIEWER">只读（仅查看/下载）</option>
+        </select>
         <label class="block text-xs mb-1.5 text-(--color-text-secondary)">最大使用次数（0 = 不限）</label>
         <input v-model.number="inviteMaxUses" type="number" min="0" class="w-full h-9 px-3 text-sm rounded-sm border border-(--color-border) bg-(--color-surface) text-(--color-text)" />
         <div class="flex justify-end gap-2 mt-5">
           <button type="button" class="h-8 px-3 rounded-sm text-xs border border-(--color-border) text-(--color-text-secondary)" @click="inviteVisible = false">取消</button>
-          <button type="button" class="h-8 px-3 rounded-sm text-xs text-white inline-flex items-center gap-1" style="background-color: var(--color-primary-500)" @click="doCreateInvite">
+          <button type="button" class="h-8 px-3 rounded-sm text-xs text-white inline-flex items-center gap-1" style="background-color: var(--color-brand-action)" @click="doCreateInvite">
             <Loader2 v-if="creatingInvite" :size="13" class="animate-spin" />
             生成链接
           </button>
@@ -585,7 +620,7 @@ function usedPercent(space: ISpaceVO): number {
         <input v-model.number="quotaGb" type="number" min="1" max="10240" class="w-full h-9 px-3 text-sm rounded-sm border border-(--color-border) bg-(--color-surface) text-(--color-text)" />
         <div class="flex justify-end gap-2 mt-5">
           <button type="button" class="h-8 px-3 rounded-sm text-xs border border-(--color-border) text-(--color-text-secondary)" @click="quotaVisible = false">取消</button>
-          <button type="button" class="h-8 px-3 rounded-sm text-xs text-white inline-flex items-center gap-1" style="background-color: var(--color-primary-500)" @click="doUpdateQuota">
+          <button type="button" class="h-8 px-3 rounded-sm text-xs text-white inline-flex items-center gap-1" style="background-color: var(--color-brand-action)" @click="doUpdateQuota">
             <Loader2 v-if="savingQuota" :size="13" class="animate-spin" />
             保存
           </button>
@@ -600,7 +635,7 @@ function usedPercent(space: ISpaceVO): number {
         <input v-model="renameName" maxlength="32" class="w-full h-9 px-3 text-sm rounded-sm border border-(--color-border) bg-(--color-surface) text-(--color-text) focus:outline-none focus:border-(--color-border-focus)" @keyup.enter="doRename" />
         <div class="flex justify-end gap-2 mt-5">
           <button type="button" class="h-8 px-3 rounded-sm text-xs border border-(--color-border) text-(--color-text-secondary)" @click="renameVisible = false">取消</button>
-          <button type="button" class="h-8 px-3 rounded-sm text-xs text-white inline-flex items-center gap-1" style="background-color: var(--color-primary-500)" @click="doRename">
+          <button type="button" class="h-8 px-3 rounded-sm text-xs text-white inline-flex items-center gap-1" style="background-color: var(--color-brand-action)" @click="doRename">
             <Loader2 v-if="renaming" :size="13" class="animate-spin" />
             保存
           </button>

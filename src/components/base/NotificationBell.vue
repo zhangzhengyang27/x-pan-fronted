@@ -115,7 +115,7 @@ onUnmounted(() => {
         <Bell :size="17" />
         <span
           v-if="unread > 0"
-          class="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-danger text-white text-[10px] leading-4 text-center"
+          class="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-(--color-danger-action) text-white text-[10px] leading-4 text-center"
         >
           {{ unread > 99 ? '99+' : unread }}
         </span>

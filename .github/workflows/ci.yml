@@ -32,6 +32,10 @@ jobs:
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
 
+      # 生产依赖高危漏洞门禁；镜像源可能不支持 audit 接口，显式使用官方 registry。
+      - name: Audit production dependencies
+        run: npm audit --registry=https://registry.npmjs.org --omit=dev --audit-level=high
+
       - name: Type check (vue-tsc)
         run: npx vue-tsc -p tsconfig.app.json --noEmit
 
@@ -81,6 +85,8 @@ jobs:
     permissions:
       contents: read
       packages: write
+      # keyless 签名需要 OIDC token 换取短期证书
+      id-token: write
     steps:
       - uses: actions/checkout@v6
 
@@ -95,6 +101,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build & push frontend image
+        id: build
         uses: docker/build-push-action@v7
         with:
           context: .
@@ -105,3 +112,21 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE }}:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # P1-3：镜像发布前阻断 High/Critical 漏洞；和 backend 保持一致的口径
+      - name: Scan frontend image (Trivy)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE }}:${{ github.sha }}
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'HIGH,CRITICAL'
+
+      # 供应链：只对通过 Trivy 门禁的镜像做 keyless 签名
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign frontend image
+        run: cosign sign --yes ${{ env.REGISTRY }}/${{ env.IMAGE }}@${{ steps.build.outputs.digest }}

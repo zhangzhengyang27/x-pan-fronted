@@ -4,7 +4,7 @@
  *
  * 流程：
  * 1. 调用 POST /preview/office/{fileId} 创建转 PDF 任务
- * 2. 轮询 GET /preview/url/{taskId} 直到 status=2，拿到预签名 PDF 直链
+ * 2. 轮询 GET /preview/url/{taskId} 直到 status=2，拿到受保护的 PDF 预览地址
  * 3. 用 PdfPreviewer 展示 PDF（体验更佳、跨端一致）
  * 4. 若后端转 PDF 失败（status=3）或未启用 LibreOffice，降级用 @vue-office 直接渲染原文件
  */
@@ -23,6 +23,7 @@ import BaseButton from '@/components/base/BaseButton.vue'
 import OfficePreviewer from '@/components/preview/office-previewer.vue'
 import PdfPreviewer from '@/components/preview/pdf-previewer.vue'
 import previewService from '@/api/preview'
+import panUtil from '@/utils/common'
 import { ElMessage } from '@/composables/useToast'
 
 const route = useRoute()
@@ -60,13 +61,17 @@ const rawPreviewUrl = ref('')
 
 // P4 转 PDF 状态
 const converting = ref(false) // 正在转换/轮询
-const pdfUrl = ref('') // 转 PDF 后的预签名直链
+const pdfUrl = ref('') // 转 PDF 后的可访问地址（后端相对端点或对象存储直链）
 const convertFailed = ref(false)
 const errorMsg = ref('')
 let pollTimer: ReturnType<typeof setInterval> | null = null
 // 轮询超时保护（对齐 ExtractDialog 的 5 分钟模式）：超时停止轮询，降级为原文件预览
 const POLL_TIMEOUT_MS = 5 * 60 * 1000
 let pollStartedAt = 0
+
+// 同一路由组件内快速切换 fileId 时，旧任务的创建/轮询回调仍可能在途。
+// 所有异步回调必须对代次，否则会把上一份文档的 taskId/pdfUrl 写到新页面。
+let requestSeq = 0
 
 function clearPoll() {
   if (pollTimer) {
@@ -75,7 +80,7 @@ function clearPoll() {
   }
 }
 
-function startConvert() {
+function startConvert(seq: number) {
   if (!fileId.value) return
   clearPoll()
   converting.value = true
@@ -86,6 +91,7 @@ function startConvert() {
   previewService.office(
     String(fileId.value),
     (res) => {
+      if (seq !== requestSeq) return
       const task = res.data
       if (!task || !task.taskId) {
         // 无 taskId → 直接降级原文件
@@ -94,10 +100,11 @@ function startConvert() {
         return
       }
       // 立即轮询一次，再定时轮询
-      pollUrl(task.taskId)
-      pollTimer = setInterval(() => pollUrl(task.taskId), 1500)
+      pollUrl(task.taskId, seq)
+      pollTimer = setInterval(() => pollUrl(task.taskId, seq), 1500)
     },
     (err) => {
+      if (seq !== requestSeq) return
       converting.value = false
       convertFailed.value = true
       errorMsg.value = err?.message || '创建预览任务失败'
@@ -105,7 +112,8 @@ function startConvert() {
   )
 }
 
-function pollUrl(taskId: string) {
+function pollUrl(taskId: string, seq: number) {
+  if (seq !== requestSeq) return
   // 超过总上限仍未出结果：停止轮询并提示，降级原文件预览（后台转换任务继续跑）
   if (Date.now() - pollStartedAt > POLL_TIMEOUT_MS) {
     clearPoll()
@@ -118,9 +126,14 @@ function pollUrl(taskId: string) {
   previewService.url(
     taskId,
     (res) => {
+      if (seq !== requestSeq) return
       const vo = res.data
       if (vo && vo.status === 2 && vo.previewUrl) {
-        pdfUrl.value = vo.previewUrl
+        // 后端返回受登录态保护的相对端点（/preview/result/...）；MinIO 预签名直链
+        // 是绝对地址，原样使用。不能把绝对地址再拼 /api。
+        pdfUrl.value = vo.previewUrl.startsWith('/')
+          ? panUtil.getUrlPrefix() + vo.previewUrl
+          : vo.previewUrl
         converting.value = false
         clearPoll()
       } else if (vo && vo.status === 3) {
@@ -128,10 +141,17 @@ function pollUrl(taskId: string) {
         converting.value = false
         convertFailed.value = true
         clearPoll()
+      } else if (vo && vo.status === 2) {
+        // 任务标完成但没有产物地址：继续轮询只会空转到 5 分钟超时，直接降级。
+        converting.value = false
+        convertFailed.value = true
+        errorMsg.value = '预览产物缺失，请重新打开或下载原文件'
+        clearPoll()
       }
       // status 0/1 → 继续轮询
     },
     () => {
+      if (seq !== requestSeq) return
       // 轮询失败：停止轮询，降级原文件
       converting.value = false
       convertFailed.value = true
@@ -143,23 +163,33 @@ function pollUrl(taskId: string) {
 watch(
   fileId,
   (id) => {
+    // 切文件先推进代次并清掉旧定时器；在途请求即使晚到也会被回调里的 seq 拦下。
+    const seq = ++requestSeq
+    clearPoll()
     pdfUrl.value = ''
     convertFailed.value = false
     converting.value = false
     rawPreviewUrl.value = ''
     if (id) {
-      resolvePreviewUrl(id).then((u) => (rawPreviewUrl.value = u)).catch(() => {})
-      startConvert()
+      resolvePreviewUrl(id)
+        .then((u) => {
+          if (seq === requestSeq) rawPreviewUrl.value = u
+        })
+        .catch(() => {})
+      startConvert(seq)
     }
   },
   { immediate: true }
 )
 
-onBeforeUnmount(clearPoll)
+onBeforeUnmount(() => {
+  requestSeq++
+  clearPoll()
+})
 </script>
 
 <template>
-  <div class="min-h-screen flex flex-col bg-(--color-bg)">
+  <div class="h-screen flex flex-col overflow-hidden bg-(--color-bg)">
     <header
       class="h-14 px-6 flex items-center justify-between border-b border-(--color-border) bg-(--color-surface)"
     >
@@ -184,7 +214,7 @@ onBeforeUnmount(clearPoll)
         </a>
       </div>
     </header>
-    <main class="flex-1 min-h-0">
+    <main class="flex-1 min-h-0 overflow-hidden">
       <!-- 转换中 -->
       <div
         v-if="converting"
@@ -199,7 +229,7 @@ onBeforeUnmount(clearPoll)
 
       <!-- 转 PDF 失败 → 降级原文件 -->
       <div v-else-if="convertFailed" class="h-full flex flex-col">
-        <div v-if="errorMsg" class="flex items-center gap-2 px-4 py-2 text-xs text-amber-600 bg-amber-500/10 border-b border-amber-500/20">
+        <div v-if="errorMsg" class="flex items-center gap-2 px-4 py-2 text-xs text-(--color-warning-text) bg-(--color-warning-bg) border-b border-(--color-border)">
           <AlertTriangle :size="14" />
           <span>文档转 PDF 失败，已降级为在线原文件预览：{{ errorMsg }}</span>
         </div>

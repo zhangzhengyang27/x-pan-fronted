@@ -156,7 +156,7 @@ function onKeydown(e: KeyboardEvent) {
         >
           <div class="flex items-center gap-2">
             <div
-              class="size-9 rounded-sm bg-linear-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white"
+              class="size-9 rounded-sm bg-linear-to-br from-(--color-brand-action) to-(--color-brand-action-hover) flex items-center justify-center text-white"
             >
               <Keyboard :size="18" />
             </div>

@@ -72,6 +72,11 @@ export interface ISpaceVO {
   spaceType: string
   /** OWNER / ADMIN / MEMBER / VIEWER */
   role: string
+  /** 后端计算的能力位，前端只做 UI 显隐；真正授权仍由后端二次校验 */
+  canWrite?: boolean
+  canInvite?: boolean
+  canManageMembers?: boolean
+  canManageSpace?: boolean
   ownerUserId: string
   ownerUsername: string
   /** 根目录加密 ID */
@@ -89,10 +94,38 @@ export interface ISpaceMemberVO {
   joinTime?: string
 }
 
+export interface ISpaceGroupMemberVO {
+  userId: string
+  username: string
+}
+
+export interface ISpaceGroupVO {
+  groupId: string
+  groupName: string
+  memberCount: number
+  members: ISpaceGroupMemberVO[]
+}
+
+export interface ISpaceAclVO {
+  id: string
+  /** 目录加密 ID */
+  folderId: string
+  folderName?: string
+  folderPath?: string
+  /** USER / GROUP */
+  subjectType: 'USER' | 'GROUP'
+  subjectId: string
+  subjectName?: string
+  permission: 'READ' | 'WRITE'
+  createTime?: string
+}
+
 export interface ISpaceInviteVO {
   id: string
   inviteCode: string
   inviteUrl: string
+  /** 加入后的角色（MEMBER/VIEWER） */
+  role?: string
   expireTime?: string | null
   maxUses: number
   usedCount: number
@@ -152,6 +185,28 @@ export interface IFileVO {
   matchField?: string
 }
 
+export interface IArchiveTaskVO {
+  taskId: string
+  status: 0 | 1 | 2 | 3
+  zipName: string
+}
+
+export interface IMediaMetadataVO {
+  kind: 'IMAGE' | 'AUDIO' | 'VIDEO'
+  width?: number | null
+  height?: number | null
+  durationMs?: number | null
+  title?: string | null
+  artist?: string | null
+  album?: string | null
+  genre?: string | null
+  capturedAt?: string | null
+  camera?: string | null
+  location?: string | null
+  extra?: Record<string, string>
+  searchText?: string
+}
+
 export interface IUploadChunkReq {
   identifier: string
   chunkNumber: number
@@ -196,6 +251,12 @@ export interface IShareCreateReq {
   shareCode?: string
   expireHours?: number
   downloadLimit?: number
+  /** 禁止转载（P0-4：true=禁止他人转存到自己网盘） */
+  forbidReshare?: boolean
+  /** 文件收集（P3-5：仅单个文件夹分享可开启） */
+  collectEnabled?: boolean
+  /** 端到端加密分享：true 时 shareFileIds 必须是 upload-cipher 返回的密文副本 */
+  e2ee?: boolean
 }
 
 // IShareVO 对齐后端分享相关 VO（XPanShareUrlVO / XPanShareUrlListVO / ShareDetailVO）。
@@ -215,10 +276,21 @@ export interface IShareVO {
   downloadLimit?: number
   visitCount?: number
   saveCount?: number
+  /** 禁止转载（P0-4：1=禁止他人转存到自己网盘） */
+  forbidReshare?: number
+  /** 文件收集开关（P3-5：1=允许访问者上传到被分享文件夹） */
+  collectEnabled?: number
+  /** 端到端加密分享（1=需要浏览器用 URL fragment 里的密钥解密下载） */
+  e2ee?: number
+  /** 举报待复核隐藏（1=对外不可访问，管理员可恢复） */
+  reportHidden?: number
+  reportHiddenTime?: string
   /** 兼容创建/详情接口可能附带的文件信息 */
   fileList?: IFileVO[]
   /** 分享详情报文：分享文件列表（对齐后端 ShareDetailVO） */
   xPanUserFileVOList?: IFileVO[]
+  /** 后端 Jackson 对 getXPanUserFileVOList 的实际序列化名（首字母 x 小写），兼容旧字段名 */
+  xpanUserFileVOList?: IFileVO[]
   /** 分享详情报文：过期类型（0=永久） */
   shareDay?: number
   fileId?: string
@@ -264,6 +336,27 @@ export interface IOfflineCreateReq {
   targetFolderId?: string
 }
 
+// ─── 统一任务中心 ────────────────────────────────────────────────
+export type TaskCenterType = 'offline' | 'extract' | 'preview' | 'archive'
+
+/**
+ * 任务中心是三类任务的读模型，状态已统一为 0/1/2/3/4；
+ * progress 为 null 时表示该类型没有百分比（主要是预览转换）。
+ */
+export interface ITaskCenterItem {
+  taskId: string
+  taskType: TaskCenterType
+  taskName: string
+  status: OfflineTaskStatusCode
+  progress: number | null
+  errorMsg?: string
+  createTime: string
+  updateTime?: string
+  finishTime?: string
+  /** 在线压缩完成后生成的 zip 文件 ID（加密） */
+  resultFileId?: string | null
+}
+
 // ─── 文件版本 ───────────────────────────────────────────────────
 export type VersionOperation = 'UPLOAD' | 'MODIFY' | 'RENAME' | 'ROLLBACK' | 'DELETE'
 
@@ -298,8 +391,6 @@ export interface IPageParam {
 
 // ─── 自定义事件总线（替代 mitt） ───────────────────────────────
 export interface AppEvents {
-  'xpan:open-mobile-nav': void
-  'xpan:close-mobile-nav': void
   'xpan:reload-files': void
   'xpan:open-share': { fileIds: string[] }
   'xpan:open-folder-picker': { mode: 'move' | 'copy'; fileIds: string[] }

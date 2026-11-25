@@ -60,6 +60,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/list-page/share/index.vue')
       },
       {
+        path: '/direct-links',
+        name: 'DirectLinks',
+        component: () => import('@/views/list-page/direct-link/index.vue')
+      },
+      {
         path: '/videos',
         name: 'Videos',
         component: () => import('@/views/list-page/video/index.vue')
@@ -68,6 +73,11 @@ const routes: RouteRecordRaw[] = [
         path: '/offline',
         name: 'Offline',
         component: () => import('@/views/list-page/offline/index.vue')
+      },
+      {
+        path: '/tasks',
+        name: 'Tasks',
+        component: () => import('@/views/list-page/task-center/index.vue')
       },
       {
         path: '/vault',

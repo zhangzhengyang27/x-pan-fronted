@@ -5,11 +5,51 @@
 'use strict'
 
 import http, { type ApiResponse } from '@/utils/http'
-import type { IFileVO, IFileVersionVO, IFolderTreeNode, PageVO } from '@/types'
+import type { IArchiveTaskVO, IFileVO, IFileVersionVO, IFolderTreeNode, IMediaMetadataVO, PageVO } from '@/types'
 
 type Callback<T> = (res: ApiResponse<T>) => void
 
 const fileService = {
+  /**
+   * E2EE 加密分享：上传浏览器生成的密文副本（.xpan）。
+   * 服务端强制落到隐藏目录 parent_id=-3，返回加密 fileId；不进入普通文件列表。
+   */
+  uploadCipher(
+    file: Blob,
+    filename: string,
+    resolve: Callback<string>,
+    reject: Callback<unknown>
+  ) {
+    const form = new FormData()
+    // 显式传 filename：OPFS 返回的 File/Blob 名称不一定是清洗后的 .xpan
+    form.append('file', file, filename)
+    form.append('filename', filename)
+    // identifier 对密文没有秒传意义，用随机 32 位 hex 避免大小/MD5 去重探测
+    const randomHex = Array.from(crypto.getRandomValues(new Uint8Array(16)))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('')
+    form.append('identifier', randomHex)
+    form.append('totalSize', String(file.size))
+    // 密文落点由服务端固定为 -3，前端不传 parentId
+    http
+      .post<unknown, ApiResponse<string>>('/file/upload-cipher', form, {
+        timeout: 0,
+        // 实例默认 Content-Type 是 application/json；不显式声明 multipart 时
+        // axios 会把 FormData 当 JSON 发送，后端只能看到空字段。
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+      .then(resolve)
+      .catch(reject)
+  },
+
+  /** 创建分享失败时清理已上传的密文副本，避免隐藏目录长期占用配额 */
+  deleteCipher(fileId: string, resolve: Callback<unknown>, reject: Callback<unknown>) {
+    http
+      .delete<unknown, ApiResponse<unknown>>('/file/cipher', { params: { fileId } })
+      .then(resolve)
+      .catch(reject)
+  },
+
   list(
     params: {
       parentId: string
@@ -50,7 +90,23 @@ const fileService = {
   },
 
   getFolderTree(resolve: Callback<IFolderTreeNode[]>, reject: Callback<unknown>) {
+    // 兼容旧调用：不传 parentId 仍返回完整树（分享转存等页面依赖）
     http.get<unknown, ApiResponse<IFolderTreeNode[]>>('/file/folder/tree').then(resolve).catch(reject)
+  },
+
+  /**
+   * P2-12：按需加载某个文件夹的直接子目录。
+   * parentId 传加密字符串；后端只回一层，展开树节点时再请求下一层。
+   */
+  getFolderTreeChildren(
+    parentId: string,
+    resolve: Callback<IFolderTreeNode[]>,
+    reject: Callback<unknown>
+  ) {
+    http
+      .get<unknown, ApiResponse<IFolderTreeNode[]>>('/file/folder/tree', { params: { parentId } })
+      .then(resolve)
+      .catch(reject)
   },
 
   transfer(data: { fileIds: string[]; targetParentId: string }) {
@@ -136,10 +192,10 @@ const fileService = {
       .catch(reject)
   },
 
-  /** 热搜榜（P4-5 全站聚合） */
-  hot(limit: number, resolve: Callback<string[]>, reject: Callback<unknown>) {
+  /** 我的最近搜索（P2-16：只查当前账号，不做全站聚合） */
+  recent(limit: number, resolve: Callback<string[]>, reject: Callback<unknown>) {
     http
-      .get<unknown, ApiResponse<string[]>>('/file/search/hot', { params: { limit } })
+      .get<unknown, ApiResponse<string[]>>('/file/search/recent', { params: { limit } })
       .then(resolve)
       .catch(reject)
   },
@@ -169,6 +225,18 @@ const fileService = {
     reject: Callback<unknown>
   ) {
     http.post<unknown, ApiResponse<unknown>>('/file/merge', data).then(resolve).catch(reject)
+  },
+
+  /** 在线 ZIP：异步任务，返回加密 taskId，结果在任务中心查看 */
+  archiveToDrive(
+    data: { fileIds: string[]; targetParentId?: string; zipName?: string },
+    resolve: Callback<IArchiveTaskVO>,
+    reject: Callback<unknown>
+  ) {
+    http
+      .post<unknown, ApiResponse<IArchiveTaskVO>>('/file/archive', data)
+      .then(resolve)
+      .catch(reject)
   },
 
   archiveDownload(
@@ -305,7 +373,15 @@ const fileService = {
     return http.post<unknown, ApiResponse<unknown>>('/file/office/close', null, {
       params: { sessionId }
     })
-  }
+  },
+
+  /** 图片/音频/视频的媒体元数据；非媒体或后端解析失败时 reject，调用方按无数据处理 */
+  mediaMetadata(fileId: string) {
+    return http.get<unknown, ApiResponse<IMediaMetadataVO>>('/file/media-metadata', {
+      params: { fileId }
+    })
+  },
+
 }
 
 export interface IFileDetailVO {

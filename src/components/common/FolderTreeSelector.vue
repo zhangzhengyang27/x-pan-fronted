@@ -14,6 +14,7 @@ import BaseTree from '@/components/base/BaseTree.vue'
 import type { TreeNodeData } from '@/components/base/BaseTree.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import fileService from '@/api/file'
+import { useFileStore } from '@/stores/file'
 import { ElMessage } from '@/composables/useToast'
 
 const props = defineProps({
@@ -29,39 +30,71 @@ const props = defineProps({
 
 const emit = defineEmits(['update:open', 'update:modelValue', 'confirm'])
 
-const treeData = ref([])
-const rawTreeData = ref([]) // 接口原始数据，供 excludeIds 变化时重新 normalize
+const fileStore = useFileStore()
+const treeData = ref<TreeNodeData[]>([])
+const rawTreeData = ref<TreeNodeData[]>([]) // 接口原始数据，供 excludeIds 变化时重新 normalize
 const loading = ref(false)
 const initialLoading = ref(true)
 const error = ref('')
-const selectedId = ref(null)
+const selectedId = ref<string | null>(null)
 const selectedLabel = ref('根目录')
 
 // 后端 FolderTreeNodeVO 字段契约固定为 { id, label, parentId, children }（id 为加密字符串）。
 // 直接使用契约字段，去掉多字段名猜测（id??fileId / name??label??filename）式的防御性兜底。
-function normalizeTree(nodes: any[]): any[] {
+function normalizeTree(nodes: TreeNodeData[], lazy = true): TreeNodeData[] {
   return (nodes || []).map((n) => ({
-    id: n.id,
+    id: String(n.id ?? ''),
     label: n.label ?? '未命名',
-    children: normalizeTree(n.children || []),
-    disabled: props.excludeIds.includes(n.id)
+    // 懒加载接口只返回一层：先假定节点可展开，真正展开请求返回空后再置 false。
+    // 完整树回退时按 children 是否为空决定，避免所有叶子都显示展开箭头。
+    children: normalizeTree(n.children || [], lazy),
+    expandable: lazy ? true : Boolean(n.children?.length),
+    __loaded: !lazy || Boolean(n.children?.length),
+    disabled: props.excludeIds.includes(String(n.id ?? ''))
   }))
 }
 
+/**
+ * 首次只拉根目录的直接子目录；展开节点时再按 parentId 拉下一层。
+ * defaultParentId 在登录信息返回前可能为空，此时回退到旧的完整树接口，
+ * 保证选择器不会出现空白。
+ */
 async function loadTree() {
   loading.value = true
   error.value = ''
   try {
+    const rootId = fileStore.defaultParentId
     const res = await new Promise<any>((resolve, reject) => {
-      fileService.getFolderTree(resolve, reject)
+      if (rootId) fileService.getFolderTreeChildren(rootId, resolve, reject)
+      else fileService.getFolderTree(resolve, reject)
     })
     rawTreeData.value = res.data
-    treeData.value = normalizeTree(res.data)
+    treeData.value = normalizeTree(res.data, Boolean(rootId))
+    updateSelectedLabel()
   } catch (e) {
     error.value = (e as { message?: string })?.message || '文件夹加载失败'
   } finally {
     loading.value = false
     initialLoading.value = false
+  }
+}
+
+/**
+ * 展开节点时按需拉子目录。BaseTreeNode 自己维护 expanded 状态；
+ * 这里只负责把 children 填回节点，异步返回后节点会自动展开显示。
+ */
+async function onTreeToggle(node: any) {
+  if (!node?.id || node.__loaded) return
+  try {
+    const res = await new Promise<any>((resolve, reject) => {
+      fileService.getFolderTreeChildren(String(node.id), resolve, reject)
+    })
+    const children = normalizeTree(res.data)
+    node.children = children
+    node.__loaded = true
+    node.expandable = children.length > 0
+  } catch (e) {
+    ElMessage.error((e as { message?: string })?.message || '子文件夹加载失败')
   }
 }
 
@@ -86,7 +119,7 @@ watch(
   () => props.excludeIds,
   () => {
     if (rawTreeData.value.length > 0) {
-      treeData.value = normalizeTree(rawTreeData.value)
+      treeData.value = normalizeTree(rawTreeData.value, Boolean(fileStore.defaultParentId))
     }
   }
 )
@@ -101,8 +134,9 @@ function onTreeSelect(node: TreeNodeData) {
     ElMessage.warning('不能选择该文件夹')
     return
   }
-  selectedId.value = node.id
-  selectedLabel.value = node.label
+  if (node.id === undefined || node.id === null) return
+  selectedId.value = String(node.id)
+  selectedLabel.value = node.label || '未命名'
 }
 
 function updateSelectedLabel() {
@@ -111,7 +145,7 @@ function updateSelectedLabel() {
   } else {
     const find = (nodes: TreeNodeData[]): string | null => {
       for (const n of nodes) {
-        if (n.id === selectedId.value) return n.label
+        if (String(n.id ?? '') === selectedId.value) return n.label || ''
         if (n.children?.length) {
           const r = find(n.children)
           if (r) return r
@@ -173,7 +207,7 @@ const hasTree = computed(() => treeData.value.length > 0)
         </div>
         <div
           v-else-if="error"
-          class="flex h-full flex-col items-center justify-center gap-2 text-sm text-danger"
+          class="flex h-full flex-col items-center justify-center gap-2 text-sm text-(--color-danger-text)"
         >
           <AlertCircle :size="20" />
           {{ error }}
@@ -192,7 +226,7 @@ const hasTree = computed(() => treeData.value.length > 0)
               class="w-full flex items-center gap-2 py-1.5 px-2 rounded-sm text-sm transition-colors"
               :class="
                 selectedId === null
-                  ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300'
+                  ? 'bg-(--color-selected) text-primary-700 dark:text-primary-300'
                   : 'hover:bg-(--color-surface-2) text-(--color-text)'
               "
               @click="pickRoot"
@@ -201,7 +235,7 @@ const hasTree = computed(() => treeData.value.length > 0)
               <span class="truncate">根目录</span>
             </button>
           </li>
-          <BaseTree :data="treeData" @select="onTreeSelect" />
+          <BaseTree :data="treeData" @select="onTreeSelect" @toggle="onTreeToggle" />
         </ul>
       </div>
 

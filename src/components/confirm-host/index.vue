@@ -15,11 +15,13 @@ import {
   getConfirmQueue,
   answerConfirm,
   getPromptQueue,
-  answerPrompt
+  answerPrompt,
+  type ConfirmItem,
+  type PromptItem
 } from '@/composables/useToast'
 
-const current = ref(null)
-const promptCurrent = ref(null)
+const current = ref<ConfirmItem | null>(null)
+const promptCurrent = ref<PromptItem | null>(null)
 const inputValue = ref('')
 const inputError = ref('')
 
@@ -105,8 +107,8 @@ onBeforeUnmount(() => {
         class="shrink-0 size-10 rounded-full flex items-center justify-center"
         :style="
           current.danger
-            ? 'background-color: rgba(239, 68, 68, 0.1); color: var(--color-danger);'
-            : 'background-color: rgba(245, 158, 11, 0.1); color: var(--color-warning);'
+            ? 'background-color: var(--color-danger-bg); color: var(--color-danger-text);'
+            : 'background-color: var(--color-warning-bg); color: var(--color-warning-text);'
         "
       >
         <AlertTriangle v-if="current.danger" :size="20" :stroke-width="2" />
@@ -145,7 +147,7 @@ onBeforeUnmount(() => {
         :error="!!inputError"
         @keydown.enter.prevent="onPromptConfirm"
       />
-      <p v-if="inputError" class="text-xs" style="color: var(--color-danger);">
+      <p v-if="inputError" class="text-xs" style="color: var(--color-danger-text);">
         {{ inputError }}
       </p>
     </div>

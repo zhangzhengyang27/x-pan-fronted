@@ -66,12 +66,12 @@ function goHome(): void {
 <template>
   <div class="min-h-screen flex items-center justify-center bg-(--color-bg) relative overflow-hidden">
     <div class="absolute inset-0 pointer-events-none">
-      <div class="absolute top-[-15%] left-[-5%] w-[55%] h-[55%] rounded-full blur-[140px] opacity-[0.07]" style="background-color: var(--color-primary-500);" />
+      <div class="absolute top-[-15%] left-[-5%] w-[55%] h-[55%] rounded-full blur-[140px] opacity-[0.07]" style="background-color: var(--color-brand-action);" />
     </div>
 
     <div class="w-full max-w-[420px] mx-4 relative z-10">
       <div class="text-center mb-7">
-        <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl mb-5" style="background-color: var(--color-primary-500);">
+        <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl mb-5" style="background-color: var(--color-brand-action);">
           <Cloud :size="22" :stroke-width="2" class="text-white" />
         </div>
         <h1 class="text-2xl font-bold tracking-tight text-(--color-text)">加入团队空间</h1>
@@ -85,12 +85,12 @@ function goHome(): void {
 
         <template v-else-if="error">
           <div class="flex flex-col items-center gap-3 py-4 text-center">
-            <AlertCircle :size="28" :stroke-width="1.75" style="color: var(--color-danger)" />
+            <AlertCircle :size="28" :stroke-width="1.75" style="color: var(--color-danger-text)" />
             <p class="text-sm text-(--color-text-secondary)">{{ error }}</p>
             <button
               type="button"
               class="mt-2 h-9 px-4 rounded-sm text-sm text-white"
-              style="background-color: var(--color-primary-500);"
+              style="background-color: var(--color-brand-action);"
               @click="goHome"
             >
               返回我的文件
@@ -111,14 +111,14 @@ function goHome(): void {
           </div>
 
           <div v-if="preview.alreadyMember" class="mt-5">
-            <div class="flex items-center justify-center gap-2 text-sm mb-4" style="color: var(--color-success)">
+            <div class="flex items-center justify-center gap-2 text-sm mb-4" style="color: var(--color-success-text)">
               <CheckCircle2 :size="16" :stroke-width="1.75" />
               你已经是该空间成员
             </div>
             <button
               type="button"
               class="w-full h-10 rounded-sm text-sm font-medium text-white"
-              style="background-color: var(--color-primary-500);"
+              style="background-color: var(--color-brand-action);"
               @click="spaceStore.switchSpace(preview.spaceId)"
             >
               进入空间
@@ -129,7 +129,7 @@ function goHome(): void {
             type="button"
             :disabled="joining"
             class="w-full h-10 mt-6 rounded-sm text-sm font-medium text-white flex items-center justify-center gap-2"
-            style="background-color: var(--color-primary-500);"
+            style="background-color: var(--color-brand-action);"
             :style="{ opacity: joining ? 0.7 : 1 }"
             @click="doJoin"
           >
