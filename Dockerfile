@@ -12,7 +12,7 @@ COPY . .
 RUN npm run build:nocheck
 
 # 阶段2：运行时（nginx 静态资源）
-FROM nginx:1.27-alpine
+FROM nginx:1.29-alpine
 
 # 自定义 nginx 配置
 COPY --chown=nginx:nginx nginx.conf /etc/nginx/conf.d/default.conf
